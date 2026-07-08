@@ -1,16 +1,62 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-nq-blue: #1f2348;
-  --color-nq-blue-dark: #14173a;
-  --color-nq-blue-darker: #0e1130;
-  --color-nq-card: #262b57;
-  --color-nq-gold: #e9b213;
-  --color-nq-gold-dark: #d5a010;
+  --color-nq-blue: #1f74ff;
+  --color-nq-blue-dark: #1557c7;
+  --color-nq-blue-darker: #101426;
+  --color-accent: #1f74ff;
+  --color-accent-2: #00b7ff;
+  --color-accent-soft: #d9f3ff;
+  --font-sans: "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Semantic tokens — flip with the .dark class on <html> */
+@theme inline {
+  --color-page: var(--nq-page);
+  --color-surface: var(--nq-surface);
+  --color-surface-2: var(--nq-surface-2);
+  --color-ink: var(--nq-ink);
+  --color-muted: var(--nq-muted);
+  --color-line: var(--nq-line);
+  --color-accent-ink: var(--nq-accent-ink);
+}
+
+:root {
+  --nq-page: #f4f7fb;
+  --nq-surface: #ffffff;
+  --nq-surface-2: #eaf1fb;
+  --nq-ink: #151936;
+  --nq-muted: #5d647a;
+  --nq-line: #dce4f0;
+  --nq-accent-ink: #1557c7;
+}
+
+.dark {
+  --nq-page: #101426;
+  --nq-surface: #191f35;
+  --nq-surface-2: #24304c;
+  --nq-ink: #f7f9ff;
+  --nq-muted: #aeb8cc;
+  --nq-line: rgba(212, 225, 247, 0.2);
+  --nq-accent-ink: #7fd8ff;
 }
 
 body {
-  background-color: var(--color-nq-blue-darker);
-  color: #f1f2fa;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--nq-page);
+  background-image:
+    linear-gradient(180deg, rgba(31, 116, 255, 0.08), transparent 260px),
+    linear-gradient(90deg, rgba(0, 183, 255, 0.05), transparent 42%);
+  color: var(--nq-ink);
+  font-family: var(--font-sans);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

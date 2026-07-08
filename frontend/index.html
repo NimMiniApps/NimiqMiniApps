@@ -3,8 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#1F2348" />
+    <meta name="theme-color" content="#F4F7FB" />
+    <meta name="description" content="Discover community-curated mini apps for the Nimiq Pay wallet — games, tools, maps and more, open straight from your wallet." />
     <title>Nimiq Mini Apps</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <script>
+      // Apply theme before first paint to avoid a flash
+      const theme = localStorage.theme
+        ?? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+      document.documentElement.classList.toggle('dark', theme === 'dark')
+    </script>
   </head>
   <body>
     <div id="app"></div>

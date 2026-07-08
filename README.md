@@ -43,6 +43,8 @@ Public: `GET /api/apps` (with `q`, `category`, `status`, `featured`, `sort`),
 Admin (`Authorization: Bearer <ADMIN_TOKEN>`): CRUD under `/api/admin/apps` plus
 `/verify`, `/approve`, `/reject` actions.
 
+**MCP** — see [`mcp/README.md`](mcp/README.md) for a Cursor MCP server that wraps this API.
+
 ## CI
 
 GitHub Actions tests and builds both services on every push/PR, and publishes Docker

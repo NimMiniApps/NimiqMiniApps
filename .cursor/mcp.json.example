@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "nimiq-miniapps": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp/dist/index.js"],
+      "env": {
+        "MINIAPPS_API_URL": "http://localhost:8080",
+        "MINIAPPS_ADMIN_TOKEN": "dev-admin-token-change-me"
+      }
+    }
+  }
+}

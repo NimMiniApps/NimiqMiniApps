@@ -18,20 +18,20 @@ onMounted(async () => {
 </script>
 
 <template>
-  <p v-if="error" class="rounded-xl bg-red-500/20 p-4 text-red-200">{{ error }}</p>
+  <p v-if="error" class="rounded-xl bg-red-500/15 p-4 text-red-600 dark:text-red-300">{{ error }}</p>
   <div v-else-if="dev" class="space-y-5">
     <div class="flex items-center gap-4">
-      <div class="grid h-14 w-14 place-items-center rounded-full bg-nq-gold text-2xl font-extrabold text-nq-blue-darker">
+      <div class="grid h-14 w-14 place-items-center rounded-full bg-nq-blue text-2xl font-extrabold text-white">
         {{ dev.name[0] }}
       </div>
       <div>
         <h1 class="text-2xl font-extrabold">{{ dev.name }}</h1>
-        <p class="text-sm text-white/60">{{ dev.apps.length }} app{{ dev.apps.length === 1 ? '' : 's' }}</p>
+        <p class="text-sm text-muted">{{ dev.apps.length }} app{{ dev.apps.length === 1 ? '' : 's' }}</p>
       </div>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
       <AppCard v-for="app in dev.apps" :key="app.id" :app="app" />
     </div>
   </div>
-  <p v-else class="py-10 text-center text-white/50">Loading…</p>
+  <p v-else class="py-10 text-center text-muted">Loading…</p>
 </template>

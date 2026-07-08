@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nimiq}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-nimiq_miniapps}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nimiq} -d ${POSTGRES_DB:-nimiq_miniapps}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.nimiqminiapps.pgdata == true
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/nimminiapps/nimiq-mini-apps-backend:latest}
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-nimiq}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-nimiq_miniapps}?sslmode=disable
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?ADMIN_TOKEN is required}
+      HTTP_ADDR: ":8080"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    networks:
+      - internal
+      - web
+    deploy:
+      replicas: ${BACKEND_REPLICAS:-1}
+      placement:
+        constraints:
+          - node.labels.nimiqminiapps.pgdata == true
+      labels:
+        traefik.enable: "true"
+        traefik.swarm.network: web
+        traefik.docker.network: web
+        traefik.http.routers.nimiqminiapps-api.entrypoints: websecure
+        traefik.http.routers.nimiqminiapps-api.rule: Host(`api.nimiqminiapps.com`)
+        traefik.http.routers.nimiqminiapps-api.tls: "true"
+        traefik.http.services.nimiqminiapps-api.loadbalancer.server.port: "8080"
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/nimminiapps/nimiq-mini-apps-frontend:latest}
+    networks:
+      - web
+    deploy:
+      replicas: ${FRONTEND_REPLICAS:-1}
+      labels:
+        traefik.enable: "true"
+        traefik.swarm.network: web
+        traefik.docker.network: web
+        traefik.http.routers.nimiqminiapps.entrypoints: websecure
+        traefik.http.routers.nimiqminiapps.rule: Host(`nimiqminiapps.com`)
+        traefik.http.routers.nimiqminiapps.tls: "true"
+        traefik.http.services.nimiqminiapps.loadbalancer.server.port: "80"
+      restart_policy:
+        condition: on-failure
+
+networks:
+  internal:
+    driver: overlay
+  web:
+    external: true
+
+volumes:
+  pgdata:

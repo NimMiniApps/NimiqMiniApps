@@ -3,8 +3,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-# API base stays empty: nginx proxies /api to the backend, so the app is same-origin
-# and works from any host (localhost, LAN IP, domain) without a rebuild.
+ARG VITE_API_BASE_URL=
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 FROM nginx:1.27-alpine

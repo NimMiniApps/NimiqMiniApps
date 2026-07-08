@@ -58,6 +58,8 @@ jobs:
         with:
           context: ${{ matrix.service }}
           push: true
+          build-args: |
+            VITE_API_BASE_URL=${{ matrix.service == 'frontend' && 'https://api.nimiqminiapps.com' || '' }}
           # image names must be lowercase; repo owner is NimMiniApps
           tags: |
             ghcr.io/nimminiapps/nimiq-mini-apps-${{ matrix.service }}:latest

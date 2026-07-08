@@ -20,12 +20,14 @@ func TestValidateApp(t *testing.T) {
 	}
 
 	bad := map[string]func(*App){
-		"uppercase slug":  func(a *App) { a.Slug = "MyApp" },
-		"empty slug":      func(a *App) { a.Slug = "" },
+		"uppercase slug":   func(a *App) { a.Slug = "MyApp" },
+		"empty slug":       func(a *App) { a.Slug = "" },
 		"scheme in domain": func(a *App) { a.Domain = "https://my.app" },
-		"empty name":      func(a *App) { a.Name = "" },
-		"bad status":      func(a *App) { a.Status = "published" },
-		"bad asset":       func(a *App) { a.Assets = []string{"DOGE"} },
+		"empty name":       func(a *App) { a.Name = "" },
+		"bad category":     func(a *App) { a.Category = "Whatever" },
+		"bad status":        func(a *App) { a.Status = "published" },
+		"bad release stage": func(a *App) { a.ReleaseStage = "preview" },
+		"bad asset":         func(a *App) { a.Assets = []string{"DOGE"} },
 	}
 	for name, mutate := range bad {
 		a := valid()
