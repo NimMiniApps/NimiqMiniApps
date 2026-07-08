@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: nimiq
+      POSTGRES_PASSWORD: nimiq
+      POSTGRES_DB: nimiq_miniapps
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nimiq -d nimiq_miniapps"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # Uncomment to reach postgres from the host during development:
+    # ports:
+    #   - "5432:5432"
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgres://nimiq:nimiq@postgres:5432/nimiq_miniapps?sslmode=disable
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-dev-admin-token-change-me}
+      HTTP_ADDR: ":8080"
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

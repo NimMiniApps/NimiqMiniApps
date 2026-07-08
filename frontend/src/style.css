@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-nq-blue: #1f2348;
+  --color-nq-blue-dark: #14173a;
+  --color-nq-blue-darker: #0e1130;
+  --color-nq-card: #262b57;
+  --color-nq-gold: #e9b213;
+  --color-nq-gold-dark: #d5a010;
+}
+
+body {
+  background-color: var(--color-nq-blue-darker);
+  color: #f1f2fa;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
