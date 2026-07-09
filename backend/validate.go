@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"net/url"
 	"regexp"
 	"slices"
 	"strconv"
@@ -15,8 +16,33 @@ var (
 	validStatuses     = []string{"submitted", "approved", "verified", "experimental", "rejected"}
 	validReleaseStage = []string{"concept", "alpha", "beta", "released"}
 	validMediaTypes   = []string{"image", "youtube"}
-	validAssets       = []string{"NIM", "USDT", "BTC", "ETH"}
+	validSocials      = []string{"twitter", "discord", "telegram", "bluesky", "instagram", "youtube", "linkedin", "mastodon", "reddit", "tiktok"}
+	validAssets       = []string{"NIM", "USDT", "USDC", "BTC", "ETH"}
 )
+
+func validateOptionalURL(field string, raw *string) string {
+	if raw == nil || strings.TrimSpace(*raw) == "" {
+		return ""
+	}
+	u, err := url.Parse(*raw)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return field + " must be a valid http or https URL"
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return field + " must use http or https"
+	}
+	return ""
+}
+
+func validateSubmitterContact(contact string) string {
+	if strings.TrimSpace(contact) == "" {
+		return "submitter_contact is required (e.g. Telegram @handle or email)"
+	}
+	if len(contact) > 200 {
+		return "submitter_contact must be at most 200 characters"
+	}
+	return ""
+}
 
 func validateApp(a *App) error {
 	var problems []string
@@ -58,6 +84,35 @@ func validateApp(a *App) error {
 		}
 		if item.Type == "youtube" && !youtubeURLRe.MatchString(item.URL) {
 			problems = append(problems, "media item "+strconv.Itoa(i+1)+" is not a valid YouTube URL")
+		}
+		if item.Type == "image" {
+			if msg := validateOptionalURL("media item "+strconv.Itoa(i+1)+" url", &item.URL); msg != "" {
+				problems = append(problems, msg)
+			}
+		}
+	}
+	for i, item := range a.Socials {
+		platform := strings.ToLower(strings.TrimSpace(item.Platform))
+		if !slices.Contains(validSocials, platform) {
+			problems = append(problems, "social item "+strconv.Itoa(i+1)+" platform must be one of: "+strings.Join(validSocials, ", "))
+		}
+		if strings.TrimSpace(item.URL) == "" {
+			problems = append(problems, "social item "+strconv.Itoa(i+1)+" url is required")
+		} else if msg := validateOptionalURL("social item "+strconv.Itoa(i+1)+" url", &item.URL); msg != "" {
+			problems = append(problems, msg)
+		}
+	}
+	for _, field := range []struct {
+		name string
+		val  *string
+	}{
+		{"website_url", a.WebsiteURL},
+		{"github_url", a.GithubURL},
+		{"icon_url", a.IconURL},
+		{"banner_url", a.BannerURL},
+	} {
+		if msg := validateOptionalURL(field.name, field.val); msg != "" {
+			problems = append(problems, msg)
 		}
 	}
 	for _, asset := range a.Assets {

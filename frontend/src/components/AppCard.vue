@@ -4,6 +4,9 @@ import type { App } from '../api'
 import { useIsMobileDevice } from '../utils/device'
 import StatusBadge from '../components/StatusBadge.vue'
 import ReleaseStageBadge from './ReleaseStageBadge.vue'
+import DomainStatus from './DomainStatus.vue'
+import AppIcon from './AppIcon.vue'
+import HostedByBadge from './HostedByBadge.vue'
 
 const isMobile = useIsMobileDevice()
 
@@ -38,6 +41,9 @@ const identityTheme = computed(() => {
   const themeIndex = [...source].reduce((sum, char) => sum + char.charCodeAt(0), 0) % appIdentityThemes.length
   return appIdentityThemes[themeIndex]
 })
+
+const previewTags = computed(() => props.app.tags.slice(0, 3))
+const extraTagCount = computed(() => Math.max(0, props.app.tags.length - previewTags.value.length))
 </script>
 
 <template>
@@ -47,19 +53,19 @@ const identityTheme = computed(() => {
   >
     <div class="absolute inset-x-0 top-0 h-1.5" :style="{ backgroundColor: identityTheme.accent }" aria-hidden="true"></div>
     <div class="flex items-start gap-3">
-      <img v-if="app.icon_url" :src="app.icon_url" :alt="app.name" loading="lazy" class="h-12 w-12 rounded-xl object-cover" />
-      <div
-        v-else
-        class="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-xl font-extrabold text-white shadow-sm"
-        :style="{ backgroundColor: identityTheme.accent }"
-      >
-        {{ app.name[0] }}
-      </div>
+      <AppIcon :app="app" />
       <div class="min-w-0">
         <div class="flex items-center gap-2">
           <h3 class="truncate font-bold">{{ app.name }}</h3>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
+          <HostedByBadge :domain="app.domain" />
+          <DomainStatus
+            v-if="app.domain_reachable != null"
+            :reachable="app.domain_reachable"
+            show-online
+            compact
+          />
         </div>
         <p class="text-sm text-muted line-clamp-2">{{ app.tagline }}</p>
       </div>
@@ -70,8 +76,18 @@ const identityTheme = computed(() => {
         class="rounded-full px-2 py-0.5 font-semibold ring-1"
         :style="{ backgroundColor: categoryTheme.soft, color: categoryTheme.ink, borderColor: categoryTheme.accent }"
       >{{ app.category }}</span>
-      <span v-for="asset in app.assets" :key="asset" class="rounded-full bg-surface-2 px-2 py-0.5 font-semibold text-ink">{{ asset }}</span>
-      <span v-for="tag in app.tags" :key="tag" class="rounded-full bg-surface-2 px-2 py-0.5 text-muted">#{{ tag }}</span>
+      <span v-for="asset in app.assets" :key="asset"
+        class="rounded-full bg-surface-2 px-2 py-0.5 font-semibold text-ink">
+        <RouterLink :to="`/apps?asset=${encodeURIComponent(asset)}`"
+          class="transition-colors hover:text-accent-ink">{{ asset }}</RouterLink>
+      </span>
+      <span v-for="tag in previewTags" :key="tag" class="rounded-full bg-surface-2 px-2 py-0.5 text-muted">
+        <RouterLink :to="`/apps?tag=${encodeURIComponent(tag)}`"
+          class="transition-colors hover:text-accent-ink">#{{ tag }}</RouterLink>
+      </span>
+      <span v-if="extraTagCount" class="rounded-full px-2 py-0.5 text-muted/80">
+        +{{ extraTagCount }} more
+      </span>
     </div>
 
     <div class="mt-auto flex gap-2">

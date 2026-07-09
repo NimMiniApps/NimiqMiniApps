@@ -8,9 +8,16 @@ const styles: Record<string, string> = {
   submitted: 'bg-surface-2 text-muted',
   rejected: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
 }
+
+const titles: Record<string, string> = {
+  verified: 'Reviewed and verified by the directory moderators',
+  approved: 'Approved and listed in the public directory',
+  experimental: 'Early or experimental — may change or break',
+}
 </script>
 
 <template>
   <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-    :class="styles[status] || styles.submitted">{{ status }}</span>
+    :class="styles[status] || styles.submitted"
+    :title="titles[status]">{{ status }}</span>
 </template>

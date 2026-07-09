@@ -1,23 +1,32 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
-  APP_CATEGORIES, APP_RELEASE_STAGES, adminListApps, adminCreateApp, adminUpdateApp, adminDeleteApp, adminSetStatus, type App,
+  APP_CATEGORIES, APP_RELEASE_STAGES, adminListApps, adminCreateApp, adminUpdateApp, adminDeleteApp, adminSetStatus, adminCheckDomains,
+  adminListRevisions, adminApproveRevision, adminRejectRevision, type App, type RevisionReviewItem,
 } from '../api'
 import StatusBadge from '../components/StatusBadge.vue'
 import ReleaseStageBadge from '../components/ReleaseStageBadge.vue'
 import { formatMediaLines, parseMediaLines } from '../utils/media'
+import { formatSocialLines, parseSocialLines } from '../utils/socials'
+import { diffRevision } from '../utils/revisionDiff'
 
+const route = useRoute()
+const router = useRouter()
 const token = ref(localStorage.getItem('admin_token') || '')
 const apps = ref<App[]>([])
+const pendingRevisions = ref<RevisionReviewItem[]>([])
 const error = ref('')
 const notice = ref('')
 const reordering = ref(false)
+const checkingDomains = ref(false)
 
 const emptyForm = {
   slug: '', name: '', domain: '', category: '', developer_slug: '', developer_name: '',
   tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', status: 'submitted',
   release_stage: 'released', featured: false, featured_order: 0,
-  website_url: '', github_url: '', icon_url: '', banner_url: '', media: '',
+  website_url: '', github_url: '', icon_url: '', banner_url: '', media: '', socials: '',
+  submitter_contact: '',
 }
 const form = reactive({ ...emptyForm })
 const editingSlug = ref('') // '' = create mode
@@ -32,10 +41,25 @@ function saveToken() {
 async function load() {
   error.value = ''
   try {
-    apps.value = await adminListApps()
+    const [listed, revisions] = await Promise.all([
+      adminListApps(),
+      adminListRevisions().catch(() => [] as RevisionReviewItem[]),
+    ])
+    apps.value = listed
+    pendingRevisions.value = revisions
+    openEditFromQuery()
   } catch (e) {
     error.value = (e as Error).message
   }
+}
+
+function openEditFromQuery() {
+  const slug = route.query.edit
+  if (typeof slug !== 'string' || !slug) return
+  const app = apps.value.find((entry) => entry.slug === slug)
+  if (!app) return
+  startEdit(app)
+  router.replace({ query: { ...route.query, edit: undefined } })
 }
 
 function startCreate() {
@@ -55,6 +79,8 @@ function startEdit(app: App) {
     website_url: app.website_url || '', github_url: app.github_url || '',
     icon_url: app.icon_url || '', banner_url: app.banner_url || '',
     media: formatMediaLines(app.media),
+    socials: formatSocialLines(app.socials),
+    submitter_contact: app.submitter_contact || '',
   })
   editingSlug.value = app.slug
   showForm.value = true
@@ -69,6 +95,7 @@ async function submit() {
     tags: csv(form.tags),
     assets: csv(form.assets),
     media: parseMediaLines(form.media),
+    socials: parseSocialLines(form.socials),
     website_url: form.website_url || null,
     github_url: form.github_url || null,
     icon_url: form.icon_url || null,
@@ -120,6 +147,57 @@ const featuredApps = computed(() =>
     }),
 )
 
+const pendingApps = computed(() =>
+  apps.value.filter((app) => app.status === 'submitted'),
+)
+
+const unreachableApps = computed(() =>
+  apps.value.filter((app) => app.domain_reachable === false),
+)
+
+function formatCheckedAt(iso: string | null) {
+  if (!iso) return 'never'
+  return new Date(iso).toLocaleString()
+}
+
+async function recheckDomains() {
+  checkingDomains.value = true
+  error.value = ''
+  try {
+    await adminCheckDomains()
+    notice.value = 'Domain health check complete.'
+    await load()
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    checkingDomains.value = false
+  }
+}
+
+async function approveRevision(item: RevisionReviewItem) {
+  try {
+    await adminApproveRevision(item.revision.id)
+    notice.value = `Approved update for ${item.revision.name}.`
+    await load()
+  } catch (e) {
+    error.value = (e as Error).message
+  }
+}
+
+async function rejectRevision(item: RevisionReviewItem) {
+  try {
+    await adminRejectRevision(item.revision.id)
+    notice.value = `Rejected update for ${item.revision.name}.`
+    await load()
+  } catch (e) {
+    error.value = (e as Error).message
+  }
+}
+
+function revisionChanges(item: RevisionReviewItem) {
+  return diffRevision(item.current, item.revision)
+}
+
 async function moveFeatured(app: App, direction: -1 | 1) {
   const ordered = featuredApps.value
   const i = ordered.findIndex((entry) => entry.id === app.id)
@@ -154,9 +232,10 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
   ['domain', 'Domain (no https://)', true],
   ['developer_slug', 'Developer slug', true],
   ['developer_name', 'Developer name', true],
+  ['submitter_contact', 'Submitter contact (private)', false],
   ['tagline', 'Tagline', true],
   ['tags', 'Tags (comma-separated)', false],
-  ['assets', 'Assets (NIM, USDT, BTC, ETH)', false],
+  ['assets', 'Assets (NIM, USDT, USDC, BTC, ETH)', false],
   ['website_url', 'Website URL', false],
   ['github_url', 'GitHub URL', false],
   ['icon_url', 'Icon URL', false],
@@ -183,6 +262,11 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
     <button v-if="!showForm" @click="startCreate"
       class="rounded-xl border border-accent/50 px-4 py-2.5 font-bold text-accent-ink hover:bg-accent/10">
       + New app
+    </button>
+
+    <button v-if="!showForm" type="button" @click="recheckDomains" :disabled="checkingDomains"
+      class="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold hover:bg-surface-2 disabled:opacity-50">
+      {{ checkingDomains ? 'Checking domains…' : 'Recheck all domains' }}
     </button>
 
     <!-- create / edit form -->
@@ -233,11 +317,18 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
         <span class="mb-1 block text-muted">Full description</span>
         <textarea v-model="form.long_description" rows="5"
           class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"></textarea>
+        <span class="mt-1 block text-xs text-muted">Markdown supported in full description.</span>
       </label>
       <label class="block text-sm">
         <span class="mb-1 block text-muted">Screenshots &amp; video (one URL per line)</span>
         <textarea v-model="form.media" rows="4"
           class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"></textarea>
+      </label>
+      <label class="block text-sm">
+        <span class="mb-1 block text-muted">Social links (platform URL per line)</span>
+        <textarea v-model="form.socials" rows="3" placeholder="twitter https://x.com/myapp&#10;discord: https://discord.gg/abc"
+          class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"></textarea>
+        <span class="mt-1 block text-xs text-muted">twitter, discord, telegram, bluesky, instagram, youtube, linkedin, mastodon, reddit, tiktok</span>
       </label>
       <div class="flex gap-2">
         <button type="submit" class="rounded-xl bg-nq-blue px-5 py-2 font-bold text-white hover:bg-nq-blue-dark">
@@ -248,6 +339,87 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
         </button>
       </div>
     </form>
+
+    <section v-if="!showForm && pendingApps.length" class="space-y-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
+      <div>
+        <h2 class="font-bold">Pending review ({{ pendingApps.length }})</h2>
+        <p class="text-sm text-muted">New submissions waiting for approval.</p>
+      </div>
+      <div class="space-y-2">
+        <div v-for="app in pendingApps" :key="app.id"
+          class="flex flex-col gap-3 rounded-xl border border-line bg-surface px-3 py-3 sm:flex-row sm:items-center">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold">{{ app.name }}</p>
+            <p class="truncate text-xs text-muted">{{ app.slug }} · {{ app.domain }}</p>
+            <p v-if="app.submitter_contact" class="mt-1 text-xs text-muted">
+              Contact: <span class="font-medium text-ink">{{ app.submitter_contact }}</span>
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
+            <button @click="setStatus(app, 'approve')" class="rounded-lg bg-sky-500/20 px-2.5 py-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-500/30">Approve</button>
+            <button @click="setStatus(app, 'reject')" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Reject</button>
+            <button @click="startEdit(app)" class="rounded-lg bg-surface-2 px-2.5 py-1.5 hover:bg-line">Edit</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section v-if="!showForm && pendingRevisions.length" class="space-y-3 rounded-2xl border border-sky-500/30 bg-sky-500/10 p-5">
+      <div>
+        <h2 class="font-bold">Pending updates ({{ pendingRevisions.length }})</h2>
+        <p class="text-sm text-muted">Author-requested changes waiting for approval. Live listings stay unchanged until you approve.</p>
+      </div>
+      <div v-for="item in pendingRevisions" :key="item.revision.id" class="space-y-3 rounded-xl border border-line bg-surface p-4">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="font-semibold">{{ item.revision.name }} <span class="font-normal text-muted">({{ item.revision.app_slug }})</span></p>
+            <p v-if="item.revision.author_note" class="mt-1 text-sm text-muted">Author note: {{ item.revision.author_note }}</p>
+            <p class="text-xs text-muted">Requested {{ new Date(item.revision.created_at).toLocaleString() }}</p>
+          </div>
+          <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
+            <button @click="approveRevision(item)" class="rounded-lg bg-emerald-500/20 px-2.5 py-1.5 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/30">Approve</button>
+            <button @click="rejectRevision(item)" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Reject</button>
+            <RouterLink :to="`/apps/${item.revision.app_slug}`" class="rounded-lg bg-surface-2 px-2.5 py-1.5 hover:bg-line">View live</RouterLink>
+          </div>
+        </div>
+        <div v-if="revisionChanges(item).length" class="overflow-x-auto rounded-lg border border-line bg-surface-2 text-xs">
+          <table class="w-full min-w-[28rem]">
+            <thead>
+              <tr class="border-b border-line text-left text-muted">
+                <th class="px-3 py-2 font-semibold">Field</th>
+                <th class="px-3 py-2 font-semibold">Current</th>
+                <th class="px-3 py-2 font-semibold">Proposed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="change in revisionChanges(item)" :key="change.field" class="border-b border-line/60 align-top last:border-0">
+                <td class="px-3 py-2 font-semibold">{{ change.label }}</td>
+                <td class="px-3 py-2 text-muted whitespace-pre-wrap">{{ change.before }}</td>
+                <td class="px-3 py-2 whitespace-pre-wrap">{{ change.after }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else class="text-sm text-muted">No field changes detected (duplicate submission?).</p>
+      </div>
+    </section>
+
+    <section v-if="!showForm && unreachableApps.length" class="space-y-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
+      <div>
+        <h2 class="font-bold">Unreachable domains ({{ unreachableApps.length }})</h2>
+        <p class="text-sm text-muted">HTTPS probe failed for these domains. Users may not be able to open the app.</p>
+      </div>
+      <div class="space-y-2">
+        <div v-for="app in unreachableApps" :key="app.id"
+          class="flex flex-col gap-2 rounded-xl border border-line bg-surface px-3 py-3 sm:flex-row sm:items-center">
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold">{{ app.name }}</p>
+            <p class="truncate text-xs text-muted">{{ app.domain }} · checked {{ formatCheckedAt(app.domain_checked_at) }}</p>
+          </div>
+          <button @click="startEdit(app)" class="rounded-lg bg-surface-2 px-2.5 py-1.5 text-xs font-semibold hover:bg-line">Edit</button>
+        </div>
+      </div>
+    </section>
 
     <section v-if="!showForm && featuredApps.length" class="space-y-3 rounded-2xl border border-line bg-surface p-5">
       <div>
@@ -293,6 +465,8 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
             <span class="font-bold">{{ app.name }}</span>
             <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
             <StatusBadge :status="app.status" />
+            <span v-if="app.domain_reachable === false" class="rounded-full bg-red-500/20 px-2 py-0.5 text-xs font-bold text-red-600 dark:text-red-300" title="Domain unreachable">offline</span>
+            <span v-else-if="app.domain_reachable === true" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-300" title="Domain reachable">online</span>
             <span v-if="app.featured" class="text-accent-ink" title="Featured">★</span>
           </div>
           <p class="truncate text-sm text-muted">{{ app.slug }} · {{ app.domain }}</p>

@@ -8,11 +8,22 @@ import * as api from './api.js'
 const categories = z.enum(['Games', 'Utilities', 'Finance', 'Maps', 'Social', 'Experiments'])
 const statuses = z.enum(['submitted', 'approved', 'verified', 'experimental', 'rejected'])
 const releaseStages = z.enum(['concept', 'alpha', 'beta', 'released'])
-const assets = z.enum(['NIM', 'USDT', 'BTC', 'ETH'])
+const assets = z.enum(['NIM', 'USDT', 'USDC', 'BTC', 'ETH'])
 const mediaItem = z.object({
   type: z.enum(['image', 'youtube']),
   url: z.string(),
 })
+const socialItem = z.object({
+  platform: z.enum(['twitter', 'discord', 'telegram', 'bluesky', 'instagram', 'youtube', 'linkedin', 'mastodon', 'reddit', 'tiktok']),
+  url: z.string(),
+})
+
+const descriptionField = z.string().optional().describe(
+  'Plain-text short summary for listings and SEO. Keep to 1–3 sentences; no Markdown.',
+)
+const longDescriptionField = z.string().optional().describe(
+  'Full About text for the app detail page. Markdown supported: **bold**, lists, [links](https://…), ## headings, `code`. Short description stays plain text when both are set.',
+)
 
 const appFields = {
   slug: z.string().describe('URL-safe id, lowercase with hyphens'),
@@ -21,9 +32,9 @@ const appFields = {
   category: categories,
   developer_slug: z.string(),
   developer_name: z.string(),
-  tagline: z.string(),
-  description: z.string().optional(),
-  long_description: z.string().optional(),
+  tagline: z.string().describe('One-line pitch shown on cards and in search results'),
+  description: descriptionField,
+  long_description: longDescriptionField,
   tags: z.array(z.string()).optional(),
   assets: z.array(assets).optional(),
   status: statuses.optional(),
@@ -34,6 +45,10 @@ const appFields = {
   icon_url: z.string().nullable().optional(),
   banner_url: z.string().nullable().optional(),
   media: z.array(mediaItem).optional(),
+  socials: z.array(socialItem).optional(),
+  submitter_contact: z.string().optional().describe(
+    'Private contact for the submitter (Telegram @handle, email, etc.). Required for public /api/apps/submit; admin-only in API responses.',
+  ),
 }
 
 function toolError(error: unknown) {
@@ -71,8 +86,10 @@ server.registerTool(
   {
     description: 'List public catalog apps with optional filters',
     inputSchema: {
-      q: z.string().optional().describe('Search name, tagline, or description'),
+      q: z.string().optional().describe('Search name, tagline, description, tags, assets, or developer'),
       category: categories.optional(),
+      tag: z.string().optional().describe('Filter by exact tag match'),
+      asset: z.string().optional().describe('Filter by asset (NIM, USDT, USDC, BTC, ETH)'),
       status: statuses.optional().describe('Defaults to approved, verified, and experimental'),
       featured: z.boolean().optional(),
       sort: z.enum(['featured', 'newest', 'name']).optional(),
@@ -90,7 +107,7 @@ server.registerTool(
 server.registerTool(
   'get_app',
   {
-    description: 'Get one app by slug from the public catalog',
+    description: 'Get one app by slug from the public catalog. long_description is Markdown source; rendered on the website detail page.',
     inputSchema: { slug: z.string() },
   },
   async ({ slug }) => {
@@ -130,6 +147,33 @@ server.registerTool(
 )
 
 server.registerTool(
+  'list_developers',
+  { description: 'List all developers with public app counts' },
+  async () => {
+    try {
+      return api.asToolResult(await api.listDevelopers())
+    } catch (error) {
+      return toolError(error)
+    }
+  },
+)
+
+server.registerTool(
+  'get_related_apps',
+  {
+    description: 'Get up to 4 related public apps (same developer or category)',
+    inputSchema: { slug: z.string().describe('App slug') },
+  },
+  async ({ slug }) => {
+    try {
+      return api.asToolResult(await api.getRelatedApps(slug))
+    } catch (error) {
+      return toolError(error)
+    }
+  },
+)
+
+server.registerTool(
   'admin_list_apps',
   { description: 'List all apps including submitted and rejected (requires admin token)' },
   async () => {
@@ -144,7 +188,7 @@ server.registerTool(
 server.registerTool(
   'admin_create_app',
   {
-    description: 'Create a new app (requires admin token)',
+    description: 'Create a new app (requires admin token). Use plain text for description; Markdown in long_description for the detail page About section.',
     inputSchema: appFields,
   },
   async (fields) => {
@@ -161,7 +205,7 @@ const { slug: _slugSchema, ...mutableAppFields } = appFields
 server.registerTool(
   'admin_update_app',
   {
-    description: 'Update an app by slug; merges with the current record (requires admin token)',
+    description: 'Update an app by slug; merges with the current record (requires admin token). long_description supports Markdown on the detail page.',
     inputSchema: {
       slug: z.string().describe('Slug of the app to update'),
       ...Object.fromEntries(

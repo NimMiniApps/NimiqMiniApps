@@ -1,15 +1,24 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { APP_CATEGORIES, APP_RELEASE_STAGES, submitApp } from '../api'
-import { parseMediaLines } from '../utils/media'
+import { APP_CATEGORIES, APP_RELEASE_STAGES, submitApp, type MediaItem, type SocialLink } from '../api'
+import SocialLinksEditor from '../components/SocialLinksEditor.vue'
+import MediaEditor from '../components/MediaEditor.vue'
+import { CATALOG_ISSUES_URL } from '../utils/catalogLinks'
+
+const socialEditor = ref<InstanceType<typeof SocialLinksEditor>>()
+const mediaEditor = ref<InstanceType<typeof MediaEditor>>()
+const socials = ref<SocialLink[]>([])
+const media = ref<MediaItem[]>([])
 
 const form = reactive({
   name: '', slug: '', domain: '', category: '', developer_slug: '', developer_name: '',
   tagline: '', description: '', long_description: '', release_stage: 'beta', tags: '', assets: 'NIM',
-  website_url: '', github_url: '', media: '',
+  icon_url: '', banner_url: '', website_url: '', github_url: '',
+  submitter_contact: '',
 })
 const error = ref('')
 const submitted = ref(false)
+const submittedSlug = ref('')
 const submitting = ref(false)
 const slugTouched = ref(false)
 
@@ -32,10 +41,14 @@ async function submit() {
       developer_slug: slugify(form.developer_slug || form.developer_name),
       tags: csv(form.tags),
       assets: csv(form.assets),
-      media: parseMediaLines(form.media),
+      media: mediaEditor.value?.validate() ?? [],
+      socials: socialEditor.value?.validate() ?? [],
+      icon_url: form.icon_url || null,
+      banner_url: form.banner_url || null,
       website_url: form.website_url || null,
       github_url: form.github_url || null,
     })
+    submittedSlug.value = slugify(form.slug)
     submitted.value = true
   } catch (e) {
     error.value = (e as Error).message
@@ -49,9 +62,12 @@ const fields: [keyof typeof form, string, boolean, string][] = [
   ['slug', 'Slug', true, 'my-mini-app'],
   ['domain', 'Domain (no https://)', true, 'myapp.example.com'],
   ['developer_name', 'Developer name', true, 'Your name or team'],
+  ['submitter_contact', 'Contact (Telegram, email, etc.)', true, '@yourhandle or you@example.com'],
   ['tagline', 'Tagline', true, 'One sentence about your app'],
   ['tags', 'Tags (comma-separated)', false, 'games, multiplayer'],
-  ['assets', 'Assets (NIM, USDT, BTC, ETH)', false, 'NIM'],
+  ['assets', 'Assets (NIM, USDT, USDC, BTC, ETH)', false, 'NIM'],
+  ['icon_url', 'Icon URL', false, 'https://…'],
+  ['banner_url', 'Banner URL', false, 'https://…'],
   ['website_url', 'Website URL', false, 'https://…'],
   ['github_url', 'GitHub URL', false, 'https://github.com/…'],
 ]
@@ -62,9 +78,12 @@ const fields: [keyof typeof form, string, boolean, string][] = [
     <template v-if="!submitted">
       <div>
         <h1 class="text-2xl font-extrabold">Submit your app</h1>
-        <p class="mt-1 text-muted">
+        <p class="mt-1 text-sm text-muted">
           Get your Nimiq Pay mini app listed in the directory — beta apps welcome. Submissions
-          are reviewed before they appear publicly.
+          are reviewed before they appear publicly. We need a way to reach you if we have questions.
+          You can also
+          <a :href="CATALOG_ISSUES_URL" target="_blank" rel="noopener" class="font-semibold text-accent-ink hover:underline">open a GitHub issue</a>
+          if you need help or want to follow up.
         </p>
       </div>
 
@@ -103,13 +122,16 @@ const fields: [keyof typeof form, string, boolean, string][] = [
           <span class="mb-1 block font-semibold text-muted">Full description</span>
           <textarea v-model="form.long_description" rows="6" placeholder="Features, gameplay, how it works — shown on the detail page"
             class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"></textarea>
+          <span class="mt-1 block text-xs text-muted">Markdown supported: **bold**, lists, [links](https://…), ## headings.</span>
         </label>
-        <label class="block text-sm">
-          <span class="mb-1 block font-semibold text-muted">Screenshots &amp; video</span>
-          <textarea v-model="form.media" rows="4" placeholder="One URL per line — image links or YouTube URLs"
-            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"></textarea>
-          <span class="mt-1 block text-xs text-muted">Paste screenshot image URLs or YouTube links, one per line.</span>
-        </label>
+        <div class="block text-sm">
+          <span class="mb-2 block font-semibold text-muted">Screenshots &amp; video</span>
+          <MediaEditor ref="mediaEditor" v-model="media" />
+        </div>
+        <div class="block text-sm">
+          <span class="mb-2 block font-semibold text-muted">Social links</span>
+          <SocialLinksEditor ref="socialEditor" v-model="socials" />
+        </div>
         <button type="submit" :disabled="submitting"
           class="w-full cursor-pointer rounded-xl bg-nq-blue px-5 py-3 font-bold text-white transition duration-200 hover:bg-nq-blue-dark disabled:cursor-default disabled:opacity-60 sm:w-auto">
           {{ submitting ? 'Submitting…' : 'Submit for review' }}
@@ -124,9 +146,23 @@ const fields: [keyof typeof form, string, boolean, string][] = [
       </svg>
       <h1 class="mt-3 text-xl font-extrabold">Thanks, {{ form.name }} is submitted!</h1>
       <p class="mt-1 text-muted">It will appear in the directory once it's reviewed and approved.</p>
-      <RouterLink to="/apps" class="mt-5 inline-block cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 font-bold text-white transition duration-200 hover:bg-nq-blue-dark">
-        Browse apps
-      </RouterLink>
+      <p class="mt-3 text-sm text-muted">
+        Track review status at
+        <RouterLink :to="`/status/${submittedSlug}`" class="font-semibold text-accent-ink hover:underline">
+          /status/{{ submittedSlug }}
+        </RouterLink>
+        ·
+        <a :href="CATALOG_ISSUES_URL" target="_blank" rel="noopener" class="font-semibold text-accent-ink hover:underline">GitHub issues</a>
+      </p>
+      <div class="mt-5 flex flex-wrap justify-center gap-2">
+        <RouterLink :to="`/status/${submittedSlug}`"
+          class="inline-block cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 font-bold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+          Check status
+        </RouterLink>
+        <RouterLink to="/apps" class="inline-block cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 font-bold text-white transition duration-200 hover:bg-nq-blue-dark">
+          Browse apps
+        </RouterLink>
+      </div>
     </div>
   </div>
 </template>

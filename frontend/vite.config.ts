@@ -12,6 +12,9 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8080',
       '/health': 'http://localhost:8080',
+      '/sitemap.xml': 'http://localhost:8080',
+      '/robots.txt': 'http://localhost:8080',
+      '/og': 'http://localhost:8080',
     },
   },
 })

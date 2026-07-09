@@ -12,26 +12,27 @@ npm run build
 
 ## Cursor configuration
 
+This repo includes a `.cursor/mcp.json` that runs `mcp/run-with-env.sh`.
+The launcher loads the repository `.env`, maps `ADMIN_TOKEN` to
+`MINIAPPS_ADMIN_TOKEN`, and defaults `MINIAPPS_API_URL` to
+`https://api.nimiqminiapps.com`.
+
 Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
 
 ```json
 {
   "mcpServers": {
     "nimiq-miniapps": {
-      "command": "node",
-      "args": ["/absolute/path/to/NimiqMiniApps/mcp/dist/index.js"],
-      "env": {
-        "MINIAPPS_API_URL": "http://localhost:8080",
-        "MINIAPPS_ADMIN_TOKEN": "dev-admin-token-change-me"
-      }
+      "command": "/absolute/path/to/NimiqMiniApps/mcp/run-with-env.sh",
+      "args": []
     }
   }
 }
 ```
 
-For local dev with `docker compose up`, use the default API URL and admin token from the root README.
-
-For production, set `MINIAPPS_API_URL` to your deployed API origin and use a strong `MINIAPPS_ADMIN_TOKEN`. Never commit real tokens.
+For local dev with `docker compose up`, set `MINIAPPS_API_URL=http://localhost:8080`
+in `.env`. For production, keep `ADMIN_TOKEN` or `MINIAPPS_ADMIN_TOKEN` in `.env`.
+Never commit real tokens.
 
 During development you can run without building:
 
@@ -59,6 +60,20 @@ During development you can run without building:
 | `admin_approve_app` | admin | Set status to approved |
 | `admin_verify_app` | admin | Set status to verified |
 | `admin_reject_app` | admin | Set status to rejected |
+
+## Catalog field notes
+
+When creating or updating apps via MCP (or the REST API):
+
+| Field | Format | Notes |
+|-------|--------|--------|
+| `tagline` | Plain text | Shown on app cards |
+| `description` | Plain text | Short summary; listings / meta |
+| `long_description` | **Markdown** | Rendered on the app detail page (bold, lists, links, headings, code). HTML is stripped. |
+| `submitter_contact` | Plain text | Required for public submit; admin-only (Telegram, email, etc.) |
+| `socials` | `{ platform, url }[]` | App's public social links — not the same as submitter contact |
+
+Public `get_app` / `list_apps` responses omit `submitter_contact`. Use `admin_list_apps` to see it.
 
 ## Environment
 

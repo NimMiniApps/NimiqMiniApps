@@ -61,11 +61,22 @@ export async function healthCheck() {
 export async function listApps(params: {
   q?: string
   category?: string
+  developer?: string
+  tag?: string
+  asset?: string
   status?: string
   featured?: boolean
   sort?: 'featured' | 'newest' | 'name'
+  limit?: number
+  offset?: number
+  paginate?: boolean
 }) {
-  return request(`/api/apps${buildQuery(params)}`)
+  const query: Record<string, string> = {}
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === '') continue
+    query[key] = String(value)
+  }
+  return request(`/api/apps${buildQuery(query)}`)
 }
 
 export async function getApp(slug: string) {
@@ -78,6 +89,14 @@ export async function listCategories() {
 
 export async function getDeveloper(slug: string) {
   return request(`/api/developers/${encodeURIComponent(slug)}`)
+}
+
+export async function listDevelopers() {
+  return request('/api/developers')
+}
+
+export async function getRelatedApps(slug: string) {
+  return request(`/api/apps/${encodeURIComponent(slug)}/related`)
 }
 
 // --- admin ---

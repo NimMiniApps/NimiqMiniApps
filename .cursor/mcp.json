@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "nimiq-miniapps": {
+      "command": "/home/maestro/Documents/projects/NimiqMiniApps/mcp/run-with-env.sh",
+      "args": []
+    }
+  }
+}

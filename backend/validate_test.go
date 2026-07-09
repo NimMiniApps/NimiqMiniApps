@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidateApp(t *testing.T) {
 	valid := func() App {
@@ -28,6 +31,10 @@ func TestValidateApp(t *testing.T) {
 		"bad status":        func(a *App) { a.Status = "published" },
 		"bad release stage": func(a *App) { a.ReleaseStage = "preview" },
 		"bad asset":         func(a *App) { a.Assets = []string{"DOGE"} },
+		"bad website url":   func(a *App) { u := "not-a-url"; a.WebsiteURL = &u },
+		"bad icon url":      func(a *App) { u := "ftp://bad"; a.IconURL = &u },
+		"bad social":        func(a *App) { a.Socials = []SocialLink{{Platform: "twitter", URL: "not-a-url"}} },
+		"bad social platform": func(a *App) { a.Socials = []SocialLink{{Platform: "myspace", URL: "https://example.com"}} },
 	}
 	for name, mutate := range bad {
 		a := valid()
@@ -35,5 +42,20 @@ func TestValidateApp(t *testing.T) {
 		if err := validateApp(&a); err == nil {
 			t.Errorf("%s: expected error, got none", name)
 		}
+	}
+}
+
+func TestValidateSubmitterContact(t *testing.T) {
+	if msg := validateSubmitterContact(""); msg == "" {
+		t.Fatal("expected error for empty contact")
+	}
+	if msg := validateSubmitterContact("  "); msg == "" {
+		t.Fatal("expected error for whitespace contact")
+	}
+	if msg := validateSubmitterContact("@dev"); msg != "" {
+		t.Fatalf("valid contact rejected: %q", msg)
+	}
+	if msg := validateSubmitterContact(strings.Repeat("a", 201)); msg == "" {
+		t.Fatal("expected error for long contact")
 	}
 }

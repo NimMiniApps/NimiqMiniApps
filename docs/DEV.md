@@ -132,7 +132,9 @@ curl $API/api/admin/apps -H "Authorization: Bearer $TOKEN"
 
 # public reads
 curl "$API/api/apps?q=game&category=Games&sort=newest"
+curl "$API/api/apps?paginate=1&limit=20&offset=0"
 curl $API/api/apps/nimbomber
+curl $API/og/apps/nimbomber
 curl $API/api/categories
 curl $API/api/developers/maestro
 curl $API/health
@@ -147,6 +149,53 @@ curl $API/health
 - Developers self-submit at `/submit` on the site (or `POST /api/apps/submit`); new
   submissions land as `submitted` and appear publicly once approved in `/admin`.
 - Backend is stateless (config via env, no local files) — Swarm-ready as-is.
+
+### Optional backend env
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `SITE_URL` | `https://nimiqminiapps.com` | Frontend origin used in `sitemap.xml` links |
+| `API_PUBLIC_URL` | same as `SITE_URL` | Origin referenced in `robots.txt` sitemap line |
+| `SUBMIT_WEBHOOK_URL` | _(empty)_ | POST JSON payload when a public submission is created |
+| `DOMAIN_CHECK_ENABLED` | `true` | Periodic HTTPS probe of app domains |
+| `DOMAIN_CHECK_INTERVAL` | `1h` | Re-check interval for reachable domains |
+| `DOMAIN_CHECK_OFFLINE_INTERVAL` | `15m` | Re-check interval for unreachable domains (checked sooner) |
+| `DOMAIN_CHECK_TICK` | `5m` | How often the worker looks for domains due for a check |
+| `DOMAIN_CHECK_TIMEOUT` | `10s` | Per-domain HTTP timeout |
+
+Pagination: `GET /api/apps?paginate=1&limit=20&offset=0` returns `{ items, total, limit, offset }`. Without `paginate` or `offset`, the response stays a plain JSON array (legacy).
+
+Domain health: apps expose `domain_reachable` and `domain_checked_at` on admin listings. Trigger manually with `POST /api/admin/check-domains`.
+
+OG prerender: `GET /og/apps/{slug}` returns HTML with Open Graph meta for social crawlers. Production nginx proxies crawler user agents on `/apps/:slug` to this endpoint.
+
+Webhook events: `app.submitted`, `app.update_requested`.
+
+Webhook payload shape (submission):
+
+```json
+{
+  "event": "app.submitted",
+  "submitted_at": "2026-07-09T12:00:00Z",
+  "app": { "slug": "my-app", "name": "My App", "domain": "...", "category": "Games", "developer_name": "...", "tagline": "..." }
+}
+```
+
+Public status check: `GET /api/apps/{slug}/status` or browse `/status/{slug}` on the frontend.
+Status responses for live apps include `update_pending` when a change request is in the queue.
+
+Author update requests: authors open `/apps/{slug}/update` (or **Suggest an update** on the detail page), which calls `POST /api/apps/{slug}/request-update`. The live listing stays unchanged until an admin approves the revision in `/admin`. One pending request per app at a time.
+
+Admin revision review:
+```bash
+curl $API/api/admin/revisions -H "Authorization: Bearer $TOKEN"
+curl -X POST $API/api/admin/revisions/{id}/approve -H "Authorization: Bearer $TOKEN"
+curl -X POST $API/api/admin/revisions/{id}/reject -H "Authorization: Bearer $TOKEN"
+```
+
+Collections: `GET /api/collections` and `GET /api/apps?collection=new-week|games|usdt`.
+
+SEO: `GET /sitemap.xml` and `GET /robots.txt` on the API host.
 
 ## Backend tests
 

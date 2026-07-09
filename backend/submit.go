@@ -54,5 +54,5 @@ func (s *server) submitApp(w http.ResponseWriter, r *http.Request) {
 	s.decodeAndInsert(w, r, func(a *App) {
 		a.Status = "submitted"
 		a.Featured = false
-	})
+	}, true)
 }
