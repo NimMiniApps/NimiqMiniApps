@@ -40,6 +40,7 @@ export type MessageTree = {
     searchPlaceholder: string
     allCategories: string
     sortFeatured: string
+    sortTrending: string
     sortNewest: string
     sortName: string
     filteredBy: string
@@ -61,6 +62,8 @@ export type MessageTree = {
   }
   collections: {
     newWeek: string
+    popular: string
+    rewards: string
     games: string
     usdt: string
   }
@@ -112,6 +115,13 @@ export type MessageTree = {
     scanBody: string
     copyTitle: string
   }
+  myApps: {
+    stats: {
+      opens: string
+      views: string
+      last7Days: string
+    }
+  }
 }
 
 const en: MessageTree = {
@@ -154,6 +164,7 @@ const en: MessageTree = {
     searchPlaceholder: 'Search apps…',
     allCategories: 'All categories',
     sortFeatured: 'Featured',
+    sortTrending: 'Trending',
     sortNewest: 'Newest',
     sortName: 'Name',
     filteredBy: 'Filtered by {type}:',
@@ -175,6 +186,8 @@ const en: MessageTree = {
   },
   collections: {
     newWeek: 'New this week',
+    popular: 'Trending this week',
+    rewards: 'Apps with rewards',
     games: 'Games',
     usdt: 'Uses USDT',
   },
@@ -226,6 +239,13 @@ const en: MessageTree = {
     scanBody: 'on mobile',
     copyTitle: 'Copy Nimiq Pay open link',
   },
+  myApps: {
+    stats: {
+      opens: 'Opens',
+      views: 'Views',
+      last7Days: 'Last 7 days',
+    },
+  },
 }
 
 const de: MessageTree = {
@@ -245,6 +265,7 @@ const de: MessageTree = {
     searchPlaceholder: 'Apps suchen…',
     allCategories: 'Alle Kategorien',
     sortFeatured: 'Highlights',
+    sortTrending: 'Beliebt',
     sortNewest: 'Neueste',
     sortName: 'Name',
     filteredBy: 'Gefiltert nach {type}:',
@@ -264,7 +285,7 @@ const de: MessageTree = {
     showingCount: '{shown} von {total} angezeigt',
     loadMore: 'Mehr laden',
   },
-  collections: { newWeek: 'Neu diese Woche', games: 'Spiele', usdt: 'Nutzt USDT' },
+  collections: { newWeek: 'Neu diese Woche', popular: 'Trends diese Woche', rewards: 'Apps mit Rewards', games: 'Spiele', usdt: 'Nutzt USDT' },
   appDetail: {
     openInWallet: 'In Nimiq Pay öffnen',
     edit: 'Bearbeiten',
@@ -328,6 +349,7 @@ const es: MessageTree = {
     searchPlaceholder: 'Buscar apps…',
     allCategories: 'Todas las categorías',
     sortFeatured: 'Destacadas',
+    sortTrending: 'Tendencia',
     sortNewest: 'Más recientes',
     sortName: 'Nombre',
     filteredBy: 'Filtrado por {type}:',
@@ -347,7 +369,7 @@ const es: MessageTree = {
     showingCount: 'Mostrando {shown} de {total}',
     loadMore: 'Cargar más',
   },
-  collections: { newWeek: 'Nuevas esta semana', games: 'Juegos', usdt: 'Usa USDT' },
+  collections: { newWeek: 'Nuevas esta semana', popular: 'Tendencias esta semana', rewards: 'Apps con recompensas', games: 'Juegos', usdt: 'Usa USDT' },
   appDetail: {
     openInWallet: 'Abrir en Nimiq Pay',
     edit: 'Editar',
@@ -411,6 +433,7 @@ const fr: MessageTree = {
     searchPlaceholder: 'Rechercher des apps…',
     allCategories: 'Toutes les catégories',
     sortFeatured: 'À la une',
+    sortTrending: 'Tendance',
     sortNewest: 'Plus récentes',
     sortName: 'Nom',
     filteredBy: 'Filtré par {type} :',
@@ -430,7 +453,7 @@ const fr: MessageTree = {
     showingCount: '{shown} sur {total} affichées',
     loadMore: 'Charger plus',
   },
-  collections: { newWeek: 'Nouveautés de la semaine', games: 'Jeux', usdt: 'Utilise USDT' },
+  collections: { newWeek: 'Nouveautés de la semaine', popular: 'Tendances cette semaine', rewards: 'Apps avec récompenses', games: 'Jeux', usdt: 'Utilise USDT' },
   appDetail: {
     openInWallet: 'Ouvrir dans Nimiq Pay',
     edit: 'Modifier',
@@ -494,6 +517,7 @@ const pt: MessageTree = {
     searchPlaceholder: 'Buscar apps…',
     allCategories: 'Todas as categorias',
     sortFeatured: 'Destaques',
+    sortTrending: 'Em alta',
     sortNewest: 'Mais recentes',
     sortName: 'Nome',
     filteredBy: 'Filtrado por {type}:',
@@ -513,7 +537,7 @@ const pt: MessageTree = {
     showingCount: 'Mostrando {shown} de {total}',
     loadMore: 'Carregar mais',
   },
-  collections: { newWeek: 'Novos esta semana', games: 'Jogos', usdt: 'Usa USDT' },
+  collections: { newWeek: 'Novos esta semana', popular: 'Em alta esta semana', rewards: 'Apps com recompensas', games: 'Jogos', usdt: 'Usa USDT' },
   appDetail: {
     openInWallet: 'Abrir no Nimiq Pay',
     edit: 'Editar',

@@ -77,8 +77,7 @@ func (s *server) submitApp(w http.ResponseWriter, r *http.Request, address strin
 	s.decodeAndInsert(w, r, func(a *App) {
 		a.Status = "submitted"
 		a.Featured = false
-		a.DeveloperWalletAddress = &address
 		a.DeveloperSlug = devSlug
 		a.DeveloperName = *displayName
-	}, true)
+	}, true, &address)
 }

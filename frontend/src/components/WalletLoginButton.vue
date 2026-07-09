@@ -96,6 +96,14 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
           My apps
         </RouterLink>
         <RouterLink
+          to="/favorites"
+          role="menuitem"
+          class="block px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+          @click="closeMenu"
+        >
+          Favorites
+        </RouterLink>
+        <RouterLink
           v-if="isAdmin"
           to="/admin"
           role="menuitem"

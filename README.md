@@ -27,8 +27,8 @@ LAN, and API examples.
 
 ## How it works
 
-- **Browse** — search, filter by category, and view app details. Every app gets an
-  `Open in Nimiq Pay` link of the form `https://nimpay.app/miniapps/open/<domain>`.
+- **Browse** — search, filter by category or rewards, and view app details. Home highlights featured picks, trending (most viewed in the last 7 days), and curated collections. Every
+  app gets an `Open in Nimiq Pay` link of the form `https://nimpay.app/miniapps/open/<domain>`.
 - **Submit** — developers log in with their Nimiq wallet and submit apps at `/submit`
   (rate-limited). Once approved, the submitting wallet can request edits to its own
   apps via `/apps/{slug}/update` or manage them from `/my-apps`.
@@ -37,9 +37,11 @@ LAN, and API examples.
 
 ## API
 
-Public: `GET /api/apps` (with `q`, `category`, `status`, `featured`, `sort`),
-`GET /api/apps/{slug}`, `GET /api/categories`, `GET /api/developers/{slug}`,
+Public: `GET /api/apps` (with `q`, `category`, `status`, `featured`, `sort`, `rewards`, `collection`),
+`GET /api/apps/{slug}`, `POST /api/apps/{slug}/track` (open/view beacons), `GET /api/categories`, `GET /api/developers/{slug}`,
 `POST /api/apps/submit`, `GET /health`, `GET /openapi.json`.
+
+Owners and admins can read per-app stats at `GET /api/apps/{slug}/stats` (wallet session or admin token).
 
 **OpenAPI** — full spec at [`docs/openapi.yaml`](docs/openapi.yaml), served live at
 `/openapi.json` and `/openapi.yaml`. Regenerate embedded copies with `./scripts/gen-openapi.sh`.

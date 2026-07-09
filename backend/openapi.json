@@ -138,6 +138,9 @@
             "$ref": "#/components/parameters/asset"
           },
           {
+            "$ref": "#/components/parameters/rewards"
+          },
+          {
             "$ref": "#/components/parameters/status"
           },
           {
@@ -219,6 +222,9 @@
                   "games"
                 ],
                 "assets": [
+                  "NIM"
+                ],
+                "reward_assets": [
                   "NIM"
                 ],
                 "release_stage": "beta"
@@ -349,13 +355,108 @@
         }
       }
     },
+    "/api/apps/{slug}/track": {
+      "post": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Track an open or view event (public beacon)",
+        "description": "Fire-and-forget engagement counter. No auth. Rate limited to 20 requests/minute per IP+slug.\nUnknown slugs and malformed bodies return 204 (no user-facing error).\n",
+        "operationId": "trackAppEvent",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "event"
+                ],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "view"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Event recorded or silently ignored"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}/stats": {
+      "get": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "Daily open/view stats for an app (owner or admin)",
+        "operationId": "getAppStats",
+        "security": [
+          {
+            "walletCookie": []
+          },
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Totals and last-30-days daily series (missing days omitted)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Wallet session is not an owner or admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
     "/api/apps/{slug}/request-update": {
       "post": {
         "tags": [
           "Submit"
         ],
         "summary": "Request a listing update (reviewed by admins)",
-        "description": "Proposes changes to an existing public listing. Requires a wallet session matching\nthe app's `developer_wallet_address`. `developer_name`/`developer_slug` in the\nrequest body are ignored — identity changes are admin-only. Rate limited (same\n5/hour per IP as submit). Only one pending revision per app at a time.\n",
+        "description": "Proposes changes to an existing public listing. Requires a wallet session for one\nof the app's current owners (see `owner_wallet_addresses`). `developer_name`/`developer_slug` in the\nrequest body are ignored — identity changes are admin-only. Rate limited (same\n5/hour per IP as submit). Only one pending revision per app at a time.\n",
         "operationId": "requestAppUpdate",
         "security": [
           {
@@ -419,6 +520,132 @@
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}/owners": {
+      "post": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "Add a co-owner wallet (self-service, caller must be a current owner)",
+        "operationId": "addAppOwner",
+        "security": [
+          {
+            "walletCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "wallet_address"
+                ],
+                "properties": {
+                  "wallet_address": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Owner added (or already present)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "added"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The wallet session is not a current owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}/owners/{wallet}": {
+      "delete": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "Remove a co-owner wallet (self-service, caller must be a current owner)",
+        "operationId": "removeAppOwner",
+        "security": [
+          {
+            "walletCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          },
+          {
+            "name": "wallet",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner removed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The wallet session is not a current owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Would remove the last remaining owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -832,6 +1059,89 @@
         }
       }
     },
+    "/api/admin/apps/{slug}/owners": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Add a co-owner wallet (admin, no membership requirement)",
+        "operationId": "adminAddAppOwner",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "wallet_address"
+                ],
+                "properties": {
+                  "wallet_address": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Owner added (or already present)"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/admin/apps/{slug}/owners/{wallet}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Remove a co-owner wallet (admin — can remove the last owner to fully unclaim)",
+        "operationId": "adminRemoveAppOwner",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          },
+          {
+            "name": "wallet",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owner removed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/admin/apps/{slug}/approve": {
       "post": {
         "tags": [
@@ -1169,7 +1479,7 @@
       "query": {
         "name": "q",
         "in": "query",
-        "description": "Search name, tagline, description, tags, assets, developer",
+        "description": "Search name, tagline, description, tags, assets, reward assets, developer",
         "schema": {
           "type": "string"
         }
@@ -1202,6 +1512,14 @@
         "in": "query",
         "schema": {
           "$ref": "#/components/schemas/Asset"
+        }
+      },
+      "rewards": {
+        "name": "rewards",
+        "in": "query",
+        "description": "Use `true` to return only apps with one or more reward assets.",
+        "schema": {
+          "type": "boolean"
         }
       },
       "status": {
@@ -1239,6 +1557,8 @@
           "type": "string",
           "enum": [
             "new-week",
+            "popular",
+            "rewards",
             "games",
             "usdt"
           ]
@@ -1476,6 +1796,13 @@
               "$ref": "#/components/schemas/Asset"
             }
           },
+          "reward_assets": {
+            "type": "array",
+            "description": "Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
           "status": {
             "$ref": "#/components/schemas/AppStatus"
           },
@@ -1576,6 +1903,13 @@
               "$ref": "#/components/schemas/Asset"
             }
           },
+          "reward_assets": {
+            "type": "array",
+            "description": "Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
           "release_stage": {
             "$ref": "#/components/schemas/ReleaseStage"
           },
@@ -1650,9 +1984,12 @@
           "developer_name": {
             "type": "string"
           },
-          "developer_wallet_address": {
-            "type": "string",
-            "nullable": true
+          "owner_wallet_addresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Wallets that can manage this listing (My apps, request-update). Empty when unclaimed."
           },
           "tagline": {
             "type": "string"
@@ -1671,6 +2008,13 @@
           },
           "assets": {
             "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "reward_assets": {
+            "type": "array",
+            "description": "Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.",
             "items": {
               "$ref": "#/components/schemas/Asset"
             }
@@ -1754,13 +2098,51 @@
               "submitter_contact": {
                 "type": "string"
               },
-              "developer_wallet_address": {
-                "type": "string",
-                "nullable": true
+              "total_opens": {
+                "type": "integer",
+                "description": "Lifetime opens (admin listing only)"
+              },
+              "total_views": {
+                "type": "integer",
+                "description": "Lifetime views (admin listing only)"
               }
             }
           }
         ]
+      },
+      "AppStats": {
+        "type": "object",
+        "properties": {
+          "totals": {
+            "type": "object",
+            "properties": {
+              "opens": {
+                "type": "integer"
+              },
+              "views": {
+                "type": "integer"
+              }
+            }
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "opens": {
+                  "type": "integer"
+                },
+                "views": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
       },
       "SubmissionStatus": {
         "type": "object",

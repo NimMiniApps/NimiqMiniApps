@@ -35,6 +35,7 @@ export function diffRevision(current: App, revision: AppRevision): FieldChange[]
     ['release_stage', 'Release stage', str(current.release_stage), str(revision.release_stage)],
     ['tags', 'Tags', str(current.tags), str(revision.tags)],
     ['assets', 'Assets', str(current.assets), str(revision.assets)],
+    ['reward_assets', 'Reward assets', str(current.reward_assets), str(revision.reward_assets)],
     ['website_url', 'Website', str(current.website_url), str(revision.website_url)],
     ['github_url', 'GitHub', str(current.github_url), str(revision.github_url)],
     ['icon_url', 'Icon URL', str(current.icon_url), str(revision.icon_url)],

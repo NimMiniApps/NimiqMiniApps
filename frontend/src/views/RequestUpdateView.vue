@@ -7,6 +7,7 @@ import {
 } from '../api'
 import SocialLinksEditor from '../components/SocialLinksEditor.vue'
 import MediaEditor from '../components/MediaEditor.vue'
+import TokenMultiSelect from '../components/TokenMultiSelect.vue'
 import { normalizeDomain } from '../utils/domain'
 
 const route = useRoute()
@@ -25,7 +26,7 @@ const updatePending = ref(false)
 
 const form = reactive({
   name: '', domain: '', category: '',
-  tagline: '', description: '', long_description: '', release_stage: 'released', tags: '', assets: 'NIM',
+  tagline: '', description: '', long_description: '', release_stage: 'released', tags: '', assets: 'NIM', reward_assets: '',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
   author_note: '',
 })
@@ -53,6 +54,7 @@ async function load(slugParam: string) {
       release_stage: app.release_stage,
       tags: app.tags.join(', '),
       assets: app.assets.join(', '),
+      reward_assets: app.reward_assets.join(', '),
       icon_url: app.icon_url || '',
       banner_url: app.banner_url || '',
       website_url: app.website_url || '',
@@ -83,6 +85,7 @@ async function submit() {
       release_stage: form.release_stage,
       tags: csv(form.tags),
       assets: csv(form.assets),
+      reward_assets: csv(form.reward_assets),
       media: mediaEditor.value?.validate() ?? [],
       socials: socialEditor.value?.validate() ?? [],
       icon_url: form.icon_url || null,
@@ -105,12 +108,11 @@ onMounted(() => {
   if (typeof s === 'string' && s) load(s)
 })
 
-const fields: [keyof typeof form, string, boolean][] = [
+const fields: [keyof typeof form, string, boolean, string?][] = [
   ['name', 'App name', true],
   ['domain', 'Domain (no https://)', true],
   ['tagline', 'Tagline', true],
   ['tags', 'Tags (comma-separated)', false],
-  ['assets', 'Assets (NIM, USDT, USDC, BTC, ETH)', false],
   ['icon_url', 'Icon URL', false],
   ['banner_url', 'Banner URL', false],
   ['website_url', 'Website URL', false],
@@ -161,11 +163,22 @@ const fields: [keyof typeof form, string, boolean][] = [
 
       <form @submit.prevent="submit" class="space-y-3 rounded-2xl border border-line bg-surface p-5 shadow-sm">
         <div class="grid gap-3 sm:grid-cols-2">
-          <label v-for="[key, label, required] in fields" :key="key" class="text-sm">
+          <label v-for="[key, label, required, help] in fields" :key="key" class="text-sm">
             <span class="mb-1 block font-semibold text-muted">{{ label }}{{ required ? ' *' : '' }}</span>
             <input v-model="form[key]" :required="required"
               class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none focus:border-accent" />
+            <span v-if="help" class="mt-1 block text-xs leading-snug text-muted">{{ help }}</span>
           </label>
+          <TokenMultiSelect
+            v-model="form.assets"
+            label="Assets"
+            help="Tokens your app uses, accepts, reads, or supports."
+          />
+          <TokenMultiSelect
+            v-model="form.reward_assets"
+            label="Reward assets"
+            help="Only select tokens users can actually receive from your app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
+          />
           <label class="text-sm">
             <span class="mb-1 block font-semibold text-muted">Category *</span>
             <select v-model="form.category" required class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2">

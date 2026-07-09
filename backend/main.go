@@ -152,6 +152,7 @@ func main() {
 		adminToken:       adminToken,
 		adminWallets:     adminWallets,
 		reviewLimiter:    newRateLimiter(5, time.Hour),
+		statsLimiter:     newRateLimiter(20, time.Minute),
 	}
 	s.startDomainHealthWorker(ctx)
 	s.startIconDiscoveryBackfill(ctx)
@@ -179,10 +180,17 @@ func main() {
 	mux.HandleFunc("GET /api/profile", walletAuthMiddleware(walletAuthSecret, s.getProfile))
 	mux.HandleFunc("PUT /api/profile", walletAuthMiddleware(walletAuthSecret, s.updateProfile))
 	mux.HandleFunc("POST /api/auth/logout", s.authLogout)
+	mux.HandleFunc("POST /api/apps/{slug}/track", s.trackApp)
+	mux.HandleFunc("GET /api/apps/{slug}/stats", s.ownerOrAdminAuth(s.appStats))
 	mux.HandleFunc("GET /api/apps/{slug}/reviews", s.listReviews)
 	mux.HandleFunc("POST /api/apps/{slug}/reviews", walletAuthMiddleware(walletAuthSecret, s.upsertReview))
 	mux.HandleFunc("DELETE /api/apps/{slug}/reviews", walletAuthMiddleware(walletAuthSecret, s.deleteOwnReview))
 	mux.HandleFunc("GET /api/my/apps", walletAuthMiddleware(walletAuthSecret, s.myApps))
+	mux.HandleFunc("GET /api/my/favorites", walletAuthMiddleware(walletAuthSecret, s.myFavorites))
+	mux.HandleFunc("POST /api/apps/{slug}/favorite", walletAuthMiddleware(walletAuthSecret, s.addFavorite))
+	mux.HandleFunc("DELETE /api/apps/{slug}/favorite", walletAuthMiddleware(walletAuthSecret, s.removeFavorite))
+	mux.HandleFunc("POST /api/apps/{slug}/owners", walletAuthMiddleware(walletAuthSecret, s.addAppOwnerSelf))
+	mux.HandleFunc("DELETE /api/apps/{slug}/owners/{wallet}", walletAuthMiddleware(walletAuthSecret, s.removeAppOwnerSelf))
 	mux.HandleFunc("GET /api/admin/stats", s.adminAuth(s.adminStats))
 	mux.HandleFunc("GET /api/admin/revisions", s.adminAuth(s.adminListRevisions))
 	mux.HandleFunc("POST /api/admin/revisions/{id}/approve", s.adminAuth(s.approveRevision))
@@ -193,6 +201,8 @@ func main() {
 	mux.HandleFunc("POST /api/admin/apps", s.adminAuth(s.createApp))
 	mux.HandleFunc("PUT /api/admin/apps/{slug}", s.adminAuth(s.updateApp))
 	mux.HandleFunc("PATCH /api/admin/apps/{slug}", s.adminAuth(s.updateApp))
+	mux.HandleFunc("POST /api/admin/apps/{slug}/owners", s.adminAuth(s.adminAddAppOwner))
+	mux.HandleFunc("DELETE /api/admin/apps/{slug}/owners/{wallet}", s.adminAuth(s.adminRemoveAppOwner))
 	mux.HandleFunc("DELETE /api/admin/apps/{slug}", s.adminAuth(s.deleteApp))
 	mux.HandleFunc("POST /api/admin/apps/{slug}/verify", s.adminAuth(s.setStatus("verified")))
 	mux.HandleFunc("POST /api/admin/apps/{slug}/approve", s.adminAuth(s.setStatus("approved")))

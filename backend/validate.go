@@ -136,6 +136,11 @@ func validateApp(a *App) error {
 			problems = append(problems, "asset "+asset+" is not one of: "+strings.Join(validAssets, ", "))
 		}
 	}
+	for _, asset := range a.RewardAssets {
+		if !slices.Contains(validAssets, asset) {
+			problems = append(problems, "reward asset "+asset+" is not one of: "+strings.Join(validAssets, ", "))
+		}
+	}
 	if a.Description == "" {
 		a.Description = a.Tagline // description NOT NULL; fall back to tagline
 	}

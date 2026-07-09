@@ -33,6 +33,8 @@ const hasMore = computed(() => apps.value.length < total.value)
 
 const collectionLabels = computed<Record<string, string>>(() => ({
   'new-week': t('collections.newWeek'),
+  popular: t('collections.popular'),
+  rewards: t('collections.rewards'),
   games: t('collections.games'),
   usdt: t('collections.usdt'),
 }))
@@ -107,6 +109,10 @@ async function load(reset = true) {
 
 function setCategory(name: string) {
   category.value = name
+}
+
+function toggleRewards() {
+  collection.value = collection.value === 'rewards' ? '' : 'rewards'
 }
 
 function clearFilter() {
@@ -220,6 +226,7 @@ onMounted(async () => {
         </select>
         <select v-model="sort" class="cursor-pointer rounded-xl border border-line bg-surface px-3 py-2.5">
           <option value="featured">{{ t('apps.sortFeatured') }}</option>
+          <option value="trending">{{ t('apps.sortTrending') }}</option>
           <option value="newest">{{ t('apps.sortNewest') }}</option>
           <option value="name">{{ t('apps.sortName') }}</option>
         </select>
@@ -227,6 +234,11 @@ onMounted(async () => {
     </div>
 
     <div v-if="categories.length" class="flex flex-wrap gap-2">
+      <button type="button" @click="toggleRewards"
+        class="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold transition duration-200"
+        :class="collection === 'rewards' ? 'border-emerald-500 bg-emerald-500/15 text-emerald-800 dark:text-emerald-200' : 'border-line bg-surface-2 text-muted hover:border-emerald-500/50 hover:text-emerald-700 dark:hover:text-emerald-200'">
+        {{ t('collections.rewards') }}
+      </button>
       <button type="button" @click="setCategory('')"
         class="cursor-pointer rounded-full border px-3 py-1.5 text-xs font-bold transition duration-200"
         :class="category === '' ? 'border-accent bg-accent/10 text-accent-ink' : 'border-line bg-surface-2 text-muted hover:border-accent/50'">
@@ -295,7 +307,7 @@ onMounted(async () => {
           v-for="app in apps"
           :key="app.id"
           :app="app"
-          :owned="walletOwnsApp(walletAddress, app.developer_wallet_address)"
+          :owned="walletOwnsApp(walletAddress, app.owner_wallet_addresses)"
         />
       </div>
       <div class="flex flex-col items-center gap-2">

@@ -4,6 +4,7 @@ import { APP_CATEGORIES, APP_RELEASE_STAGES, submitApp, type MediaItem, type Soc
 import SocialLinksEditor from '../components/SocialLinksEditor.vue'
 import MediaEditor from '../components/MediaEditor.vue'
 import WalletLoginButton from '../components/WalletLoginButton.vue'
+import TokenMultiSelect from '../components/TokenMultiSelect.vue'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { CATALOG_ISSUES_URL } from '../utils/catalogLinks'
 import { normalizeDomain } from '../utils/domain'
@@ -17,7 +18,7 @@ const media = ref<MediaItem[]>([])
 
 const form = reactive({
   name: '', slug: '', domain: '', category: '',
-  tagline: '', description: '', long_description: '', release_stage: 'beta', tags: '', assets: 'NIM',
+  tagline: '', description: '', long_description: '', release_stage: 'beta', tags: '', assets: 'NIM', reward_assets: '',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
   submitter_contact: '',
 })
@@ -46,6 +47,7 @@ async function submit() {
       domain: normalizeDomain(form.domain),
       tags: csv(form.tags),
       assets: csv(form.assets),
+      reward_assets: csv(form.reward_assets),
       media: mediaEditor.value?.validate() ?? [],
       socials: socialEditor.value?.validate() ?? [],
       icon_url: form.icon_url || null,
@@ -62,14 +64,13 @@ async function submit() {
   }
 }
 
-const fields: [keyof typeof form, string, boolean, string][] = [
+const fields: [keyof typeof form, string, boolean, string, string?][] = [
   ['name', 'App name', true, 'My Mini App'],
   ['slug', 'Slug', true, 'my-mini-app'],
   ['domain', 'Domain (no https://)', true, 'myapp.example.com'],
   ['submitter_contact', 'Contact (Telegram, email, etc.)', true, '@yourhandle or you@example.com'],
   ['tagline', 'Tagline', true, 'One sentence about your app'],
   ['tags', 'Tags (comma-separated)', false, 'games, multiplayer'],
-  ['assets', 'Assets (NIM, USDT, USDC, BTC, ETH)', false, 'NIM'],
   ['icon_url', 'Icon URL', false, 'https://…'],
   ['banner_url', 'Banner URL', false, 'https://…'],
   ['website_url', 'Website URL', false, 'https://…'],
@@ -106,16 +107,28 @@ const fields: [keyof typeof form, string, boolean, string][] = [
       </div>
       <template v-else>
         <p class="text-xs text-muted">
-          Submitting as <span class="font-mono">{{ walletAddress }}</span> — this app will be linked to your wallet as the developer of record; admins can reassign it later.
+          Submitting as <span class="font-mono">{{ walletAddress }}</span> — this app will be linked to your wallet as the developer of record. You can link additional wallets (like a second device) from
+          <RouterLink to="/my-apps" class="font-semibold text-accent-ink hover:underline">My apps</RouterLink> afterward.
         </p>
         <form @submit.prevent="submit" class="space-y-3 rounded-2xl border border-line bg-surface p-5 shadow-sm">
           <div class="grid gap-3 sm:grid-cols-2">
-            <label v-for="[key, label, required, placeholder] in fields" :key="key" class="text-sm">
+            <label v-for="[key, label, required, placeholder, help] in fields" :key="key" class="text-sm">
               <span class="mb-1 block font-semibold text-muted">{{ label }}{{ required ? ' *' : '' }}</span>
               <input v-model="form[key]" :required="required" :placeholder="placeholder"
                 @input="key === 'name' ? onNameInput() : key === 'slug' ? (slugTouched = true) : null"
                 class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent" />
+              <span v-if="help" class="mt-1 block text-xs leading-snug text-muted">{{ help }}</span>
             </label>
+            <TokenMultiSelect
+              v-model="form.assets"
+              label="Assets"
+              help="Tokens your app uses, accepts, reads, or supports."
+            />
+            <TokenMultiSelect
+              v-model="form.reward_assets"
+              label="Reward assets"
+              help="Only select tokens users can actually receive from your app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
+            />
             <label class="text-sm">
               <span class="mb-1 block font-semibold text-muted">Category *</span>
               <select v-model="form.category" required

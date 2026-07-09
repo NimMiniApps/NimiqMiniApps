@@ -85,6 +85,12 @@ textarea {
   font: inherit;
 }
 
+input,
+select,
+textarea {
+  color: var(--nq-ink);
+}
+
 .nq-primary {
   background: var(--nimiq-light-blue-bg);
   box-shadow: 0 0.5rem 1.5rem rgba(5, 130, 202, 0.22);

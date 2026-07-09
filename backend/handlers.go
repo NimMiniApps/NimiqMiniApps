@@ -25,55 +25,64 @@ type SocialLink struct {
 }
 
 type App struct {
-	ID                     string       `json:"id"`
-	Slug                   string       `json:"slug"`
-	Name                   string       `json:"name"`
-	Domain                 string       `json:"domain"`
-	Category               string       `json:"category"`
-	DeveloperSlug          string       `json:"developer_slug"`
-	DeveloperName          string       `json:"developer_name"`
-	DeveloperWalletAddress *string      `json:"developer_wallet_address"`
-	Tagline                string       `json:"tagline"`
-	Description            string       `json:"description"`
-	LongDescription        string       `json:"long_description"`
-	Tags                   []string     `json:"tags"`
-	Assets                 []string     `json:"assets"`
-	Status                 string       `json:"status"`
-	ReleaseStage           string       `json:"release_stage"`
-	Featured               bool         `json:"featured"`
-	FeaturedOrder          int          `json:"featured_order"`
-	WebsiteURL             *string      `json:"website_url"`
-	GithubURL              *string      `json:"github_url"`
-	IconURL                *string      `json:"icon_url"`
-	DiscoveredIconURL      *string      `json:"discovered_icon_url"`
-	BannerURL              *string      `json:"banner_url"`
-	Media                  []MediaItem  `json:"media"`
-	Socials                []SocialLink `json:"socials"`
-	DomainReachable        *bool        `json:"domain_reachable"`
-	DomainCheckedAt        *time.Time   `json:"domain_checked_at"`
-	SubmitterContact       string       `json:"submitter_contact,omitempty"`
-	CreatedAt              time.Time    `json:"created_at"`
-	UpdatedAt              time.Time    `json:"updated_at"`
-	OpenURL                string       `json:"open_url"`
+	ID                   string       `json:"id"`
+	Slug                 string       `json:"slug"`
+	Name                 string       `json:"name"`
+	Domain               string       `json:"domain"`
+	Category             string       `json:"category"`
+	DeveloperSlug        string       `json:"developer_slug"`
+	DeveloperName        string       `json:"developer_name"`
+	OwnerWalletAddresses []string     `json:"owner_wallet_addresses"`
+	Tagline              string       `json:"tagline"`
+	Description          string       `json:"description"`
+	LongDescription      string       `json:"long_description"`
+	Tags                 []string     `json:"tags"`
+	Assets               []string     `json:"assets"`
+	RewardAssets         []string     `json:"reward_assets"`
+	Status               string       `json:"status"`
+	ReleaseStage         string       `json:"release_stage"`
+	Featured             bool         `json:"featured"`
+	FeaturedOrder        int          `json:"featured_order"`
+	WebsiteURL           *string      `json:"website_url"`
+	GithubURL            *string      `json:"github_url"`
+	IconURL              *string      `json:"icon_url"`
+	DiscoveredIconURL    *string      `json:"discovered_icon_url"`
+	BannerURL            *string      `json:"banner_url"`
+	Media                []MediaItem  `json:"media"`
+	Socials              []SocialLink `json:"socials"`
+	DomainReachable      *bool        `json:"domain_reachable"`
+	DomainCheckedAt      *time.Time   `json:"domain_checked_at"`
+	AvgRating            float64      `json:"avg_rating"`
+	ReviewCount          int          `json:"review_count"`
+	SubmitterContact     string       `json:"submitter_contact,omitempty"`
+	TotalOpens           int          `json:"total_opens,omitempty"`
+	TotalViews           int          `json:"total_views,omitempty"`
+	CreatedAt            time.Time    `json:"created_at"`
+	UpdatedAt            time.Time    `json:"updated_at"`
+	OpenURL              string       `json:"open_url"`
 }
 
 const appColumns = `id, slug, name, domain, category, developer_slug, developer_name, tagline,
-	description, long_description, tags, assets, status, release_stage, featured, featured_order,
+	description, long_description, tags, assets, reward_assets, status, release_stage, featured, featured_order,
 	website_url, github_url, icon_url, discovered_icon_url, banner_url, media, socials, domain_reachable, domain_checked_at,
-	submitter_contact, created_at, updated_at, developer_wallet_address`
+	submitter_contact, created_at, updated_at,
+	(ARRAY(SELECT wallet_address FROM app_owners WHERE app_owners.app_slug = apps.slug ORDER BY added_at)) AS owner_wallet_addresses,
+	(SELECT COALESCE(AVG(rating), 0) FROM app_reviews WHERE app_reviews.app_id = apps.id) AS avg_rating,
+	(SELECT COUNT(*) FROM app_reviews WHERE app_reviews.app_id = apps.id) AS review_count`
 
 func stripPrivateAppFields(a *App) {
 	a.SubmitterContact = ""
+	a.TotalOpens, a.TotalViews = 0, 0
 }
 
 func scanApp(row pgx.Row) (App, error) {
 	var a App
 	var mediaJSON, socialsJSON []byte
 	err := row.Scan(&a.ID, &a.Slug, &a.Name, &a.Domain, &a.Category, &a.DeveloperSlug,
-		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.Status,
+		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.RewardAssets, &a.Status,
 		&a.ReleaseStage, &a.Featured, &a.FeaturedOrder, &a.WebsiteURL, &a.GithubURL, &a.IconURL, &a.DiscoveredIconURL, &a.BannerURL,
 		&mediaJSON, &socialsJSON, &a.DomainReachable, &a.DomainCheckedAt, &a.SubmitterContact, &a.CreatedAt, &a.UpdatedAt,
-		&a.DeveloperWalletAddress)
+		&a.OwnerWalletAddresses, &a.AvgRating, &a.ReviewCount)
 	if err != nil {
 		return a, err
 	}
@@ -93,6 +102,12 @@ func scanApp(row pgx.Row) (App, error) {
 	if a.Socials == nil {
 		a.Socials = []SocialLink{}
 	}
+	if a.RewardAssets == nil {
+		a.RewardAssets = []string{}
+	}
+	if a.OwnerWalletAddresses == nil {
+		a.OwnerWalletAddresses = []string{}
+	}
 	a.OpenURL = "https://nimpay.app/miniapps/open/" + a.Domain
 	return a, err
 }
@@ -104,6 +119,7 @@ type server struct {
 	adminToken       string
 	adminWallets     map[string]struct{}
 	reviewLimiter    *rateLimiter
+	statsLimiter     *rateLimiter
 }
 
 // visibility filter for public endpoints
@@ -146,13 +162,17 @@ func (s *server) listApps(w http.ResponseWriter, r *http.Request) {
 		where = append(where, "(name ILIKE "+p+" OR tagline ILIKE "+p+" OR description ILIKE "+p+
 			" OR long_description ILIKE "+p+" OR developer_name ILIKE "+p+
 			" OR EXISTS (SELECT 1 FROM unnest(tags) t WHERE t ILIKE "+p+")"+
-			" OR EXISTS (SELECT 1 FROM unnest(assets) a WHERE a ILIKE "+p+"))")
+			" OR EXISTS (SELECT 1 FROM unnest(assets) a WHERE a ILIKE "+p+")"+
+			" OR EXISTS (SELECT 1 FROM unnest(reward_assets) ra WHERE ra ILIKE "+p+"))")
 	}
 	if v := q.Get("tag"); v != "" {
 		where = append(where, arg(v)+" = ANY(tags)")
 	}
 	if v := q.Get("asset"); v != "" {
 		where = append(where, arg(v)+" = ANY(assets)")
+	}
+	if v := q.Get("rewards"); v == "true" {
+		where = append(where, "array_length(reward_assets, 1) > 0")
 	}
 	if v := q.Get("collection"); v != "" {
 		if !applyCollection(&where, arg, v) {
@@ -183,12 +203,24 @@ func (s *server) listApps(w http.ResponseWriter, r *http.Request) {
 		orderSQL = " ORDER BY " + featuredOrderSQL
 	} else if q.Get("collection") == "new-week" {
 		orderSQL = " ORDER BY created_at DESC"
+	} else if q.Get("collection") == "popular" {
+		orderSQL = ` ORDER BY (
+			SELECT COALESCE(SUM(views), 0)
+			FROM app_stats_daily
+			WHERE app_id = apps.id AND day >= CURRENT_DATE - INTERVAL '6 days'
+		) DESC, name ASC`
 	} else {
 		switch q.Get("sort") {
 		case "newest":
 			orderSQL = " ORDER BY created_at DESC"
 		case "name":
 			orderSQL = " ORDER BY name ASC"
+		case "trending":
+			orderSQL = ` ORDER BY (
+				SELECT COALESCE(SUM(views), 0)
+				FROM app_stats_daily
+				WHERE app_id = apps.id AND day >= CURRENT_DATE - INTERVAL '6 days'
+			) DESC, name ASC`
 		default: // featured
 			orderSQL = " ORDER BY featured DESC, " + featuredOrderSQL
 		}
@@ -401,7 +433,14 @@ func (s *server) getRelatedApps(w http.ResponseWriter, r *http.Request) {
 
 // adminListApps returns every app regardless of status.
 func (s *server) adminListApps(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.pool.Query(r.Context(), "SELECT "+appColumns+" FROM apps ORDER BY featured DESC, "+featuredOrderSQL+", name ASC")
+	rows, err := s.pool.Query(r.Context(), `
+		SELECT `+appColumns+`, COALESCE(stats.total_opens, 0), COALESCE(stats.total_views, 0)
+		FROM apps
+		LEFT JOIN LATERAL (
+			SELECT SUM(opens) AS total_opens, SUM(views) AS total_views
+			FROM app_stats_daily WHERE app_id = apps.id
+		) stats ON true
+		ORDER BY featured DESC, `+featuredOrderSQL+`, name ASC`)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -409,7 +448,7 @@ func (s *server) adminListApps(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 	apps := []App{}
 	for rows.Next() {
-		a, err := scanApp(rows)
+		a, err := scanAdminApp(rows)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
@@ -419,15 +458,52 @@ func (s *server) adminListApps(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, apps)
 }
 
+func scanAdminApp(row pgx.Row) (App, error) {
+	var a App
+	var mediaJSON, socialsJSON []byte
+	err := row.Scan(&a.ID, &a.Slug, &a.Name, &a.Domain, &a.Category, &a.DeveloperSlug,
+		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.RewardAssets, &a.Status,
+		&a.ReleaseStage, &a.Featured, &a.FeaturedOrder, &a.WebsiteURL, &a.GithubURL, &a.IconURL, &a.DiscoveredIconURL, &a.BannerURL,
+		&mediaJSON, &socialsJSON, &a.DomainReachable, &a.DomainCheckedAt, &a.SubmitterContact, &a.CreatedAt, &a.UpdatedAt,
+		&a.OwnerWalletAddresses, &a.AvgRating, &a.ReviewCount, &a.TotalOpens, &a.TotalViews)
+	if err != nil {
+		return a, err
+	}
+	if len(mediaJSON) > 0 {
+		if err := json.Unmarshal(mediaJSON, &a.Media); err != nil {
+			return a, err
+		}
+	}
+	if len(socialsJSON) > 0 {
+		if err := json.Unmarshal(socialsJSON, &a.Socials); err != nil {
+			return a, err
+		}
+	}
+	if a.Media == nil {
+		a.Media = []MediaItem{}
+	}
+	if a.Socials == nil {
+		a.Socials = []SocialLink{}
+	}
+	if a.RewardAssets == nil {
+		a.RewardAssets = []string{}
+	}
+	if a.OwnerWalletAddresses == nil {
+		a.OwnerWalletAddresses = []string{}
+	}
+	a.OpenURL = "https://nimpay.app/miniapps/open/" + a.Domain
+	return a, err
+}
+
 func (s *server) createApp(w http.ResponseWriter, r *http.Request) {
-	s.decodeAndInsert(w, r, nil, false)
+	s.decodeAndInsert(w, r, nil, false, nil)
 }
 
 // decodeAndInsert parses an app from the request, optionally forces fields
 // (used by public submissions), validates, and inserts it.
-func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force func(*App), requireContact bool) {
+func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force func(*App), requireContact bool, ownerAddress *string) {
 	var a App
-	a.Tags, a.Assets, a.Media = []string{}, []string{}, []MediaItem{}
+	a.Tags, a.Assets, a.RewardAssets, a.Media = []string{}, []string{}, []string{}, []MediaItem{}
 	a.Status = "submitted"
 	a.ReleaseStage = "released"
 	if err := json.NewDecoder(r.Body).Decode(&a); err != nil {
@@ -437,10 +513,6 @@ func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force f
 	a.SubmitterContact = strings.TrimSpace(a.SubmitterContact)
 	if force != nil {
 		force(&a)
-	}
-	if err := s.validateDeveloperWallet(r.Context(), &a); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
 	}
 	if requireContact {
 		if msg := validateSubmitterContact(a.SubmitterContact); msg != "" {
@@ -468,23 +540,55 @@ func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force f
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	a, err = scanApp(s.pool.QueryRow(r.Context(), `
+	insertSQL := `
 		INSERT INTO apps (slug, name, domain, category, developer_slug, developer_name, tagline,
-			description, long_description, tags, assets, status, release_stage, featured, featured_order,
-			website_url, github_url, icon_url, banner_url, media, socials, submitter_contact, developer_wallet_address)
+			description, long_description, tags, assets, reward_assets, status, release_stage, featured, featured_order,
+			website_url, github_url, icon_url, banner_url, media, socials, submitter_contact)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
-		RETURNING `+appColumns,
+		RETURNING ` + appColumns
+	insertArgs := []any{
 		a.Slug, a.Name, a.Domain, a.Category, a.DeveloperSlug, a.DeveloperName, a.Tagline,
-		a.Description, a.LongDescription, a.Tags, a.Assets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
-		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact, a.DeveloperWalletAddress))
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-		writeError(w, http.StatusConflict, "slug already exists")
-		return
+		a.Description, a.LongDescription, a.Tags, a.Assets, a.RewardAssets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
+		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact,
 	}
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
+
+	var pgErr *pgconn.PgError
+	if ownerAddress != nil {
+		tx, err2 := s.pool.Begin(r.Context())
+		if err2 != nil {
+			writeError(w, http.StatusInternalServerError, err2.Error())
+			return
+		}
+		defer tx.Rollback(r.Context())
+		a, err = scanApp(tx.QueryRow(r.Context(), insertSQL, insertArgs...))
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeError(w, http.StatusConflict, "slug already exists")
+			return
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if _, err = tx.Exec(r.Context(),
+			`INSERT INTO app_owners (app_slug, wallet_address) VALUES ($1,$2)`, a.Slug, *ownerAddress); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if err = tx.Commit(r.Context()); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		a.OwnerWalletAddresses = []string{*ownerAddress}
+	} else {
+		a, err = scanApp(s.pool.QueryRow(r.Context(), insertSQL, insertArgs...))
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			writeError(w, http.StatusConflict, "slug already exists")
+			return
+		}
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	if a.Status == "submitted" {
 		notifySubmission(a)
@@ -527,10 +631,6 @@ func (s *server) updateApp(w http.ResponseWriter, r *http.Request) {
 	if a.Socials == nil {
 		a.Socials = []SocialLink{}
 	}
-	if err := s.validateDeveloperWallet(r.Context(), &a); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
-		return
-	}
 	if err := validateApp(&a); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -547,14 +647,14 @@ func (s *server) updateApp(w http.ResponseWriter, r *http.Request) {
 	}
 	a, err = scanApp(s.pool.QueryRow(r.Context(), `
 		UPDATE apps SET slug=$1, name=$2, domain=$3, category=$4, developer_slug=$5,
-			developer_name=$6, tagline=$7, description=$8, long_description=$9, tags=$10, assets=$11,
-			status=$12, release_stage=$13, featured=$14, featured_order=$15, website_url=$16, github_url=$17,
-			icon_url=$18, banner_url=$19, media=$20, socials=$21, submitter_contact=$22, developer_wallet_address=$23, updated_at=now()
+			developer_name=$6, tagline=$7, description=$8, long_description=$9, tags=$10, assets=$11, reward_assets=$12,
+			status=$13, release_stage=$14, featured=$15, featured_order=$16, website_url=$17, github_url=$18,
+			icon_url=$19, banner_url=$20, media=$21, socials=$22, submitter_contact=$23, updated_at=now()
 		WHERE id=$24
 		RETURNING `+appColumns,
 		a.Slug, a.Name, a.Domain, a.Category, a.DeveloperSlug, a.DeveloperName, a.Tagline,
-		a.Description, a.LongDescription, a.Tags, a.Assets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
-		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact, a.DeveloperWalletAddress, a.ID))
+		a.Description, a.LongDescription, a.Tags, a.Assets, a.RewardAssets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
+		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact, a.ID))
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		writeError(w, http.StatusConflict, "slug already exists")

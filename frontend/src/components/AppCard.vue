@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { App } from '../api'
+import { trackAppEvent } from '../api'
 import { useIsMobileDevice } from '../utils/device'
+import { useWalletAuth } from '../composables/useWalletAuth'
+import { useFavorites } from '../composables/useFavorites'
 import StatusBadge from '../components/StatusBadge.vue'
 import ReleaseStageBadge from './ReleaseStageBadge.vue'
 import DomainStatus from './DomainStatus.vue'
 import AppIcon from './AppIcon.vue'
 import HostedByBadge from './HostedByBadge.vue'
+import RewardBadge from './RewardBadge.vue'
 
 const isMobile = useIsMobileDevice()
+const { walletAddress } = useWalletAuth()
+const { isFavorite, toggleFavorite } = useFavorites()
 
 const props = defineProps<{
   app: App
@@ -49,19 +55,39 @@ const identityTheme = computed(() => {
 
 const previewTags = computed(() => props.app.tags.slice(0, 3))
 const extraTagCount = computed(() => Math.max(0, props.app.tags.length - previewTags.value.length))
+
+function trackOpen() {
+  trackAppEvent(props.app.slug, 'open')
+}
+
+function onFavoriteClick() {
+  toggleFavorite(props.app.slug)
+}
 </script>
 
 <template>
   <div
-    class="nq-card-shadow relative flex flex-col gap-3 overflow-hidden rounded-[10px] border border-line bg-surface p-4 transition-all duration-200 hover:-translate-y-0.5 dark:shadow-black/20"
+    class="nq-card-shadow relative flex h-full min-h-0 flex-col gap-3 overflow-hidden rounded-[10px] border border-line bg-surface p-4 transition-all duration-200 hover:-translate-y-0.5 dark:shadow-black/20"
     :style="{ borderColor: `${identityTheme.accent}55`, background: `linear-gradient(135deg, ${identityTheme.soft}, transparent 44%), var(--nq-surface)` }"
   >
     <div class="absolute inset-x-0 top-0 h-1.5" :style="{ backgroundColor: identityTheme.accent }" aria-hidden="true"></div>
+    <button
+      v-if="walletAddress"
+      type="button"
+      class="absolute right-3 top-4 z-10 rounded-full p-1 text-lg leading-none transition-colors duration-150"
+      :class="isFavorite(app.slug) ? 'text-rose-500' : 'text-muted/50 hover:text-rose-400'"
+      :aria-pressed="isFavorite(app.slug)"
+      :aria-label="isFavorite(app.slug) ? 'Remove from favorites' : 'Add to favorites'"
+      :title="isFavorite(app.slug) ? 'Remove from favorites' : 'Add to favorites'"
+      @click.stop.prevent="onFavoriteClick"
+    >
+      {{ isFavorite(app.slug) ? '♥' : '♡' }}
+    </button>
     <div class="flex items-start gap-3">
       <AppIcon :app="app" />
       <div class="min-w-0 flex-1">
-        <h3 class="truncate font-bold">{{ app.name }}</h3>
-        <div class="mt-1 flex flex-wrap items-center gap-1.5">
+        <h3 class="truncate pr-6 font-bold">{{ app.name }}</h3>
+        <div class="mt-1 flex min-h-[2.75rem] flex-wrap items-center gap-1.5">
           <span
             v-if="owned"
             class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300"
@@ -73,6 +99,7 @@ const extraTagCount = computed(() => Math.max(0, props.app.tags.length - preview
           >Update pending</span>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
+          <RewardBadge :assets="app.reward_assets" compact />
           <HostedByBadge :domain="app.domain" compact />
           <DomainStatus
             v-if="app.domain_reachable != null"
@@ -80,12 +107,16 @@ const extraTagCount = computed(() => Math.max(0, props.app.tags.length - preview
             show-online
             compact
           />
+          <span
+            v-if="app.review_count > 0"
+            class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:text-amber-200"
+          >{{ app.avg_rating.toFixed(1) }} ★ ({{ app.review_count }})</span>
         </div>
         <p class="mt-1 text-sm text-muted line-clamp-2">{{ app.tagline }}</p>
       </div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-1.5 text-xs">
+    <div class="flex min-h-[1.625rem] flex-wrap items-center gap-1.5 text-xs">
       <span
         class="rounded-full px-2 py-0.5 font-semibold ring-1"
         :style="{ backgroundColor: categoryTheme.soft, color: categoryTheme.ink, borderColor: categoryTheme.accent }"
@@ -106,13 +137,14 @@ const extraTagCount = computed(() => Math.max(0, props.app.tags.length - preview
 
     <div class="mt-auto flex gap-2">
       <a v-if="isMobile && !showManageActions" :href="app.open_url" target="_blank" rel="noopener"
-        class="nq-primary flex-1 cursor-pointer rounded-[500px] px-3 py-2 text-center text-sm font-bold text-white transition duration-200">
+        class="nq-primary min-w-0 flex-1 cursor-pointer rounded-[500px] px-3 py-2 text-center text-sm font-bold text-white transition duration-200"
+        @click="trackOpen">
         Open in Nimiq Pay
       </a>
       <RouterLink
         v-if="showManageActions"
         :to="`/apps/${app.slug}/update`"
-        class="nq-primary flex-1 cursor-pointer rounded-[500px] px-3 py-2 text-center text-sm font-bold text-white transition duration-200"
+        class="nq-primary min-w-0 flex-1 cursor-pointer rounded-[500px] px-3 py-2 text-center text-sm font-bold text-white transition duration-200"
         :class="{ 'opacity-60 pointer-events-none': pendingUpdate }"
         :aria-disabled="pendingUpdate"
         :title="pendingUpdate ? 'An update is already pending review' : undefined"
@@ -120,11 +152,12 @@ const extraTagCount = computed(() => Math.max(0, props.app.tags.length - preview
         Edit listing
       </RouterLink>
       <RouterLink :to="`/apps/${app.slug}`"
-        class="flex-1 cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-center text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+        class="min-w-0 flex-1 cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-center text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
         {{ showManageActions ? 'View' : 'Details' }}
       </RouterLink>
       <a v-if="isMobile && showManageActions" :href="app.open_url" target="_blank" rel="noopener"
-        class="cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+        class="shrink-0 cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-center text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+        @click="trackOpen">
         Open
       </a>
     </div>

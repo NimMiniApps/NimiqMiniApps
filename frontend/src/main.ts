@@ -20,6 +20,7 @@ const router = createRouter({
     { path: '/admin', component: () => import('./views/AdminView.vue'), meta: { title: 'Admin' } },
     { path: '/profile', component: () => import('./views/ProfileView.vue'), meta: { title: 'Profile' } },
     { path: '/my-apps', component: () => import('./views/MyAppsView.vue'), meta: { title: 'My Apps' } },
+    { path: '/favorites', component: () => import('./views/FavoritesView.vue'), meta: { title: 'Favorites' } },
   ],
   scrollBehavior(to) {
     if (to.hash) return { el: to.hash, behavior: 'smooth' }

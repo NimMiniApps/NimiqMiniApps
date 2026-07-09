@@ -11,6 +11,8 @@ const { t } = useI18n()
 const featured = ref<App[]>([])
 const newest = ref<App[]>([])
 const newWeek = ref<App[]>([])
+const trending = ref<App[]>([])
+const rewardApps = ref<App[]>([])
 const games = ref<App[]>([])
 const usdtApps = ref<App[]>([])
 const categories = ref<Category[]>([])
@@ -69,10 +71,12 @@ watch(homeQuery, () => {
 onMounted(async () => {
   loading.value = true
   try {
-    ;[featured.value, newest.value, newWeek.value, games.value, usdtApps.value, categories.value] = await Promise.all([
+    ;[featured.value, newest.value, trending.value, newWeek.value, rewardApps.value, games.value, usdtApps.value, categories.value] = await Promise.all([
       listApps({ featured: 'true' }),
       listApps({ sort: 'newest', limit: '6' }),
+      listApps({ collection: 'popular', limit: '4' }),
       listApps({ collection: 'new-week', limit: '4' }),
+      listApps({ collection: 'rewards', limit: '4' }),
       listApps({ collection: 'games', limit: '4' }),
       listApps({ collection: 'usdt', limit: '4' }),
       listCategories(),
@@ -237,6 +241,16 @@ onMounted(async () => {
       </div>
     </section>
 
+    <section v-if="!isSearching && trending.length" class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-xl font-extrabold">{{ t('collections.popular') }}</h2>
+        <RouterLink to="/apps?collection=popular" class="text-sm font-semibold text-accent-ink hover:underline">{{ t('common.viewAll') }}</RouterLink>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <AppCard v-for="app in trending" :key="app.id" :app="app" />
+      </div>
+    </section>
+
     <section v-if="!isSearching && newWeek.length" class="space-y-4">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-xl font-extrabold">{{ t('collections.newWeek') }}</h2>
@@ -244,6 +258,16 @@ onMounted(async () => {
       </div>
       <div class="grid gap-4 sm:grid-cols-2">
         <AppCard v-for="app in newWeek" :key="app.id" :app="app" />
+      </div>
+    </section>
+
+    <section v-if="!isSearching && rewardApps.length" class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-xl font-extrabold">{{ t('collections.rewards') }}</h2>
+        <RouterLink to="/apps?collection=rewards" class="text-sm font-semibold text-accent-ink hover:underline">{{ t('common.viewAll') }}</RouterLink>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <AppCard v-for="app in rewardApps" :key="app.id" :app="app" />
       </div>
     </section>
 

@@ -64,6 +64,8 @@ export async function listApps(params: {
   developer?: string
   tag?: string
   asset?: string
+  rewards?: boolean
+  collection?: 'new-week' | 'popular' | 'rewards' | 'games' | 'usdt'
   status?: string
   featured?: boolean
   sort?: 'featured' | 'newest' | 'name'
@@ -107,6 +109,21 @@ export async function adminListApps() {
 
 export async function adminSearchUsers(q: string) {
   return request(`/api/admin/users?q=${encodeURIComponent(q)}`, { headers: adminHeaders() })
+}
+
+export async function adminAddAppOwner(slug: string, walletAddress: string) {
+  return request(`/api/admin/apps/${encodeURIComponent(slug)}/owners`, {
+    method: 'POST',
+    headers: adminHeaders(),
+    body: JSON.stringify({ wallet_address: walletAddress }),
+  })
+}
+
+export async function adminRemoveAppOwner(slug: string, walletAddress: string) {
+  return request(`/api/admin/apps/${encodeURIComponent(slug)}/owners/${encodeURIComponent(walletAddress)}`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+  })
 }
 
 export async function adminCreateApp(app: Record<string, unknown>) {

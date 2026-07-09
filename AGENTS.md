@@ -25,6 +25,7 @@ Source of truth in git: `docs/openapi.yaml`
 - **Domain** — hostname only, no `https://` (e.g. `myapp.example.com`)
 - **Category** — one of: `Games`, `Utilities`, `Finance`, `Maps`, `Social`, `Experiments`
 - **Assets** — subset of: `NIM`, `USDT`, `USDC`, `BTC`, `ETH`
+- **Reward assets** — optional subset of assets users can actually receive from the app, e.g. `["NIM"]` or `["USDT"]`. Use this only for rewards, payouts, prizes, tips, faucets, or similar receive-side flows. Omit or use `[]` when the app merely accepts, displays, swaps, or otherwise supports a token.
 - Assemble the **full payload once**; do not spam retries (rate limit below)
 
 ### 3. Submit
@@ -44,6 +45,7 @@ curl -X POST https://api.nimiqminiapps.com/api/apps/submit \
     "long_description": "## Features\n\nMarkdown for the detail page",
     "tags": ["games"],
     "assets": ["NIM"],
+    "reward_assets": ["NIM"],
     "release_stage": "beta"
   }'
 ```
@@ -55,6 +57,8 @@ Agents submitting on a developer's behalf cannot complete wallet login themselve
 **Rate limit:** 5 requests/hour per IP → HTTP 429. On 429, stop and tell the user to wait.
 
 **After success:** track review at `GET /api/apps/{slug}/status` or `https://nimiqminiapps.com/status/{slug}`
+
+**App stats:** the frontend fires `POST /api/apps/{slug}/track` beacons (`open` / `view`). Owners read `GET /api/apps/{slug}/stats`; admins also see `total_opens` / `total_views` on `GET /api/admin/apps`.
 
 ### 4. Building the mini app itself
 
@@ -70,10 +74,11 @@ Configured in `.cursor/mcp.json` → `nimiq-miniapps`. See `mcp/README.md`.
 |------|---------|
 | `list_apps`, `get_app` | Browse catalog, check slug collision |
 | `list_categories`, `get_developer`, `list_developers` | Discovery |
-| `admin_search_users` | Find a wallet to assign as `developer_wallet_address` |
+| `admin_search_users` | Find a wallet before `admin_add_app_owner` |
+| `admin_add_app_owner`, `admin_remove_app_owner` | Link/unlink a wallet's self-service access to an app |
 | `admin_*` | **Moderators only** — requires `MINIAPPS_ADMIN_TOKEN` in `.env` |
 
-There is **no** `submit_app` MCP tool. Public submit needs a wallet session cookie (`POST /api/auth/verify` then `POST /api/apps/submit`); use `admin_create_app` / `admin_update_app` with `developer_wallet_address` for agent workflows.
+There is **no** `submit_app` MCP tool. Public submit needs a wallet session cookie (`POST /api/auth/verify` then `POST /api/apps/submit`); use `admin_create_app` / `admin_update_app` plus `admin_add_app_owner` for agent workflows.
 
 `MINIAPPS_API_URL` defaults to `https://api.nimiqminiapps.com`; use `http://localhost:8080` for local compose.
 

@@ -31,19 +31,19 @@ const appFields = {
   domain: z.string().describe('Mini app host/path — https:// and http:// are stripped automatically if pasted'),
   category: categories,
   developer_slug: z.string().optional().describe(
-    'Public catalog developer slug. Required for unclaimed apps; auto-filled from the wallet owner profile when developer_wallet_address is set.',
+    'Public catalog developer slug. Always required — set directly, or use admin_add_app_owner afterward to link a wallet (ownership no longer travels through create/update).',
   ),
   developer_name: z.string().optional().describe(
-    'Public catalog developer name. Required for unclaimed apps; auto-filled from profile when developer_wallet_address is set.',
-  ),
-  developer_wallet_address: z.string().nullable().optional().describe(
-    'Wallet address of the app owner (My apps + request-update). Null or omit for unclaimed/legacy listings.',
+    'Public catalog developer name. Always required — set directly; unaffected by ownership.',
   ),
   tagline: z.string().describe('One-line pitch shown on cards and in search results'),
   description: descriptionField,
   long_description: longDescriptionField,
   tags: z.array(z.string()).optional(),
   assets: z.array(assets).optional(),
+  reward_assets: z.array(assets).optional().describe(
+    'Assets users can actually receive from this app: daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.',
+  ),
   status: statuses.optional(),
   release_stage: releaseStages.optional(),
   featured: z.boolean().optional(),
@@ -97,6 +97,8 @@ server.registerTool(
       category: categories.optional(),
       tag: z.string().optional().describe('Filter by exact tag match'),
       asset: z.string().optional().describe('Filter by asset (NIM, USDT, USDC, BTC, ETH)'),
+      rewards: z.boolean().optional().describe('Only return apps with one or more reward assets'),
+      collection: z.enum(['new-week', 'popular', 'rewards', 'games', 'usdt']).optional(),
       status: statuses.optional().describe('Defaults to approved, verified, and experimental'),
       featured: z.boolean().optional(),
       sort: z.enum(['featured', 'newest', 'name']).optional(),
@@ -196,7 +198,7 @@ server.registerTool(
   'admin_search_users',
   {
     description:
-      'Search users by display name or wallet address prefix (requires admin token). Use before assigning developer_wallet_address on an app.',
+      'Search users by display name or wallet address prefix (requires admin token). Use before admin_add_app_owner.',
     inputSchema: {
       q: z.string().describe('Prefix match on display_name or wallet_address'),
     },
@@ -211,10 +213,46 @@ server.registerTool(
 )
 
 server.registerTool(
+  'admin_add_app_owner',
+  {
+    description: 'Link a wallet as a co-owner of an app, granting My apps / request-update access (requires admin token). No effect if already an owner.',
+    inputSchema: {
+      slug: z.string().describe('App slug'),
+      wallet_address: z.string().describe('Wallet to add — must have logged in and set a display name'),
+    },
+  },
+  async ({ slug, wallet_address }) => {
+    try {
+      return api.asToolResult(await api.adminAddAppOwner(slug, wallet_address))
+    } catch (error) {
+      return toolError(error)
+    }
+  },
+)
+
+server.registerTool(
+  'admin_remove_app_owner',
+  {
+    description: 'Unlink a wallet from an app\'s ownership (requires admin token). Unlike the self-service endpoint, this can remove the last owner, fully unclaiming the app.',
+    inputSchema: {
+      slug: z.string().describe('App slug'),
+      wallet_address: z.string().describe('Wallet to remove'),
+    },
+  },
+  async ({ slug, wallet_address }) => {
+    try {
+      return api.asToolResult(await api.adminRemoveAppOwner(slug, wallet_address))
+    } catch (error) {
+      return toolError(error)
+    }
+  },
+)
+
+server.registerTool(
   'admin_create_app',
   {
     description:
-      'Create a new app (requires admin token). Set developer_wallet_address to link an owner — name/slug are taken from their profile. Unclaimed apps need developer_name and developer_slug.',
+      'Create a new app (requires admin token). Always set developer_name and developer_slug directly. Use admin_add_app_owner afterward to link one or more wallets.',
     inputSchema: appFields,
   },
   async (fields) => {
@@ -232,7 +270,7 @@ server.registerTool(
   'admin_update_app',
   {
     description:
-      'Update an app by slug; merges with the current record (requires admin token). Set developer_wallet_address to assign/reassign ownership (name/slug derived from profile). Pass null to unclaim.',
+      'Update an app by slug; merges with the current record (requires admin token). Ownership is managed separately — use admin_add_app_owner / admin_remove_app_owner.',
     inputSchema: {
       slug: z.string().describe('Slug of the app to update'),
       ...Object.fromEntries(

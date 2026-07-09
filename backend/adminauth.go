@@ -51,3 +51,38 @@ func adminAuthMiddleware(adminToken string, adminWallets map[string]struct{}, wa
 func (s *server) adminAuth(next http.HandlerFunc) http.HandlerFunc {
 	return adminAuthMiddleware(s.adminToken, s.adminWallets, s.walletAuthSecret, next)
 }
+
+// ownerOrAdminAuth allows the app's owner wallet, an admin wallet, or an admin bearer token.
+func (s *server) ownerOrAdminAuth(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slug := r.PathValue("slug")
+		if s.walletAuthSecret != "" {
+			if cookie, err := r.Cookie(walletCookieName); err == nil {
+				if address, err := verifyWalletCookie(s.walletAuthSecret, cookie.Value); err == nil {
+					setWalletCookie(w, r, s.walletAuthSecret, address)
+					if isAdminWallet(s.adminWallets, address) {
+						next(w, r)
+						return
+					}
+					owner, err := s.isOwner(r.Context(), slug, address)
+					if err != nil {
+						writeError(w, http.StatusInternalServerError, err.Error())
+						return
+					}
+					if owner {
+						next(w, r)
+						return
+					}
+					writeError(w, http.StatusForbidden, "access denied")
+					return
+				}
+			}
+		}
+		got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+		if s.adminToken != "" && subtle.ConstantTimeCompare([]byte(got), []byte(s.adminToken)) == 1 {
+			next(w, r)
+			return
+		}
+		writeError(w, http.StatusUnauthorized, "access denied")
+	}
+}

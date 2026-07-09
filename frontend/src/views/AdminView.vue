@@ -3,12 +3,13 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   APP_CATEGORIES, APP_RELEASE_STAGES, adminListApps, adminCreateApp, adminUpdateApp, adminDeleteApp, adminSetStatus, adminCheckDomains,
-  adminListRevisions, adminApproveRevision, adminRejectRevision, adminSearchUsers,
+  adminListRevisions, adminApproveRevision, adminRejectRevision, adminSearchUsers, adminAddAppOwner, adminRemoveAppOwner,
   type App, type RevisionReviewItem, type AdminUserResult,
 } from '../api'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import StatusBadge from '../components/StatusBadge.vue'
 import ReleaseStageBadge from '../components/ReleaseStageBadge.vue'
+import TokenMultiSelect from '../components/TokenMultiSelect.vue'
 import { formatMediaLines, parseMediaLines } from '../utils/media'
 import { formatSocialLines, parseSocialLines } from '../utils/socials'
 import { diffRevision } from '../utils/revisionDiff'
@@ -24,11 +25,37 @@ const error = ref('')
 const notice = ref('')
 const reordering = ref(false)
 const checkingDomains = ref(false)
+type AppSortKey = 'name' | 'total_opens' | 'total_views'
+const sortKey = ref<AppSortKey>('name')
+const sortAsc = ref(true)
+
+function toggleSort(key: AppSortKey) {
+  if (sortKey.value === key) {
+    sortAsc.value = !sortAsc.value
+  } else {
+    sortKey.value = key
+    sortAsc.value = key === 'name'
+  }
+}
+
+const sortedApps = computed(() => {
+  const list = [...apps.value]
+  const dir = sortAsc.value ? 1 : -1
+  list.sort((a, b) => {
+    if (sortKey.value === 'name') {
+      return dir * a.name.localeCompare(b.name)
+    }
+    const av = sortKey.value === 'total_opens' ? (a.total_opens ?? 0) : (a.total_views ?? 0)
+    const bv = sortKey.value === 'total_opens' ? (b.total_opens ?? 0) : (b.total_views ?? 0)
+    if (av !== bv) return dir * (av - bv)
+    return a.name.localeCompare(b.name)
+  })
+  return list
+})
 
 const emptyForm = {
   slug: '', name: '', domain: '', category: '', developer_slug: '', developer_name: '',
-  developer_wallet_address: null as string | null,
-  tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', status: 'submitted',
+  tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', reward_assets: '', status: 'submitted',
   release_stage: 'released', featured: false, featured_order: 0,
   website_url: '', github_url: '', icon_url: '', banner_url: '', media: '', socials: '',
   submitter_contact: '',
@@ -41,7 +68,6 @@ const developerResults = ref<AdminUserResult[]>([])
 let developerSearchTimer: ReturnType<typeof setTimeout> | undefined
 
 function onDeveloperQueryInput() {
-  form.developer_wallet_address = null
   clearTimeout(developerSearchTimer)
   developerSearchTimer = setTimeout(async () => {
     const q = developerQuery.value.trim()
@@ -57,26 +83,45 @@ function onDeveloperQueryInput() {
   }, 250)
 }
 
-function pickDeveloper(user: AdminUserResult) {
+const currentOwners = ref<string[]>([])
+const ownerBusy = ref(false)
+
+async function addOwnerFromPicker(user: AdminUserResult) {
   if (!user.display_name?.trim()) {
     error.value = 'This user must set a display name on their profile before they can own an app.'
     return
   }
   error.value = ''
-  form.developer_wallet_address = user.wallet_address
-  developerQuery.value = user.display_name
-  developerResults.value = []
-  form.developer_name = user.display_name
-  form.developer_slug = slugify(user.display_name)
+  ownerBusy.value = true
+  try {
+    await adminAddAppOwner(editingSlug.value, user.wallet_address)
+    if (!currentOwners.value.includes(user.wallet_address)) currentOwners.value.push(user.wallet_address)
+    if (!form.developer_name) form.developer_name = user.display_name
+    if (!form.developer_slug) form.developer_slug = slugify(user.display_name)
+    developerQuery.value = ''
+    developerResults.value = []
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    ownerBusy.value = false
+  }
+}
+
+async function removeOwnerFromApp(wallet: string) {
+  ownerBusy.value = true
+  error.value = ''
+  try {
+    await adminRemoveAppOwner(editingSlug.value, wallet)
+    currentOwners.value = currentOwners.value.filter((w) => w !== wallet)
+  } catch (e) {
+    error.value = (e as Error).message
+  } finally {
+    ownerBusy.value = false
+  }
 }
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-
-const developerLinked = computed(() => !!form.developer_wallet_address)
-const developerPickPending = computed(
-  () => developerQuery.value.trim() !== '' && !form.developer_wallet_address,
-)
 
 function saveToken() {
   localStorage.setItem('admin_token', token.value)
@@ -112,6 +157,7 @@ function startCreate() {
   Object.assign(form, emptyForm)
   developerQuery.value = ''
   developerResults.value = []
+  currentOwners.value = []
   editingSlug.value = ''
   showForm.value = true
 }
@@ -120,9 +166,8 @@ function startEdit(app: App) {
   Object.assign(form, {
     slug: app.slug, name: app.name, domain: app.domain, category: app.category,
     developer_slug: app.developer_slug, developer_name: app.developer_name,
-    developer_wallet_address: app.developer_wallet_address,
     tagline: app.tagline, description: app.description, long_description: app.long_description || '',
-    tags: app.tags.join(', '), assets: app.assets.join(', '),
+    tags: app.tags.join(', '), assets: app.assets.join(', '), reward_assets: app.reward_assets.join(', '),
     status: app.status, release_stage: app.release_stage, featured: app.featured,
     featured_order: app.featured_order ?? 0,
     website_url: app.website_url || '', github_url: app.github_url || '',
@@ -131,9 +176,8 @@ function startEdit(app: App) {
     socials: formatSocialLines(app.socials),
     submitter_contact: app.submitter_contact || '',
   })
-  developerQuery.value = app.developer_wallet_address
-    ? (app.developer_name || app.developer_wallet_address)
-    : ''
+  currentOwners.value = [...app.owner_wallet_addresses]
+  developerQuery.value = ''
   developerResults.value = []
   editingSlug.value = app.slug
   showForm.value = true
@@ -143,16 +187,12 @@ const csv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
 
 async function submit() {
   error.value = ''
-  if (developerPickPending.value) {
-    error.value = 'Pick a wallet from the search results under Owning developer — typing a name alone does not link the app.'
-    return
-  }
   const payload = {
     ...form,
     domain: normalizeDomain(form.domain),
-    developer_wallet_address: form.developer_wallet_address || null,
     tags: csv(form.tags),
     assets: csv(form.assets),
+    reward_assets: csv(form.reward_assets),
     media: parseMediaLines(form.media),
     socials: parseSocialLines(form.socials),
     website_url: form.website_url || null,
@@ -285,14 +325,13 @@ async function moveFeatured(app: App, direction: -1 | 1) {
 
 onMounted(load)
 
-const fields: [keyof typeof emptyForm, string, boolean][] = [
+const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
   ['slug', 'Slug (lowercase, url-safe)', true],
   ['name', 'Name', true],
   ['domain', 'Domain (no https://)', true],
   ['submitter_contact', 'Submitter contact (private)', false],
   ['tagline', 'Tagline', true],
   ['tags', 'Tags (comma-separated)', false],
-  ['assets', 'Assets (NIM, USDT, USDC, BTC, ETH)', false],
   ['website_url', 'Website URL', false],
   ['github_url', 'GitHub URL', false],
   ['icon_url', 'Icon URL', false],
@@ -337,11 +376,22 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
     <form v-if="showForm" @submit.prevent="submit" class="space-y-3 rounded-2xl border border-line bg-surface p-5">
       <h2 class="font-bold">{{ editingSlug ? `Edit ${editingSlug}` : 'New app' }}</h2>
       <div class="grid gap-3 sm:grid-cols-2">
-        <label v-for="[key, label, required] in fields" :key="key" class="text-sm">
+        <label v-for="[key, label, required, help] in fields" :key="key" class="text-sm">
           <span class="mb-1 block text-muted">{{ label }}{{ required ? ' *' : '' }}</span>
           <input v-model="(form as any)[key]" :required="required"
             class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
+          <span v-if="help" class="mt-1 block text-xs leading-snug text-muted">{{ help }}</span>
         </label>
+        <TokenMultiSelect
+          v-model="form.assets"
+          label="Assets"
+          help="Tokens the app uses, accepts, reads, or supports."
+        />
+        <TokenMultiSelect
+          v-model="form.reward_assets"
+          label="Reward assets"
+          help="Moderator-reviewed claim: only select tokens users can actually receive from the app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
+        />
 
         <div class="space-y-3 rounded-xl border border-line bg-surface-2/50 p-4 sm:col-span-2">
           <div>
@@ -352,34 +402,39 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
             </p>
           </div>
 
+          <div v-if="editingSlug" class="space-y-2">
+            <span class="mb-1 block text-sm font-semibold text-muted">Owner wallets</span>
+            <ul v-if="currentOwners.length" class="space-y-1">
+              <li v-for="wallet in currentOwners" :key="wallet" class="flex items-center justify-between gap-2 rounded-lg bg-surface px-2 py-1.5 text-sm">
+                <span class="truncate font-mono text-xs">{{ wallet }}</span>
+                <button type="button" :disabled="ownerBusy"
+                  class="shrink-0 text-xs font-semibold text-red-600 hover:underline disabled:cursor-default disabled:opacity-40 dark:text-red-400"
+                  @click="removeOwnerFromApp(wallet)">
+                  Remove
+                </button>
+              </li>
+            </ul>
+            <p v-else class="text-xs text-muted">Unclaimed — only admins can edit this listing until a wallet is added.</p>
+          </div>
           <label class="relative block text-sm">
-            <span class="mb-1 block font-semibold text-muted">Wallet owner</span>
+            <span class="mb-1 block font-semibold text-muted">Add owner wallet</span>
             <input v-model="developerQuery" @input="onDeveloperQueryInput"
-              placeholder="Search by display name or wallet address — pick a result to link"
-              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent"
-              :class="developerPickPending ? 'border-amber-500/60' : developerLinked ? 'border-emerald-500/40' : ''" />
-            <p v-if="developerPickPending" class="mt-1 text-xs text-amber-700 dark:text-amber-200">
-              Choose a user from the list below (they must have connected their wallet on the site first).
-            </p>
-            <p v-else-if="!developerLinked" class="mt-1 text-xs text-muted">
-              Unclaimed — only admins can edit this listing until a wallet is linked.
-            </p>
+              :disabled="!editingSlug"
+              placeholder="Search by display name or wallet address — pick a result to add"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent disabled:opacity-50" />
+            <p v-if="!editingSlug" class="mt-1 text-xs text-muted">Save this app first, then add owner wallets.</p>
             <ul v-if="developerResults.length" class="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-line bg-surface shadow-lg">
               <li v-for="user in developerResults" :key="user.wallet_address"
-                @click="pickDeveloper(user)"
+                @click="addOwnerFromPicker(user)"
                 class="cursor-pointer px-3 py-2 text-sm hover:bg-surface-2"
                 :class="{ 'opacity-50': !user.display_name?.trim() }">
                 {{ user.display_name ?? 'No display name' }}
                 <span class="block font-mono text-xs text-muted">{{ user.wallet_address }}</span>
               </li>
             </ul>
-            <p v-else-if="developerQuery.trim() && !developerLinked" class="mt-1 text-xs text-muted">
-              No matching wallets — the user must log in at least once before you can assign them.
+            <p v-else-if="developerQuery.trim()" class="mt-1 text-xs text-muted">
+              No matching wallets — the user must log in at least once before you can add them.
             </p>
-            <span v-if="form.developer_wallet_address" class="mt-1 block text-xs text-emerald-700 dark:text-emerald-300">
-              Linked to <span class="font-mono">{{ form.developer_wallet_address }}</span>
-              <button type="button" @click="form.developer_wallet_address = null; developerQuery = ''" class="ml-1 text-accent-ink hover:underline">clear</button>
-            </span>
           </label>
 
           <div class="grid gap-3 sm:grid-cols-2">
@@ -388,7 +443,6 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
               <input v-model="form.developer_name" required
                 placeholder="Shown on listings"
                 class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
-              <p v-if="developerLinked" class="mt-1 text-xs text-muted">Pre-filled from the linked wallet's profile — edit freely to rebrand.</p>
             </label>
             <label class="text-sm">
               <span class="mb-1 block text-muted">Public developer slug *</span>
@@ -577,8 +631,23 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
     </section>
 
     <!-- app list -->
+    <div v-if="!showForm && apps.length" class="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
+      <span>Sort:</span>
+      <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
+        :class="sortKey === 'name' ? 'text-accent-ink' : ''" @click="toggleSort('name')">
+        Name {{ sortKey === 'name' ? (sortAsc ? '↑' : '↓') : '' }}
+      </button>
+      <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
+        :class="sortKey === 'total_opens' ? 'text-accent-ink' : ''" @click="toggleSort('total_opens')">
+        Opens {{ sortKey === 'total_opens' ? (sortAsc ? '↑' : '↓') : '' }}
+      </button>
+      <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
+        :class="sortKey === 'total_views' ? 'text-accent-ink' : ''" @click="toggleSort('total_views')">
+        Views {{ sortKey === 'total_views' ? (sortAsc ? '↑' : '↓') : '' }}
+      </button>
+    </div>
     <div class="space-y-2">
-      <div v-for="app in apps" :key="app.id"
+      <div v-for="app in sortedApps" :key="app.id"
         class="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 sm:flex-row sm:items-center">
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
@@ -590,6 +659,9 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
             <span v-if="app.featured" class="text-accent-ink" title="Featured">★</span>
           </div>
           <p class="truncate text-sm text-muted">{{ app.slug }} · {{ app.domain }}</p>
+          <p class="mt-1 text-xs text-muted">
+            Opens: {{ (app.total_opens ?? 0).toLocaleString() }} · Views: {{ (app.total_views ?? 0).toLocaleString() }}
+          </p>
         </div>
         <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
           <button @click="setStatus(app, 'approve')" class="rounded-lg bg-sky-500/20 px-2.5 py-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-500/30">Approve</button>

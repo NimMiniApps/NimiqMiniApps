@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getApp, getRelatedApps, getSubmissionStatus, listAppReviews, type App, type AppReviewsResponse } from '../api'
+import { getApp, getRelatedApps, getSubmissionStatus, listAppReviews, trackAppEvent, type App, type AppReviewsResponse } from '../api'
 import AppCard from '../components/AppCard.vue'
 import AppBreadcrumb from '../components/AppBreadcrumb.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -15,6 +15,7 @@ import LinkIconButton from '../components/LinkIconButton.vue'
 import MarkdownContent from '../components/MarkdownContent.vue'
 import AppIcon from '../components/AppIcon.vue'
 import HostedByBadge from '../components/HostedByBadge.vue'
+import RewardBadge from '../components/RewardBadge.vue'
 import ReviewForm from '../components/ReviewForm.vue'
 import ReviewList from '../components/ReviewList.vue'
 import { displayIconUrl } from '../utils/appIcon'
@@ -39,7 +40,7 @@ const loading = ref(true)
 const notFound = ref(false)
 const updatePending = ref(false)
 
-const isOwner = computed(() => walletOwnsApp(walletAddress.value, app.value?.developer_wallet_address))
+const isOwner = computed(() => walletOwnsApp(walletAddress.value, app.value?.owner_wallet_addresses))
 
 const aboutSource = computed(() => {
   if (!app.value) return ''
@@ -59,6 +60,7 @@ async function loadApp(slug: string) {
       listAppReviews(slug).catch(() => ({ items: [], average: 0, count: 0 }) as AppReviewsResponse),
     ])
     app.value = loaded
+    trackAppEvent(slug, 'view')
     related.value = relatedApps
     reviewsData.value = reviews
   } catch (e) {
@@ -155,6 +157,7 @@ onUnmounted(resetPageMeta)
           <h1 class="text-2xl font-extrabold">{{ app.name }}</h1>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
+          <RewardBadge :assets="app.reward_assets" />
           <HostedByBadge :domain="app.domain" />
           <DomainStatus v-if="app.domain_reachable === false" :reachable="app.domain_reachable" />
         </div>
@@ -168,7 +171,8 @@ onUnmounted(resetPageMeta)
     <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <div class="flex flex-wrap items-center gap-2">
         <a v-if="isMobile" :href="app.open_url" target="_blank" rel="noopener"
-          class="inline-flex h-10 cursor-pointer items-center rounded-[500px] nq-primary px-5 text-sm font-bold text-white transition duration-200">
+          class="inline-flex h-10 cursor-pointer items-center rounded-[500px] nq-primary px-5 text-sm font-bold text-white transition duration-200"
+          @click="trackAppEvent(app.slug, 'open')">
           {{ t('appDetail.openInWallet') }}
         </a>
         <ShareButton :title="app.name" />
@@ -200,7 +204,7 @@ onUnmounted(resetPageMeta)
           {{ t('appDetail.edit') }}
         </RouterLink>
       </div>
-      <OpenInWalletPanel v-if="!isMobile" :open-url="app.open_url" class="sm:ml-auto" />
+      <OpenInWalletPanel v-if="!isMobile" :open-url="app.open_url" :slug="app.slug" class="sm:ml-auto" />
     </div>
 
     <div class="flex flex-wrap items-center gap-1.5 text-sm">
@@ -212,6 +216,7 @@ onUnmounted(resetPageMeta)
         class="rounded-full bg-surface-2 px-2.5 py-1 font-semibold transition-colors hover:bg-accent/10 hover:text-accent-ink">
         {{ asset }}
       </RouterLink>
+      <RewardBadge :assets="app.reward_assets" />
       <RouterLink v-for="tag in app.tags" :key="tag" :to="`/apps?tag=${encodeURIComponent(tag)}`"
         class="rounded-full bg-surface-2 px-2.5 py-1 text-muted transition-colors hover:bg-accent/10 hover:text-accent-ink">
         #{{ tag }}

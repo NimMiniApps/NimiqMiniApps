@@ -222,7 +222,7 @@ curl -X POST $API/api/admin/revisions/{id}/approve -H "Authorization: Bearer $TO
 curl -X POST $API/api/admin/revisions/{id}/reject -H "Authorization: Bearer $TOKEN"
 ```
 
-Collections: `GET /api/collections` and `GET /api/apps?collection=new-week|games|usdt`.
+Collections: `GET /api/collections` and `GET /api/apps?collection=new-week|popular|rewards|games|usdt`.
 
 SEO: `GET /sitemap.xml` and `GET /robots.txt` on the API host.
 

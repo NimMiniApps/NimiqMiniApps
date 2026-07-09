@@ -19,12 +19,13 @@ export interface App {
   category: string
   developer_slug: string
   developer_name: string
-  developer_wallet_address: string | null
+  owner_wallet_addresses: string[]
   tagline: string
   description: string
   long_description: string
   tags: string[]
   assets: string[]
+  reward_assets: string[]
   status: string
   release_stage: string
   featured: boolean
@@ -41,7 +42,11 @@ export interface App {
   open_url: string
   domain_reachable: boolean | null
   domain_checked_at: string | null
+  avg_rating: number
+  review_count: number
   submitter_contact?: string
+  total_opens?: number
+  total_views?: number
 }
 
 export const APP_RELEASE_STAGES = ['concept', 'alpha', 'beta', 'released'] as const
@@ -52,6 +57,7 @@ export interface Category {
 }
 
 export const APP_CATEGORIES = ['Games', 'Utilities', 'Finance', 'Maps', 'Social', 'Experiments'] as const
+export const APP_ASSETS = ['NIM', 'USDT', 'USDC', 'BTC', 'ETH'] as const
 
 export interface Developer {
   slug: string
@@ -89,6 +95,7 @@ export interface AppRevision {
   long_description: string
   tags: string[]
   assets: string[]
+  reward_assets: string[]
   release_stage: string
   website_url: string | null
   github_url: string | null
@@ -129,12 +136,13 @@ function normalizeApp(raw: RawApp): App {
   }
   return {
     ...raw,
-    developer_wallet_address: raw.developer_wallet_address ?? null,
+    owner_wallet_addresses: raw.owner_wallet_addresses ?? [],
     long_description: raw.long_description ?? '',
     release_stage: raw.release_stage ?? 'released',
     featured_order: raw.featured_order ?? 0,
     tags: raw.tags ?? [],
     assets: raw.assets ?? [],
+    reward_assets: raw.reward_assets ?? [],
     media,
     socials: raw.socials ?? [],
   }
@@ -202,9 +210,46 @@ export const requestAppUpdate = (slug: string, app: Partial<App> & { author_note
     },
   )
 
+export const addAppOwner = (slug: string, walletAddress: string) =>
+  request<{ status: string }>(`/api/apps/${encodeURIComponent(slug)}/owners`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ wallet_address: walletAddress }),
+  })
+
+export const removeAppOwner = (slug: string, walletAddress: string) =>
+  request<{ status: string }>(
+    `/api/apps/${encodeURIComponent(slug)}/owners/${encodeURIComponent(walletAddress)}`,
+    { method: 'DELETE', credentials: 'include' },
+  )
+
 export const getMyApps = () =>
   request<(RawApp & { has_pending_revision: boolean })[]>('/api/my/apps', { credentials: 'include' })
     .then((items) => items.map((item) => ({ ...normalizeApp(item), has_pending_revision: item.has_pending_revision })))
+
+export const getMyFavorites = () =>
+  request<RawApp[]>('/api/my/favorites', { credentials: 'include' }).then(normalizeApps)
+
+export const addFavorite = (slug: string) =>
+  request<void>(`/api/apps/${encodeURIComponent(slug)}/favorite`, { method: 'POST', credentials: 'include' })
+
+export const removeFavorite = (slug: string) =>
+  request<void>(`/api/apps/${encodeURIComponent(slug)}/favorite`, { method: 'DELETE', credentials: 'include' })
+
+export interface AppStats {
+  totals: { opens: number; views: number }
+  daily: { date: string; opens: number; views: number }[]
+}
+
+export const getAppStats = (slug: string) =>
+  request<AppStats>(`/api/apps/${encodeURIComponent(slug)}/stats`, { credentials: 'include' })
+
+export function trackAppEvent(slug: string, event: 'open' | 'view'): void {
+  const url = BASE + `/api/apps/${encodeURIComponent(slug)}/track`
+  const body = JSON.stringify({ event })
+  navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }))
+}
 
 // --- admin ---
 
@@ -235,6 +280,18 @@ export interface AdminUserResult {
 
 export const adminSearchUsers = (q: string) =>
   adminRequest<AdminUserResult[]>(`/api/admin/users?q=${encodeURIComponent(q)}`)
+
+export const adminAddAppOwner = (slug: string, walletAddress: string) =>
+  adminRequest<{ status: string }>(`/api/admin/apps/${slug}/owners`, {
+    method: 'POST',
+    body: JSON.stringify({ wallet_address: walletAddress }),
+  })
+
+export const adminRemoveAppOwner = (slug: string, walletAddress: string) =>
+  adminRequest<{ status: string }>(
+    `/api/admin/apps/${slug}/owners/${encodeURIComponent(walletAddress)}`,
+    { method: 'DELETE' },
+  )
 
 export const adminStats = () =>
   adminRequest<{ pending: number; unreachable: number; pending_updates: number }>('/api/admin/stats')
