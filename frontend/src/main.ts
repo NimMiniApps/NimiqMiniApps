@@ -18,6 +18,7 @@ const router = createRouter({
     { path: '/submit', component: () => import('./views/SubmitView.vue'), meta: { title: 'Submit Your App' } },
     { path: '/status/:slug', component: () => import('./views/StatusView.vue'), meta: { title: 'Submission Status' } },
     { path: '/admin', component: () => import('./views/AdminView.vue'), meta: { title: 'Admin' } },
+    { path: '/profile', component: () => import('./views/ProfileView.vue'), meta: { title: 'Profile' } },
   ],
   scrollBehavior(to) {
     if (to.hash) return { el: to.hash, behavior: 'smooth' }

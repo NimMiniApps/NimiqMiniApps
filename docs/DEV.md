@@ -48,6 +48,7 @@ docker run -d --name nimiq-pg -p 5432:5432 \
 cd backend
 export DATABASE_URL="postgres://nimiq:nimiq@localhost:5432/nimiq_miniapps?sslmode=disable"
 export ADMIN_TOKEN="dev-admin-token-change-me"
+export WALLET_AUTH_SECRET="dev-wallet-auth-secret-change-me"
 export HTTP_ADDR=":8080"   # binds 0.0.0.0:8080
 go run .
 ```
@@ -88,7 +89,41 @@ If you point the phone directly at the backend (port 8080), add your LAN origin 
 export CORS_ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://<LAN-IP>:5173"
 ```
 
-## Admin API examples
+## OpenAPI
+
+- **Source:** [`docs/openapi.yaml`](openapi.yaml) (edit this file)
+- **Live:** `GET /openapi.json` and `GET /openapi.yaml` on the API host
+- **Regenerate** embedded copies for the backend Docker image:
+
+```bash
+./scripts/gen-openapi.sh
+```
+
+CI validates the YAML and fails if `backend/openapi.{yaml,json}` are out of sync with `docs/openapi.yaml`.
+
+## API examples
+
+```bash
+TOKEN=dev-admin-token-change-me
+API=http://localhost:8080
+
+# OpenAPI spec
+curl $API/openapi.json
+
+# public submission (no auth; forced to status=submitted, featured=false; 5/hour per IP)
+curl -X POST $API/api/apps/submit -H "Content-Type: application/json" \
+  -d '{"slug":"my-app","name":"My App","domain":"myapp.example.com","category":"Utilities","developer_slug":"me","developer_name":"Me","tagline":"Does a thing.","submitter_contact":"you@example.com"}'
+
+# public reads
+curl "$API/api/apps?q=game&category=Games&sort=newest"
+curl "$API/api/apps?paginate=1&limit=20&offset=0"
+curl $API/api/apps/nimbomber
+curl $API/api/categories
+curl $API/api/developers/maestro
+curl $API/health
+```
+
+### Admin API examples
 
 ```bash
 TOKEN=dev-admin-token-change-me
@@ -123,21 +158,8 @@ curl -X POST $API/api/admin/apps/my-app/reject  -H "Authorization: Bearer $TOKEN
 # delete
 curl -X DELETE $API/api/admin/apps/my-app -H "Authorization: Bearer $TOKEN"
 
-# public submission (no auth; forced to status=submitted, featured=false; 5/hour per IP)
-curl -X POST $API/api/apps/submit -H "Content-Type: application/json" \
-  -d '{"slug":"my-app","name":"My App","domain":"myapp.example.com","category":"Utilities","developer_slug":"me","developer_name":"Me","tagline":"Does a thing."}'
-
 # admin: list everything including submitted/rejected
 curl $API/api/admin/apps -H "Authorization: Bearer $TOKEN"
-
-# public reads
-curl "$API/api/apps?q=game&category=Games&sort=newest"
-curl "$API/api/apps?paginate=1&limit=20&offset=0"
-curl $API/api/apps/nimbomber
-curl $API/og/apps/nimbomber
-curl $API/api/categories
-curl $API/api/developers/maestro
-curl $API/health
 ```
 
 ## Notes
@@ -162,6 +184,8 @@ curl $API/health
 | `DOMAIN_CHECK_OFFLINE_INTERVAL` | `15m` | Re-check interval for unreachable domains (checked sooner) |
 | `DOMAIN_CHECK_TICK` | `5m` | How often the worker looks for domains due for a check |
 | `DOMAIN_CHECK_TIMEOUT` | `10s` | Per-domain HTTP timeout |
+| `WALLET_AUTH_SECRET` | _(empty)_ | HMAC secret for wallet login session cookies; rotating it logs everyone out |
+| `ADMIN_WALLET_ADDRESSES` | _(empty)_ | Comma-separated Nimiq addresses allowed to moderate via wallet session (also accepts `ADMIN_TOKEN` bearer) |
 
 Pagination: `GET /api/apps?paginate=1&limit=20&offset=0` returns `{ items, total, limit, offset }`. Without `paginate` or `offset`, the response stays a plain JSON array (legacy).
 

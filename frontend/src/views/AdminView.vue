@@ -5,6 +5,7 @@ import {
   APP_CATEGORIES, APP_RELEASE_STAGES, adminListApps, adminCreateApp, adminUpdateApp, adminDeleteApp, adminSetStatus, adminCheckDomains,
   adminListRevisions, adminApproveRevision, adminRejectRevision, type App, type RevisionReviewItem,
 } from '../api'
+import { useWalletAuth } from '../composables/useWalletAuth'
 import StatusBadge from '../components/StatusBadge.vue'
 import ReleaseStageBadge from '../components/ReleaseStageBadge.vue'
 import { formatMediaLines, parseMediaLines } from '../utils/media'
@@ -13,6 +14,7 @@ import { diffRevision } from '../utils/revisionDiff'
 
 const route = useRoute()
 const router = useRouter()
+const { isAdmin: walletIsAdmin } = useWalletAuth()
 const token = ref(localStorage.getItem('admin_token') || '')
 const apps = ref<App[]>([])
 const pendingRevisions = ref<RevisionReviewItem[]>([])
@@ -247,14 +249,21 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
   <div class="space-y-5">
     <h1 class="text-2xl font-extrabold">Admin</h1>
 
-    <!-- token -->
-    <div class="flex gap-2">
-      <input v-model="token" type="password" placeholder="Admin token"
-        class="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 placeholder:text-muted/60 focus:border-accent outline-none" />
-      <button @click="saveToken" class="rounded-xl bg-nq-blue px-4 py-2.5 font-bold text-white hover:bg-nq-blue-dark">
-        Save
-      </button>
-    </div>
+    <p v-if="walletIsAdmin" class="text-sm text-muted">
+      Signed in with an admin wallet. Catalog actions use your wallet session.
+    </p>
+
+    <!-- bearer token fallback (MCP, scripts, break-glass) -->
+    <details v-if="!walletIsAdmin" class="rounded-xl border border-line bg-surface p-4">
+      <summary class="cursor-pointer text-sm font-semibold text-muted">Sign in with admin token</summary>
+      <div class="mt-3 flex gap-2">
+        <input v-model="token" type="password" placeholder="Admin token"
+          class="flex-1 rounded-xl border border-line bg-surface-2 px-4 py-2.5 placeholder:text-muted/60 focus:border-accent outline-none" />
+        <button @click="saveToken" class="rounded-xl bg-nq-blue px-4 py-2.5 font-bold text-white hover:bg-nq-blue-dark">
+          Save
+        </button>
+      </div>
+    </details>
 
     <p v-if="error" class="rounded-xl bg-red-500/20 p-4 text-red-600 dark:text-red-600 dark:text-red-300">{{ error }}</p>
     <p v-if="notice" class="rounded-xl bg-emerald-500/15 p-4 text-emerald-700 dark:text-emerald-700 dark:text-emerald-300">{{ notice }}</p>

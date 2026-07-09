@@ -1,11 +1,5 @@
 import { messages, SUPPORTED_LOCALES, type Locale, type MessageTree } from './messages'
 
-declare global {
-  interface Window {
-    nimiqPay?: { readonly language?: string }
-  }
-}
-
 export function resolveLocale(): Locale {
   const host = window.nimiqPay?.language?.toLowerCase().slice(0, 2)
   if (host && SUPPORTED_LOCALES.includes(host as Locale)) return host as Locale

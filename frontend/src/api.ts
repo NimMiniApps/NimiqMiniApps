@@ -201,42 +201,136 @@ export const requestAppUpdate = (slug: string, app: Partial<App> & { author_note
 // --- admin ---
 
 function adminHeaders(): HeadersInit {
-  return {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('admin_token') || ''}`,
   }
+  const token = localStorage.getItem('admin_token')
+  if (token) headers.Authorization = `Bearer ${token}`
+  return headers
+}
+
+function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, {
+    ...init,
+    credentials: 'include',
+    headers: { ...adminHeaders(), ...(init?.headers as Record<string, string> | undefined) },
+  })
 }
 
 export const adminListApps = () =>
-  request<RawApp[]>('/api/admin/apps', { headers: adminHeaders() }).then(normalizeApps)
+  adminRequest<RawApp[]>('/api/admin/apps').then(normalizeApps)
 
 export const adminStats = () =>
-  request<{ pending: number; unreachable: number; pending_updates: number }>('/api/admin/stats', { headers: adminHeaders() })
+  adminRequest<{ pending: number; unreachable: number; pending_updates: number }>('/api/admin/stats')
 
 export const adminListRevisions = () =>
-  request<RevisionReviewItem[]>('/api/admin/revisions', { headers: adminHeaders() })
+  adminRequest<RevisionReviewItem[]>('/api/admin/revisions')
 
 export const adminApproveRevision = (id: string) =>
-  request<RawApp>(`/api/admin/revisions/${id}/approve`, { method: 'POST', headers: adminHeaders() }).then(normalizeApp)
+  adminRequest<RawApp>(`/api/admin/revisions/${id}/approve`, { method: 'POST' }).then(normalizeApp)
 
 export const adminRejectRevision = (id: string) =>
-  request<{ status: string }>(`/api/admin/revisions/${id}/reject`, { method: 'POST', headers: adminHeaders() })
+  adminRequest<{ status: string }>(`/api/admin/revisions/${id}/reject`, { method: 'POST' })
 
 export const adminCheckDomains = () =>
-  request<{ status: string }>('/api/admin/check-domains', { method: 'POST', headers: adminHeaders() })
+  adminRequest<{ status: string }>('/api/admin/check-domains', { method: 'POST' })
 
 export const adminCreateApp = (app: Partial<App>) =>
-  request<RawApp>('/api/admin/apps', { method: 'POST', headers: adminHeaders(), body: JSON.stringify(app) }).then(normalizeApp)
+  adminRequest<RawApp>('/api/admin/apps', { method: 'POST', body: JSON.stringify(app) }).then(normalizeApp)
 
 export const adminUpdateApp = (slug: string, app: Partial<App>) =>
-  request<RawApp>(`/api/admin/apps/${slug}`, { method: 'PUT', headers: adminHeaders(), body: JSON.stringify(app) }).then(normalizeApp)
+  adminRequest<RawApp>(`/api/admin/apps/${slug}`, { method: 'PUT', body: JSON.stringify(app) }).then(normalizeApp)
 
 export const adminDeleteApp = (slug: string) =>
-  request<void>(`/api/admin/apps/${slug}`, { method: 'DELETE', headers: adminHeaders() })
+  adminRequest<void>(`/api/admin/apps/${slug}`, { method: 'DELETE' })
 
 export const adminSetStatus = (slug: string, action: 'verify' | 'approve' | 'reject') =>
-  request<RawApp>(`/api/admin/apps/${slug}/${action}`, { method: 'POST', headers: adminHeaders() }).then(normalizeApp)
+  adminRequest<RawApp>(`/api/admin/apps/${slug}/${action}`, { method: 'POST' }).then(normalizeApp)
 
 export function hasAdminToken(): boolean {
   return !!localStorage.getItem('admin_token')
 }
+
+// --- wallet auth & reviews ---
+
+export interface AppReview {
+  id: string
+  app_id: string
+  wallet_address: string
+  display_name: string | null
+  rating: number
+  body: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AppReviewsResponse {
+  items: AppReview[]
+  average: number
+  count: number
+}
+
+export const authChallenge = (wallet_address: string) =>
+  request<{ nonce: string; message: string }>('/api/auth/challenge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wallet_address }),
+  })
+
+export const authVerify = (payload: {
+  wallet_address: string
+  nonce: string
+  signature: string
+  public_key: string
+}) =>
+  request<{ wallet_address: string }>('/api/auth/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+
+export interface AuthMe {
+  wallet_address: string
+  display_name: string | null
+  is_admin: boolean
+}
+
+export const authMe = () =>
+  request<AuthMe>('/api/auth/me', { credentials: 'include' })
+
+export const authLogout = () =>
+  request<void>('/api/auth/logout', { method: 'POST', credentials: 'include' })
+
+export const listAppReviews = (slug: string) =>
+  request<AppReviewsResponse>(`/api/apps/${encodeURIComponent(slug)}/reviews`)
+
+export const submitAppReview = (slug: string, rating: number, body: string) =>
+  request<AppReview>(`/api/apps/${encodeURIComponent(slug)}/reviews`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ rating, body }),
+  })
+
+export const deleteOwnAppReview = (slug: string) =>
+  request<void>(`/api/apps/${encodeURIComponent(slug)}/reviews`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
+export interface Profile {
+  wallet_address: string
+  display_name: string | null
+}
+
+export const getProfile = () =>
+  request<Profile>('/api/profile', { credentials: 'include' })
+
+export const updateProfile = (display_name: string) =>
+  request<Profile>('/api/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ display_name }),
+  })

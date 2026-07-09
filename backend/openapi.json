@@ -1,0 +1,1810 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nimiq Mini Apps API",
+    "version": "1.0.0",
+    "description": "REST API for the [Nimiq Mini Apps](https://nimiqminiapps.com) community directory.\n\n**Submitting an app** — `POST /api/apps/submit` (no auth). Rate limit: **5 requests per hour per IP**.\nRequired field `submitter_contact` (Telegram, email, etc.) is stored privately and omitted from public responses.\n\n**Open in Nimiq Pay** — listed apps expose `open_url` as `https://nimpay.app/miniapps/open/{domain}` (domain without `https://`).\n\nMachine-readable spec: `GET /openapi.json` or `GET /openapi.yaml`.\n",
+    "contact": {
+      "name": "Nimiq Mini Apps",
+      "url": "https://nimiqminiapps.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://github.com/NimMiniApps/NimiqMiniApps/blob/main/LICENSE"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.nimiqminiapps.com",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:8080",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health"
+    },
+    {
+      "name": "Catalog",
+      "description": "Public browse and discovery"
+    },
+    {
+      "name": "Submit",
+      "description": "Developer submissions (no account required)"
+    },
+    {
+      "name": "Admin",
+      "description": "Moderation and catalog management (Bearer token)"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "API and database are healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "OpenAPI specification (JSON)",
+        "operationId": "getOpenAPIJson",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1 document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.yaml": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "OpenAPI specification (YAML)",
+        "operationId": "getOpenAPIYaml",
+        "responses": {
+          "200": {
+            "description": "OpenAPI 3.1 document",
+            "content": {
+              "text/yaml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/apps": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List apps",
+        "operationId": "listApps",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/query"
+          },
+          {
+            "$ref": "#/components/parameters/category"
+          },
+          {
+            "$ref": "#/components/parameters/developer"
+          },
+          {
+            "$ref": "#/components/parameters/tag"
+          },
+          {
+            "$ref": "#/components/parameters/asset"
+          },
+          {
+            "$ref": "#/components/parameters/status"
+          },
+          {
+            "$ref": "#/components/parameters/featured"
+          },
+          {
+            "$ref": "#/components/parameters/sort"
+          },
+          {
+            "$ref": "#/components/parameters/collection"
+          },
+          {
+            "$ref": "#/components/parameters/paginate"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          },
+          {
+            "$ref": "#/components/parameters/offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "App list, or paginated result when `paginate=1`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AppPublic"
+                      }
+                    },
+                    {
+                      "$ref": "#/components/schemas/PaginatedApps"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/apps/submit": {
+      "post": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "Submit a new app for review",
+        "description": "Creates an app with `status=submitted` and `featured=false`. No authentication required.\nRate limited to 5 submissions per hour per client IP (HTTP 429).\n",
+        "operationId": "submitApp",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppSubmitRequest"
+              },
+              "example": {
+                "slug": "my-mini-app",
+                "name": "My Mini App",
+                "domain": "myapp.example.com",
+                "category": "Games",
+                "developer_slug": "my-team",
+                "developer_name": "My Team",
+                "tagline": "One sentence pitch",
+                "submitter_contact": "@telegram or you@example.com",
+                "description": "Short plain-text summary for listings",
+                "long_description": "## Features\n\n- **Bold** and lists work here",
+                "tags": [
+                  "games"
+                ],
+                "assets": [
+                  "NIM"
+                ],
+                "release_stage": "beta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "App submitted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppPublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "description": "Slug already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Get app by slug",
+        "operationId": "getApp",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "App details (submitted/rejected apps return 404 unless queried via admin)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppPublic"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}/status": {
+      "get": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "Check submission review status",
+        "operationId": "getSubmissionStatus",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Review status for a submitted or listed app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionStatus"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}/related": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Related apps (same developer or category)",
+        "operationId": "getRelatedApps",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Up to 4 related public apps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppPublic"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}/request-update": {
+      "post": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "Request a listing update (reviewed by admins)",
+        "description": "Proposes changes to an existing public listing. Rate limited (same 5/hour per IP as submit).\nOnly one pending revision per app at a time.\n",
+        "operationId": "requestAppUpdate",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Update request queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateRequestCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "description": "A pending update already exists for this app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api/categories": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List categories with public app counts",
+        "operationId": "listCategories",
+        "responses": {
+          "200": {
+            "description": "All categories (including zero-count)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Category"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/collections": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List curated collection definitions",
+        "operationId": "listCollections",
+        "responses": {
+          "200": {
+            "description": "Collection metadata (filter via `?collection=` on list apps)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Collection"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/developers": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "List developers",
+        "operationId": "listDevelopers",
+        "responses": {
+          "200": {
+            "description": "Developers with at least one public app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeveloperSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/developers/{slug}": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Get developer and their public apps",
+        "operationId": "getDeveloper",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Developer profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Developer"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/admin/apps": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List all apps (any status)",
+        "operationId": "adminListApps",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full catalog including submitted and rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppAdmin"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create app",
+        "operationId": "adminCreateApp",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "App created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "description": "Slug already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/apps/{slug}": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Replace app fields (merge semantics)",
+        "operationId": "adminUpdateAppPut",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "App updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Partially update app (merge semantics)",
+        "operationId": "adminUpdateAppPatch",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "App updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAdmin"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete app",
+        "operationId": "adminDeleteApp",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "App deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/admin/apps/{slug}/approve": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approve app (status → approved)",
+        "operationId": "adminApproveApp",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "App approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAdmin"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/admin/apps/{slug}/verify": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Verify app (status → verified)",
+        "operationId": "adminVerifyApp",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "App verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAdmin"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/admin/apps/{slug}/reject": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reject app (status → rejected)",
+        "operationId": "adminRejectApp",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "App rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAdmin"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/admin/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin dashboard counts",
+        "operationId": "adminStats",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pending submissions, unreachable domains, pending update requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/admin/check-domains": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Trigger domain reachability checks",
+        "operationId": "adminCheckDomains",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Check started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "started"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/admin/revisions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List pending update requests",
+        "operationId": "adminListRevisions",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "pending"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revisions with current app snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RevisionReviewItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/admin/revisions/{id}/approve": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approve an update request",
+        "operationId": "adminApproveRevision",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revision applied to app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppAdmin"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/admin/revisions/{id}/reject": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reject an update request",
+        "operationId": "adminRejectRevision",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revision rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "rejected"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "adminBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Set ADMIN_TOKEN on the server; send as Authorization Bearer token"
+      }
+    },
+    "parameters": {
+      "slug": {
+        "name": "slug",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        }
+      },
+      "query": {
+        "name": "q",
+        "in": "query",
+        "description": "Search name, tagline, description, tags, assets, developer",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "category": {
+        "name": "category",
+        "in": "query",
+        "schema": {
+          "$ref": "#/components/schemas/CategoryName"
+        }
+      },
+      "developer": {
+        "name": "developer",
+        "in": "query",
+        "description": "Filter by developer_slug",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "tag": {
+        "name": "tag",
+        "in": "query",
+        "description": "Exact tag match",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "asset": {
+        "name": "asset",
+        "in": "query",
+        "schema": {
+          "$ref": "#/components/schemas/Asset"
+        }
+      },
+      "status": {
+        "name": "status",
+        "in": "query",
+        "description": "Public listings default to approved, verified, experimental",
+        "schema": {
+          "$ref": "#/components/schemas/AppStatus"
+        }
+      },
+      "featured": {
+        "name": "featured",
+        "in": "query",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "sort": {
+        "name": "sort",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "featured",
+            "newest",
+            "name"
+          ],
+          "default": "featured"
+        }
+      },
+      "collection": {
+        "name": "collection",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "new-week",
+            "games",
+            "usdt"
+          ]
+        }
+      },
+      "paginate": {
+        "name": "paginate",
+        "in": "query",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "limit": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "offset": {
+        "name": "offset",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Validation error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Invalid or missing admin token",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Rate limit exceeded (5 requests per hour per IP for submit and request-update)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        }
+      },
+      "CategoryName": {
+        "type": "string",
+        "enum": [
+          "Games",
+          "Utilities",
+          "Finance",
+          "Maps",
+          "Social",
+          "Experiments"
+        ]
+      },
+      "AppStatus": {
+        "type": "string",
+        "enum": [
+          "submitted",
+          "approved",
+          "verified",
+          "experimental",
+          "rejected"
+        ]
+      },
+      "ReleaseStage": {
+        "type": "string",
+        "enum": [
+          "concept",
+          "alpha",
+          "beta",
+          "released"
+        ],
+        "default": "released"
+      },
+      "Asset": {
+        "type": "string",
+        "enum": [
+          "NIM",
+          "USDT",
+          "USDC",
+          "BTC",
+          "ETH"
+        ]
+      },
+      "MediaItem": {
+        "type": "object",
+        "required": [
+          "type",
+          "url"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "image",
+              "youtube"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "SocialLink": {
+        "type": "object",
+        "required": [
+          "platform",
+          "url"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "twitter",
+              "discord",
+              "telegram",
+              "bluesky",
+              "instagram",
+              "youtube",
+              "linkedin",
+              "mastodon",
+              "reddit",
+              "tiktok"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "AppInput": {
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "domain",
+          "category",
+          "developer_slug",
+          "developer_name",
+          "tagline"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Hostname only — must not include `https://`"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryName"
+          },
+          "developer_slug": {
+            "type": "string"
+          },
+          "developer_name": {
+            "type": "string"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Plain-text short summary; defaults to tagline if omitted"
+          },
+          "long_description": {
+            "type": "string",
+            "description": "Markdown for the app detail page"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppStatus"
+          },
+          "release_stage": {
+            "$ref": "#/components/schemas/ReleaseStage"
+          },
+          "featured": {
+            "type": "boolean"
+          },
+          "featured_order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "website_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "github_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "icon_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "banner_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaItem"
+            }
+          },
+          "socials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocialLink"
+            }
+          },
+          "submitter_contact": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Private contact; required for public submit"
+          }
+        }
+      },
+      "AppSubmitRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AppInput"
+          },
+          {
+            "type": "object",
+            "required": [
+              "submitter_contact"
+            ]
+          }
+        ]
+      },
+      "AppUpdateRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AppInput"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "author_note": {
+                "type": "string",
+                "description": "Optional note for reviewers"
+              }
+            }
+          }
+        ]
+      },
+      "AppPublic": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryName"
+          },
+          "developer_slug": {
+            "type": "string"
+          },
+          "developer_name": {
+            "type": "string"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "long_description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppStatus"
+          },
+          "release_stage": {
+            "$ref": "#/components/schemas/ReleaseStage"
+          },
+          "featured": {
+            "type": "boolean"
+          },
+          "featured_order": {
+            "type": "integer"
+          },
+          "website_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "github_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "discovered_icon_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "banner_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaItem"
+            }
+          },
+          "socials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocialLink"
+            }
+          },
+          "domain_reachable": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "domain_checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "open_url": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://nimpay.app/miniapps/open/myapp.example.com"
+          }
+        }
+      },
+      "AppAdmin": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AppPublic"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "submitter_contact": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
+      "SubmissionStatus": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "live",
+              "rejected"
+            ],
+            "description": "Public-facing label"
+          },
+          "raw_status": {
+            "$ref": "#/components/schemas/AppStatus"
+          },
+          "public": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "update_pending": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateRequestCreated": {
+        "type": "object",
+        "properties": {
+          "revision_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "app_slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "pending"
+          }
+        }
+      },
+      "Category": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CategoryName"
+          },
+          "count": {
+            "type": "integer"
+          }
+        }
+      },
+      "Collection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "DeveloperSummary": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "app_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "Developer": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppPublic"
+            }
+          }
+        }
+      },
+      "PaginatedApps": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppPublic"
+            }
+          },
+          "total": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        }
+      },
+      "AdminStats": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "integer"
+          },
+          "unreachable": {
+            "type": "integer"
+          },
+          "pending_updates": {
+            "type": "integer"
+          }
+        }
+      },
+      "AppRevision": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "app_slug": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryName"
+          },
+          "developer_slug": {
+            "type": "string"
+          },
+          "developer_name": {
+            "type": "string"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "long_description": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "release_stage": {
+            "$ref": "#/components/schemas/ReleaseStage"
+          },
+          "website_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "github_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "banner_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaItem"
+            }
+          },
+          "socials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocialLink"
+            }
+          },
+          "author_note": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "RevisionReviewItem": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "$ref": "#/components/schemas/AppRevision"
+          },
+          "current": {
+            "$ref": "#/components/schemas/AppAdmin"
+          }
+        }
+      }
+    }
+  }
+}

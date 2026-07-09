@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+      - name: Generate OpenAPI
+        run: ./scripts/gen-openapi.sh
+      - name: Check OpenAPI artifacts are up to date
+        run: git diff --exit-code backend/openapi.yaml backend/openapi.json
       - name: Test
         working-directory: backend
         run: go test ./...

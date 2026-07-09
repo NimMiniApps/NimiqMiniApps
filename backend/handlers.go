@@ -96,7 +96,12 @@ func scanApp(row pgx.Row) (App, error) {
 }
 
 type server struct {
-	pool *pgxpool.Pool
+	pool             *pgxpool.Pool
+	nonces           *nonceStore
+	walletAuthSecret string
+	adminToken       string
+	adminWallets     map[string]struct{}
+	reviewLimiter    *rateLimiter
 }
 
 // visibility filter for public endpoints

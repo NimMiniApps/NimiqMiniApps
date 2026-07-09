@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/subtle"
 	"embed"
 	"errors"
 	"log/slog"
@@ -80,6 +79,7 @@ func corsMiddleware(allowed []string, next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -87,17 +87,6 @@ func corsMiddleware(allowed []string, next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
-}
-
-func authMiddleware(token string, next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if token == "" || subtle.ConstantTimeCompare([]byte(got), []byte(token)) != 1 {
-			writeError(w, http.StatusUnauthorized, "invalid or missing admin token")
-			return
-		}
-		next(w, r)
-	}
 }
 
 func logMiddleware(next http.Handler) http.Handler {
@@ -113,13 +102,20 @@ func main() {
 
 	dbURL := env("DATABASE_URL", "postgres://nimiq:nimiq@localhost:5432/nimiq_miniapps?sslmode=disable")
 	adminToken := env("ADMIN_TOKEN", "")
+	adminWallets := parseAdminWallets(env("ADMIN_WALLET_ADDRESSES", ""))
+	walletAuthSecret := env("WALLET_AUTH_SECRET", "")
 	addr := env("HTTP_ADDR", ":8080")
 	corsOrigins := strings.Split(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"), ",")
 	for i := range corsOrigins {
 		corsOrigins[i] = strings.TrimSpace(corsOrigins[i])
 	}
-	if adminToken == "" {
-		slog.Warn("ADMIN_TOKEN is empty; admin endpoints are disabled")
+	if adminToken == "" && len(adminWallets) == 0 {
+		slog.Warn("ADMIN_TOKEN and ADMIN_WALLET_ADDRESSES are empty; admin endpoints are disabled")
+	} else if len(adminWallets) > 0 {
+		slog.Info("admin wallet allowlist configured", "count", len(adminWallets))
+	}
+	if walletAuthSecret == "" {
+		slog.Warn("WALLET_AUTH_SECRET is empty; wallet login endpoints are disabled")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -149,12 +145,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	s := &server{pool: pool}
+	s := &server{
+		pool:             pool,
+		nonces:           newNonceStore(),
+		walletAuthSecret: walletAuthSecret,
+		adminToken:       adminToken,
+		adminWallets:     adminWallets,
+		reviewLimiter:    newRateLimiter(5, time.Hour),
+	}
 	s.startDomainHealthWorker(ctx)
 	s.startIconDiscoveryBackfill(ctx)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", s.health)
+	mux.HandleFunc("GET /openapi.json", s.openAPIJSON)
+	mux.HandleFunc("GET /openapi.yaml", s.openAPIYAML)
 	mux.HandleFunc("GET /robots.txt", s.robotsTxt)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemapXML)
 	mux.HandleFunc("GET /og/apps/{slug}", s.ogAppHTML)
@@ -168,19 +173,29 @@ func main() {
 	mux.HandleFunc("GET /api/developers/{slug}", s.getDeveloper)
 	mux.HandleFunc("POST /api/apps/submit", s.submitApp)
 	mux.HandleFunc("POST /api/apps/{slug}/request-update", s.requestAppUpdate)
-	mux.HandleFunc("GET /api/admin/stats", authMiddleware(adminToken, s.adminStats))
-	mux.HandleFunc("GET /api/admin/revisions", authMiddleware(adminToken, s.adminListRevisions))
-	mux.HandleFunc("POST /api/admin/revisions/{id}/approve", authMiddleware(adminToken, s.approveRevision))
-	mux.HandleFunc("POST /api/admin/revisions/{id}/reject", authMiddleware(adminToken, s.rejectRevision))
-	mux.HandleFunc("GET /api/admin/apps", authMiddleware(adminToken, s.adminListApps))
-	mux.HandleFunc("POST /api/admin/check-domains", authMiddleware(adminToken, s.adminCheckDomains))
-	mux.HandleFunc("POST /api/admin/apps", authMiddleware(adminToken, s.createApp))
-	mux.HandleFunc("PUT /api/admin/apps/{slug}", authMiddleware(adminToken, s.updateApp))
-	mux.HandleFunc("PATCH /api/admin/apps/{slug}", authMiddleware(adminToken, s.updateApp))
-	mux.HandleFunc("DELETE /api/admin/apps/{slug}", authMiddleware(adminToken, s.deleteApp))
-	mux.HandleFunc("POST /api/admin/apps/{slug}/verify", authMiddleware(adminToken, s.setStatus("verified")))
-	mux.HandleFunc("POST /api/admin/apps/{slug}/approve", authMiddleware(adminToken, s.setStatus("approved")))
-	mux.HandleFunc("POST /api/admin/apps/{slug}/reject", authMiddleware(adminToken, s.setStatus("rejected")))
+	mux.HandleFunc("POST /api/auth/challenge", s.authChallenge)
+	mux.HandleFunc("POST /api/auth/verify", s.authVerify)
+	mux.HandleFunc("GET /api/auth/me", walletAuthMiddleware(walletAuthSecret, s.authMe))
+	mux.HandleFunc("GET /api/profile", walletAuthMiddleware(walletAuthSecret, s.getProfile))
+	mux.HandleFunc("PUT /api/profile", walletAuthMiddleware(walletAuthSecret, s.updateProfile))
+	mux.HandleFunc("POST /api/auth/logout", s.authLogout)
+	mux.HandleFunc("GET /api/apps/{slug}/reviews", s.listReviews)
+	mux.HandleFunc("POST /api/apps/{slug}/reviews", walletAuthMiddleware(walletAuthSecret, s.upsertReview))
+	mux.HandleFunc("DELETE /api/apps/{slug}/reviews", walletAuthMiddleware(walletAuthSecret, s.deleteOwnReview))
+	mux.HandleFunc("GET /api/admin/stats", s.adminAuth(s.adminStats))
+	mux.HandleFunc("GET /api/admin/revisions", s.adminAuth(s.adminListRevisions))
+	mux.HandleFunc("POST /api/admin/revisions/{id}/approve", s.adminAuth(s.approveRevision))
+	mux.HandleFunc("POST /api/admin/revisions/{id}/reject", s.adminAuth(s.rejectRevision))
+	mux.HandleFunc("GET /api/admin/apps", s.adminAuth(s.adminListApps))
+	mux.HandleFunc("POST /api/admin/check-domains", s.adminAuth(s.adminCheckDomains))
+	mux.HandleFunc("POST /api/admin/apps", s.adminAuth(s.createApp))
+	mux.HandleFunc("PUT /api/admin/apps/{slug}", s.adminAuth(s.updateApp))
+	mux.HandleFunc("PATCH /api/admin/apps/{slug}", s.adminAuth(s.updateApp))
+	mux.HandleFunc("DELETE /api/admin/apps/{slug}", s.adminAuth(s.deleteApp))
+	mux.HandleFunc("POST /api/admin/apps/{slug}/verify", s.adminAuth(s.setStatus("verified")))
+	mux.HandleFunc("POST /api/admin/apps/{slug}/approve", s.adminAuth(s.setStatus("approved")))
+	mux.HandleFunc("POST /api/admin/apps/{slug}/reject", s.adminAuth(s.setStatus("rejected")))
+	mux.HandleFunc("DELETE /api/admin/apps/{slug}/reviews/{id}", s.adminAuth(s.adminDeleteReview))
 
 	srv := &http.Server{
 		Addr:    addr,

@@ -81,3 +81,6 @@ Public `get_app` / `list_apps` responses omit `submitter_contact`. Use `admin_li
 |----------|---------|-------------|
 | `MINIAPPS_API_URL` | `http://localhost:8080` | Backend base URL |
 | `MINIAPPS_ADMIN_TOKEN` | _(empty)_ | Bearer token for admin tools |
+
+**OpenAPI** — `GET /openapi.json` on the API host documents all endpoints, schemas, and rate limits.
+Agents and clients can fetch it before calling `POST /api/apps/submit`.

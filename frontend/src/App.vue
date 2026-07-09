@@ -2,12 +2,11 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import StoreBadges from './components/StoreBadges.vue'
-import { useAdminAuth } from './composables/useAdminAuth'
+import WalletLoginButton from './components/WalletLoginButton.vue'
 import { useI18n } from './composables/useI18n'
 import { CATALOG_ISSUES_URL } from './utils/catalogLinks'
 
 const route = useRoute()
-const { isAdmin, pendingCount } = useAdminAuth()
 const { t } = useI18n()
 
 const navItems = [
@@ -19,7 +18,6 @@ const navItems = [
 const desktopNavItems = [
   ...navItems,
 ]
-const adminNavItem = { to: '/admin', key: 'nav.admin' as const }
 const isActive = (to: string) => {
   if (to === '/') return route.path === '/'
   if (to === '/apps' && route.path === '/apps') return true
@@ -72,21 +70,10 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
             class="rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors duration-200 hover:bg-surface-2"
             :class="isActive(item.to) ? 'bg-surface-2 text-accent-ink' : 'text-muted'"
           >{{ t(item.key) }}</RouterLink>
-          <RouterLink
-            v-if="isAdmin"
-            :to="adminNavItem.to"
-            class="relative rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors duration-200 hover:bg-surface-2"
-            :class="isActive(adminNavItem.to) ? 'bg-surface-2 text-accent-ink' : 'text-muted'"
-          >
-            {{ t(adminNavItem.key) }}
-            <span v-if="pendingCount > 0"
-              class="ml-1.5 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200">
-              {{ pendingCount }}
-            </span>
-          </RouterLink>
         </nav>
+        <WalletLoginButton class="ml-auto md:ml-0" />
         <button @click="toggleTheme" :aria-label="isDark ? t('theme.light') : t('theme.dark')"
-          class="ml-auto grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-line bg-surface-2 text-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink md:ml-0">
+          class="grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-line bg-surface-2 text-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink md:ml-0">
           <svg v-if="isDark" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="12" cy="12" r="4" />
             <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
@@ -145,7 +132,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
           <button
             type="button"
             class="flex w-full flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors duration-200"
-            :class="moreOpen || isActive('/admin') ? 'bg-surface-2 text-accent-ink' : 'text-muted'"
+            :class="moreOpen ? 'bg-surface-2 text-accent-ink' : 'text-muted'"
             @click.stop="toggleMore"
           >
             <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -166,19 +153,6 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
               @click="closeMore"
             >
               {{ t('nav.developers') }}
-            </RouterLink>
-            <RouterLink
-              v-if="isAdmin"
-              to="/admin"
-              class="flex items-center justify-between px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2"
-              :class="isActive('/admin') ? 'text-accent-ink' : 'text-ink'"
-              @click="closeMore"
-            >
-              {{ t('nav.admin') }}
-              <span v-if="pendingCount > 0"
-                class="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200">
-                {{ pendingCount }}
-              </span>
             </RouterLink>
           </div>
         </div>

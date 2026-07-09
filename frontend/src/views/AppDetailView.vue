@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getApp, getRelatedApps, type App } from '../api'
+import { getApp, getRelatedApps, listAppReviews, type App, type AppReviewsResponse } from '../api'
 import AppCard from '../components/AppCard.vue'
 import AppBreadcrumb from '../components/AppBreadcrumb.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -15,18 +15,24 @@ import LinkIconButton from '../components/LinkIconButton.vue'
 import MarkdownContent from '../components/MarkdownContent.vue'
 import AppIcon from '../components/AppIcon.vue'
 import HostedByBadge from '../components/HostedByBadge.vue'
+import ReviewForm from '../components/ReviewForm.vue'
+import ReviewList from '../components/ReviewList.vue'
 import { displayIconUrl } from '../utils/appIcon'
 import { useIsMobileDevice } from '../utils/device'
 import { useAdminAuth } from '../composables/useAdminAuth'
+import { useWalletAuth } from '../composables/useWalletAuth'
 import { useI18n } from '../composables/useI18n'
 import { setPageMeta, resetPageMeta } from '../utils/meta'
 
 const route = useRoute()
 const isMobile = useIsMobileDevice()
 const { isAdmin } = useAdminAuth()
+const { walletAddress } = useWalletAuth()
 const { t } = useI18n()
 const app = ref<App | null>(null)
 const related = ref<App[]>([])
+const reviewsData = ref<AppReviewsResponse>({ items: [], average: 0, count: 0 })
+const myReview = computed(() => reviewsData.value.items.find((rv) => rv.wallet_address === walletAddress.value) ?? null)
 const error = ref('')
 const loading = ref(true)
 const notFound = ref(false)
@@ -43,12 +49,14 @@ async function loadApp(slug: string) {
   related.value = []
   loading.value = true
   try {
-    const [loaded, relatedApps] = await Promise.all([
+    const [loaded, relatedApps, reviews] = await Promise.all([
       getApp(slug),
       getRelatedApps(slug).catch(() => [] as App[]),
+      listAppReviews(slug).catch(() => ({ items: [], average: 0, count: 0 }) as AppReviewsResponse),
     ])
     app.value = loaded
     related.value = relatedApps
+    reviewsData.value = reviews
   } catch (e) {
     const message = (e as Error).message.toLowerCase()
     notFound.value = message.includes('not found')
@@ -57,6 +65,11 @@ async function loadApp(slug: string) {
   } finally {
     loading.value = false
   }
+}
+
+async function refreshReviews() {
+  if (!app.value) return
+  reviewsData.value = await listAppReviews(app.value.slug).catch(() => reviewsData.value)
 }
 
 watch(app, (value) => {
@@ -193,6 +206,29 @@ onUnmounted(resetPageMeta)
       <p v-if="app.description && app.long_description" class="mb-4 font-semibold text-ink">{{ app.description }}</p>
       <MarkdownContent :source="aboutSource" />
       <p class="mt-6 text-xs text-muted/70">{{ t('appDetail.domain') }}: {{ app.domain }}</p>
+    </section>
+
+    <section class="space-y-4">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-lg font-bold">Reviews</h2>
+        <span v-if="reviewsData.count" class="text-sm text-muted">
+          {{ reviewsData.average.toFixed(1) }} ★ · {{ reviewsData.count }} review{{ reviewsData.count === 1 ? '' : 's' }}
+        </span>
+      </div>
+      <ReviewForm
+        v-if="walletAddress"
+        :slug="app.slug"
+        :existing="myReview"
+        @saved="refreshReviews"
+      />
+      <p v-else class="text-sm text-muted">Connect your wallet to leave a review.</p>
+      <ReviewList
+        v-if="reviewsData.items.length"
+        :slug="app.slug"
+        :reviews="reviewsData.items"
+        :wallet-address="walletAddress"
+        @deleted="refreshReviews"
+      />
     </section>
 
     <section v-if="related.length" class="space-y-4">

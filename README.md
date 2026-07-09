@@ -31,17 +31,20 @@ LAN, and API examples.
   `Open in Nimiq Pay` link of the form `https://nimpay.app/miniapps/open/<domain>`.
 - **Submit** — developers submit apps at `/submit` (rate-limited, no account needed).
   Submissions are hidden until reviewed.
-- **Moderate** — admins approve, verify, or reject submissions at `/admin` using a
-  bearer token.
+- **Moderate** — connect an allowlisted admin wallet (see `ADMIN_WALLET_ADDRESSES`) or use a bearer token at `/admin`.
 
 ## API
 
 Public: `GET /api/apps` (with `q`, `category`, `status`, `featured`, `sort`),
 `GET /api/apps/{slug}`, `GET /api/categories`, `GET /api/developers/{slug}`,
-`POST /api/apps/submit`, `GET /health`.
+`POST /api/apps/submit`, `GET /health`, `GET /openapi.json`.
 
-Admin (`Authorization: Bearer <ADMIN_TOKEN>`): CRUD under `/api/admin/apps` plus
-`/verify`, `/approve`, `/reject` actions.
+**OpenAPI** — full spec at [`docs/openapi.yaml`](docs/openapi.yaml), served live at
+`/openapi.json` and `/openapi.yaml`. Regenerate embedded copies with `./scripts/gen-openapi.sh`.
+
+**Agents** — see [`AGENTS.md`](AGENTS.md) for submit workflow, MCP usage, and OpenAPI maintenance.
+
+Admin: allowlisted wallet session (`ADMIN_WALLET_ADDRESSES`) or `Authorization: Bearer <ADMIN_TOKEN>` — CRUD under `/api/admin/apps` plus `/verify`, `/approve`, `/reject` actions.
 
 **MCP** — see [`mcp/README.md`](mcp/README.md) for a Cursor MCP server that wraps this API.
 
