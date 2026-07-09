@@ -67,7 +67,16 @@
   --nq-accent-ink: #0ca6fe;
 }
 
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pb-mobile-nav {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+
 body {
+  overflow-x: hidden;
   background-color: var(--nq-page);
   background-image:
     radial-gradient(70% 48rem at 100% 0%, rgba(33, 188, 165, 0.16), transparent 58%),

@@ -14,6 +14,40 @@ export function hasInjectedNimiqPayHost(): boolean {
   return Boolean(window.nimiqPay || window.nimiq)
 }
 
+/**
+ * `window.nimiq` (the wallet provider) is injected by Nimiq Pay asynchronously
+ * after page load — the SDK's own `init()` polls for it rather than finding it
+ * immediately. A synchronous `hasInjectedNimiqPayHost()` check on a fresh page
+ * load can therefore race and miss it. This polls briefly before giving up and
+ * assuming we're in a normal browser.
+ */
+export function waitForNimiqPayHost(timeoutMs = 400): Promise<boolean> {
+  if (hasInjectedNimiqPayHost()) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    const start = Date.now()
+    const timer = setInterval(() => {
+      if (hasInjectedNimiqPayHost()) {
+        clearInterval(timer)
+        resolve(true)
+      } else if (Date.now() - start >= timeoutMs) {
+        clearInterval(timer)
+        resolve(false)
+      }
+    }, 50)
+  })
+}
+
+/**
+ * The `nimpay.app/miniapps/open/<domain>` link is a universal-link trick to launch
+ * Nimiq Pay from an external browser. Tapped from inside Nimiq Pay's own webview it
+ * goes through Nimiq Pay's in-app router instead of the OS universal-link handler,
+ * which doesn't resolve correctly. When we're already inside the wallet, skip the
+ * trick and link straight to the app's own domain.
+ */
+export function resolveAppOpenUrl(app: { domain: string; open_url: string }): string {
+  return hasInjectedNimiqPayHost() ? `https://${app.domain}` : app.open_url
+}
+
 function uint8ToBase64(arr: Uint8Array): string {
   let s = ''
   for (let i = 0; i < arr.length; i++) s += String.fromCharCode(arr[i])

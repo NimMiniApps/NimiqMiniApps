@@ -53,7 +53,7 @@ func (s *server) ogAppHTML(w http.ResponseWriter, r *http.Request) {
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>%s</title>
 <meta name="description" content="%s"/>
 <meta property="og:title" content="%s"/>

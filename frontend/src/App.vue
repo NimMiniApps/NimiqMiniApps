@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useRoute } from 'vue-router'
 import StoreBadges from './components/StoreBadges.vue'
 import WalletLoginButton from './components/WalletLoginButton.vue'
 import { useI18n } from './composables/useI18n'
 import { CATALOG_ISSUES_URL } from './utils/catalogLinks'
+import { hasInjectedNimiqPayHost, waitForNimiqPayHost } from './utils/nimiqWallet'
 
 const route = useRoute()
 const { t } = useI18n()
+const insideNimiqPay = ref(hasInjectedNimiqPayHost())
+if (!insideNimiqPay.value) {
+  waitForNimiqPayHost().then((result) => { insideNimiqPay.value = result })
+}
 
 const navItems = [
   { to: '/', key: 'nav.home' as const, icon: 'M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10' },
@@ -30,29 +35,10 @@ function toggleTheme() {
   document.documentElement.classList.toggle('dark', isDark.value)
   localStorage.theme = isDark.value ? 'dark' : 'light'
 }
-
-const moreOpen = ref(false)
-const moreMenuRef = ref<HTMLElement | null>(null)
-
-function toggleMore() {
-  moreOpen.value = !moreOpen.value
-}
-
-function closeMore() {
-  moreOpen.value = false
-}
-
-function onDocumentClick(e: MouseEvent) {
-  if (!moreOpen.value || !moreMenuRef.value) return
-  if (!moreMenuRef.value.contains(e.target as Node)) closeMore()
-}
-
-onMounted(() => document.addEventListener('click', onDocumentClick))
-onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col pb-16 md:pb-0">
+  <div class="flex min-h-dvh flex-col pb-mobile-nav md:min-h-screen md:pb-0">
     <!-- top bar -->
     <header class="sticky top-0 z-20 border-b border-line bg-surface/90 shadow-sm backdrop-blur dark:shadow-black/20">
       <div class="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
@@ -92,7 +78,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
     <!-- Nimiq Pay install banner -->
     <footer class="mt-10">
       <div class="mx-auto max-w-5xl px-4 pb-8">
-        <div class="nq-brand-surface relative overflow-hidden rounded-[10px] border border-line p-6 text-ink nq-card-shadow md:p-10 dark:border-white/10 dark:text-white">
+        <div v-if="!insideNimiqPay" class="nq-brand-surface relative overflow-hidden rounded-[10px] border border-line p-6 text-ink nq-card-shadow md:p-10 dark:border-white/10 dark:text-white">
           <div class="nq-hero-accent absolute inset-y-0 right-0 hidden w-[34%] md:block" aria-hidden="true"></div>
           <div class="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
@@ -116,8 +102,8 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
     </footer>
 
     <!-- bottom nav (mobile) -->
-    <nav class="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur md:hidden">
-      <div class="grid grid-cols-5">
+    <nav class="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-safe backdrop-blur md:hidden">
+      <div class="grid grid-cols-4">
         <RouterLink
           v-for="item in navItems" :key="item.to" :to="item.to"
           class="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors duration-200"
@@ -128,34 +114,6 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
           </svg>
           {{ t(item.key) }}
         </RouterLink>
-        <div ref="moreMenuRef" class="relative">
-          <button
-            type="button"
-            class="flex w-full flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors duration-200"
-            :class="moreOpen ? 'bg-surface-2 text-accent-ink' : 'text-muted'"
-            @click.stop="toggleMore"
-          >
-            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
-              <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
-            </svg>
-            {{ t('nav.more') }}
-          </button>
-          <div
-            v-if="moreOpen"
-            class="absolute bottom-full right-0 mb-2 min-w-[10rem] overflow-hidden rounded-xl border border-line bg-surface shadow-lg shadow-slate-950/10 dark:shadow-black/30"
-          >
-            <RouterLink
-              to="/apps"
-              class="block px-4 py-3 text-sm font-semibold transition-colors hover:bg-surface-2"
-              :class="route.path === '/apps' ? 'text-accent-ink' : 'text-ink'"
-              @click="closeMore"
-            >
-              {{ t('nav.developers') }}
-            </RouterLink>
-          </div>
-        </div>
       </div>
     </nav>
   </div>

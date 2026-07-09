@@ -25,6 +25,7 @@ import { useWalletAuth } from '../composables/useWalletAuth'
 import { useI18n } from '../composables/useI18n'
 import { setPageMeta, resetPageMeta } from '../utils/meta'
 import { walletOwnsApp } from '../utils/wallet'
+import { resolveAppOpenUrl } from '../utils/nimiqWallet'
 
 const route = useRoute()
 const isMobile = useIsMobileDevice()
@@ -41,6 +42,7 @@ const notFound = ref(false)
 const updatePending = ref(false)
 
 const isOwner = computed(() => walletOwnsApp(walletAddress.value, app.value?.owner_wallet_addresses))
+const openUrl = computed(() => (app.value ? resolveAppOpenUrl(app.value) : ''))
 
 const aboutSource = computed(() => {
   if (!app.value) return ''
@@ -170,7 +172,7 @@ onUnmounted(resetPageMeta)
 
     <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <div class="flex flex-wrap items-center gap-2">
-        <a v-if="isMobile" :href="app.open_url" target="_blank" rel="noopener"
+        <a v-if="isMobile" :href="openUrl" target="_blank" rel="noopener"
           class="inline-flex h-10 cursor-pointer items-center rounded-[500px] nq-primary px-5 text-sm font-bold text-white transition duration-200"
           @click="trackAppEvent(app.slug, 'open')">
           {{ t('appDetail.openInWallet') }}

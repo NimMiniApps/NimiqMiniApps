@@ -35,9 +35,12 @@ func (s *server) removeFavorite(w http.ResponseWriter, r *http.Request, address 
 func (s *server) myFavorites(w http.ResponseWriter, r *http.Request, address string) {
 	rows, err := s.pool.Query(r.Context(),
 		`SELECT `+appColumns+` FROM apps
-		 JOIN app_favorites f ON f.app_id = apps.id
-		 WHERE f.wallet_address = $1 AND `+publicStatuses+`
-		 ORDER BY f.created_at DESC`, address)
+		 WHERE id IN (SELECT app_id FROM app_favorites WHERE wallet_address = $1)
+		 AND `+publicStatuses+`
+		 ORDER BY (
+		   SELECT created_at FROM app_favorites
+		   WHERE app_favorites.app_id = apps.id AND wallet_address = $1
+		 ) DESC`, address)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

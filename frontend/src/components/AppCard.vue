@@ -5,6 +5,7 @@ import { trackAppEvent } from '../api'
 import { useIsMobileDevice } from '../utils/device'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { useFavorites } from '../composables/useFavorites'
+import { resolveAppOpenUrl } from '../utils/nimiqWallet'
 import StatusBadge from '../components/StatusBadge.vue'
 import ReleaseStageBadge from './ReleaseStageBadge.vue'
 import DomainStatus from './DomainStatus.vue'
@@ -52,6 +53,8 @@ const identityTheme = computed(() => {
   const themeIndex = [...source].reduce((sum, char) => sum + char.charCodeAt(0), 0) % appIdentityThemes.length
   return appIdentityThemes[themeIndex]
 })
+
+const openUrl = computed(() => resolveAppOpenUrl(props.app))
 
 const previewTags = computed(() => props.app.tags.slice(0, 3))
 const extraTagCount = computed(() => Math.max(0, props.app.tags.length - previewTags.value.length))
@@ -136,7 +139,7 @@ function onFavoriteClick() {
     </div>
 
     <div class="mt-auto flex gap-2">
-      <a v-if="isMobile && !showManageActions" :href="app.open_url" target="_blank" rel="noopener"
+      <a v-if="isMobile && !showManageActions" :href="openUrl" target="_blank" rel="noopener"
         class="nq-primary min-w-0 flex-1 cursor-pointer rounded-[500px] px-3 py-2 text-center text-sm font-bold text-white transition duration-200"
         @click="trackOpen">
         Open in Nimiq Pay
@@ -155,7 +158,7 @@ function onFavoriteClick() {
         class="min-w-0 flex-1 cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-center text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
         {{ showManageActions ? 'View' : 'Details' }}
       </RouterLink>
-      <a v-if="isMobile && showManageActions" :href="app.open_url" target="_blank" rel="noopener"
+      <a v-if="isMobile && showManageActions" :href="openUrl" target="_blank" rel="noopener"
         class="shrink-0 cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-center text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
         @click="trackOpen">
         Open

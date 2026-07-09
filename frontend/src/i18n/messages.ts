@@ -6,9 +6,7 @@ export type MessageTree = {
     apps: string
     build: string
     submit: string
-    developers: string
     admin: string
-    more: string
   }
   theme: {
     light: string
@@ -130,9 +128,7 @@ const en: MessageTree = {
     apps: 'Apps',
     build: 'Build',
     submit: 'Submit',
-    developers: 'Developers',
     admin: 'Admin',
-    more: 'More',
   },
   theme: {
     light: 'Switch to light mode',
@@ -250,7 +246,7 @@ const en: MessageTree = {
 
 const de: MessageTree = {
   ...en,
-  nav: { home: 'Start', apps: 'Apps', build: 'Entwickeln', submit: 'Einreichen', developers: 'Entwickler', admin: 'Admin', more: 'Mehr' },
+  nav: { home: 'Start', apps: 'Apps', build: 'Entwickeln', submit: 'Einreichen', admin: 'Admin' },
   theme: { light: 'Helles Design', dark: 'Dunkles Design' },
   footer: {
     title: 'Noch kein Nimiq Pay?',
@@ -334,7 +330,7 @@ const de: MessageTree = {
 
 const es: MessageTree = {
   ...en,
-  nav: { home: 'Inicio', apps: 'Apps', build: 'Crear', submit: 'Enviar', developers: 'Desarrolladores', admin: 'Admin', more: 'Más' },
+  nav: { home: 'Inicio', apps: 'Apps', build: 'Crear', submit: 'Enviar', admin: 'Admin' },
   theme: { light: 'Modo claro', dark: 'Modo oscuro' },
   footer: {
     title: '¿Aún no tienes Nimiq Pay?',
@@ -418,7 +414,7 @@ const es: MessageTree = {
 
 const fr: MessageTree = {
   ...en,
-  nav: { home: 'Accueil', apps: 'Apps', build: 'Créer', submit: 'Soumettre', developers: 'Développeurs', admin: 'Admin', more: 'Plus' },
+  nav: { home: 'Accueil', apps: 'Apps', build: 'Créer', submit: 'Soumettre', admin: 'Admin' },
   theme: { light: 'Mode clair', dark: 'Mode sombre' },
   footer: {
     title: 'Pas encore Nimiq Pay ?',
@@ -502,7 +498,7 @@ const fr: MessageTree = {
 
 const pt: MessageTree = {
   ...en,
-  nav: { home: 'Início', apps: 'Apps', build: 'Criar', submit: 'Enviar', developers: 'Desenvolvedores', admin: 'Admin', more: 'Mais' },
+  nav: { home: 'Início', apps: 'Apps', build: 'Criar', submit: 'Enviar', admin: 'Admin' },
   theme: { light: 'Modo claro', dark: 'Modo escuro' },
   footer: {
     title: 'Ainda não tem Nimiq Pay?',
