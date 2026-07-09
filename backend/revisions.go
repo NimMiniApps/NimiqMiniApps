@@ -136,6 +136,8 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, addres
 	body.Status = current.Status
 	body.Featured = current.Featured
 	body.FeaturedOrder = current.FeaturedOrder
+	body.DeveloperSlug = current.DeveloperSlug
+	body.DeveloperName = current.DeveloperName
 	if body.Media == nil {
 		body.Media = []MediaItem{}
 	}
@@ -179,7 +181,7 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, addres
 		RETURNING `+revisionColumns,
 		slug, body.Name, body.Domain, body.Category, current.DeveloperSlug, current.DeveloperName,
 		body.Tagline, body.Description, body.LongDescription, body.Tags, body.Assets, body.ReleaseStage,
-		body.WebsiteURL, body.GithubURL, body.IconURL, body.BannerURL, mediaJSON, socialsJSON, ""))
+		body.WebsiteURL, body.GithubURL, body.IconURL, body.BannerURL, mediaJSON, socialsJSON, body.AuthorNote))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -9,7 +9,7 @@ export function displayIconUrl(app: Pick<App, 'icon_url' | 'discovered_icon_url'
 }
 
 export function appIdentityAccent(app: Pick<App, 'slug' | 'name'>): string {
-  const themes = ['#1f74ff', '#14b8a6', '#f59e0b', '#f43f5e', '#a855f7', '#22c55e']
+  const themes = ['#0582ca', '#21bca5', '#e9b213', '#fa7268', '#5f4b8b', '#fc8702']
   const source = app.slug || app.name
   const index = [...source].reduce((sum, char) => sum + char.charCodeAt(0), 0) % themes.length
   return themes[index]

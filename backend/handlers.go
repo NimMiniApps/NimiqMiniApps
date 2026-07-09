@@ -438,6 +438,10 @@ func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force f
 	if force != nil {
 		force(&a)
 	}
+	if err := s.validateDeveloperWallet(r.Context(), &a); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if requireContact {
 		if msg := validateSubmitterContact(a.SubmitterContact); msg != "" {
 			writeError(w, http.StatusBadRequest, msg)
@@ -522,6 +526,10 @@ func (s *server) updateApp(w http.ResponseWriter, r *http.Request) {
 	}
 	if a.Socials == nil {
 		a.Socials = []SocialLink{}
+	}
+	if err := s.validateDeveloperWallet(r.Context(), &a); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	if err := validateApp(&a); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())

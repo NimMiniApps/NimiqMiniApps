@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getApp, getRelatedApps, listAppReviews, type App, type AppReviewsResponse } from '../api'
+import { getApp, getRelatedApps, getSubmissionStatus, listAppReviews, type App, type AppReviewsResponse } from '../api'
 import AppCard from '../components/AppCard.vue'
 import AppBreadcrumb from '../components/AppBreadcrumb.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -23,6 +23,7 @@ import { useAdminAuth } from '../composables/useAdminAuth'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { useI18n } from '../composables/useI18n'
 import { setPageMeta, resetPageMeta } from '../utils/meta'
+import { walletOwnsApp } from '../utils/wallet'
 
 const route = useRoute()
 const isMobile = useIsMobileDevice()
@@ -36,6 +37,9 @@ const myReview = computed(() => reviewsData.value.items.find((rv) => rv.wallet_a
 const error = ref('')
 const loading = ref(true)
 const notFound = ref(false)
+const updatePending = ref(false)
+
+const isOwner = computed(() => walletOwnsApp(walletAddress.value, app.value?.developer_wallet_address))
 
 const aboutSource = computed(() => {
   if (!app.value) return ''
@@ -86,6 +90,15 @@ watch(() => route.params.slug, (slug) => {
   if (typeof slug === 'string') loadApp(slug)
 })
 
+watch([isOwner, () => app.value?.slug], async ([owned, slug]) => {
+  if (!owned || !slug) {
+    updatePending.value = false
+    return
+  }
+  const status = await getSubmissionStatus(slug).catch(() => null)
+  updatePending.value = !!status?.update_pending
+}, { immediate: true })
+
 onMounted(() => {
   const slug = route.params.slug as string
   if (slug) loadApp(slug)
@@ -104,7 +117,7 @@ onUnmounted(resetPageMeta)
     <template #actions>
       <RouterLink
         to="/apps"
-        class="cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 text-sm font-bold text-white transition duration-200 hover:bg-nq-blue-dark"
+        class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 text-sm font-bold text-white transition duration-200"
       >
         {{ t('common.browseAll') }}
       </RouterLink>
@@ -155,7 +168,7 @@ onUnmounted(resetPageMeta)
     <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <div class="flex flex-wrap items-center gap-2">
         <a v-if="isMobile" :href="app.open_url" target="_blank" rel="noopener"
-          class="inline-flex h-10 cursor-pointer items-center rounded-xl bg-nq-blue px-5 text-sm font-bold text-white transition duration-200 hover:bg-nq-blue-dark">
+          class="inline-flex h-10 cursor-pointer items-center rounded-[500px] nq-primary px-5 text-sm font-bold text-white transition duration-200">
           {{ t('appDetail.openInWallet') }}
         </a>
         <ShareButton :title="app.name" />
@@ -172,6 +185,16 @@ onUnmounted(resetPageMeta)
           :label="t('appDetail.github')"
         />
         <SocialLinks v-if="app.socials?.length" :items="app.socials" />
+        <RouterLink
+          v-if="isOwner"
+          :to="`/apps/${app.slug}/update`"
+          class="inline-flex h-10 cursor-pointer items-center rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 text-sm font-semibold text-emerald-800 transition-colors duration-200 hover:border-emerald-500/60 hover:bg-emerald-500/15 dark:text-emerald-200"
+          :class="{ 'pointer-events-none opacity-60': updatePending }"
+          :aria-disabled="updatePending"
+          :title="updatePending ? t('appDetail.updatePendingHint') : undefined"
+        >
+          {{ t('appDetail.editListing') }}
+        </RouterLink>
         <RouterLink v-if="isAdmin" :to="`/admin?edit=${app.slug}`"
           class="inline-flex h-10 cursor-pointer items-center rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 text-sm font-semibold text-amber-800 transition-colors duration-200 hover:border-amber-500/60 hover:bg-amber-500/15 dark:text-amber-200">
           {{ t('appDetail.edit') }}

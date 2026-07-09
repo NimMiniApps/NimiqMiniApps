@@ -32,6 +32,7 @@ export type MessageTree = {
     all: string
     by: string
     hostedBy: string
+    hostedByShort: string
     loading: string
   }
   apps: {
@@ -66,6 +67,8 @@ export type MessageTree = {
   appDetail: {
     openInWallet: string
     edit: string
+    editListing: string
+    updatePendingHint: string
     suggestUpdate: string
     links: string
     website: string
@@ -143,6 +146,7 @@ const en: MessageTree = {
     all: 'All',
     by: 'by',
     hostedBy: 'Hosted by NimiqMiniApps.com',
+    hostedByShort: 'Hosted',
     loading: 'Loading…',
   },
   apps: {
@@ -177,6 +181,8 @@ const en: MessageTree = {
   appDetail: {
     openInWallet: 'Open in Nimiq Pay',
     edit: 'Edit',
+    editListing: 'Edit listing',
+    updatePendingHint: 'An update is already pending review',
     suggestUpdate: 'Suggest an update',
     links: 'Links',
     website: 'Website',
@@ -233,7 +239,7 @@ const de: MessageTree = {
     developers: 'Entwickler',
     githubIssues: 'GitHub-Issues',
   },
-  common: { clear: 'Zurücksetzen', browseAll: 'Alle Apps', viewAll: 'Alle anzeigen', share: 'Teilen', copyLink: 'Link kopieren', copied: 'Kopiert!', retry: 'Erneut versuchen', all: 'Alle', by: 'von', hostedBy: 'Gehostet von NimiqMiniApps.com', loading: 'Laden…' },
+  common: { clear: 'Zurücksetzen', browseAll: 'Alle Apps', viewAll: 'Alle anzeigen', share: 'Teilen', copyLink: 'Link kopieren', copied: 'Kopiert!', retry: 'Erneut versuchen', all: 'Alle', by: 'von', hostedBy: 'Gehostet von NimiqMiniApps.com', hostedByShort: 'Gehostet', loading: 'Laden…' },
   apps: {
     title: 'Alle Apps',
     searchPlaceholder: 'Apps suchen…',
@@ -262,6 +268,8 @@ const de: MessageTree = {
   appDetail: {
     openInWallet: 'In Nimiq Pay öffnen',
     edit: 'Bearbeiten',
+    editListing: 'Eintrag bearbeiten',
+    updatePendingHint: 'Ein Update wartet bereits auf Prüfung',
     suggestUpdate: 'Update vorschlagen',
     links: 'Links',
     website: 'Website',
@@ -314,7 +322,7 @@ const es: MessageTree = {
     developers: 'Desarrolladores',
     githubIssues: 'Issues en GitHub',
   },
-  common: { clear: 'Limpiar', browseAll: 'Ver todas las apps', viewAll: 'Ver todo', share: 'Compartir', copyLink: 'Copiar enlace', copied: '¡Copiado!', retry: 'Reintentar', all: 'Todas', by: 'por', hostedBy: 'Alojado por NimiqMiniApps.com', loading: 'Cargando…' },
+  common: { clear: 'Limpiar', browseAll: 'Ver todas las apps', viewAll: 'Ver todo', share: 'Compartir', copyLink: 'Copiar enlace', copied: '¡Copiado!', retry: 'Reintentar', all: 'Todas', by: 'por', hostedBy: 'Alojado por NimiqMiniApps.com', hostedByShort: 'Alojado', loading: 'Cargando…' },
   apps: {
     title: 'Todas las apps',
     searchPlaceholder: 'Buscar apps…',
@@ -343,6 +351,8 @@ const es: MessageTree = {
   appDetail: {
     openInWallet: 'Abrir en Nimiq Pay',
     edit: 'Editar',
+    editListing: 'Editar ficha',
+    updatePendingHint: 'Ya hay una actualización pendiente de revisión',
     suggestUpdate: 'Sugerir cambios',
     links: 'Enlaces',
     website: 'Sitio web',
@@ -395,7 +405,7 @@ const fr: MessageTree = {
     developers: 'Développeurs',
     githubIssues: 'Issues GitHub',
   },
-  common: { clear: 'Effacer', browseAll: 'Parcourir toutes les apps', viewAll: 'Tout voir', share: 'Partager', copyLink: 'Copier le lien', copied: 'Copié !', retry: 'Réessayer', all: 'Toutes', by: 'par', hostedBy: 'Hébergé par NimiqMiniApps.com', loading: 'Chargement…' },
+  common: { clear: 'Effacer', browseAll: 'Parcourir toutes les apps', viewAll: 'Tout voir', share: 'Partager', copyLink: 'Copier le lien', copied: 'Copié !', retry: 'Réessayer', all: 'Toutes', by: 'par', hostedBy: 'Hébergé par NimiqMiniApps.com', hostedByShort: 'Hébergé', loading: 'Chargement…' },
   apps: {
     title: 'Toutes les apps',
     searchPlaceholder: 'Rechercher des apps…',
@@ -424,6 +434,8 @@ const fr: MessageTree = {
   appDetail: {
     openInWallet: 'Ouvrir dans Nimiq Pay',
     edit: 'Modifier',
+    editListing: 'Modifier la fiche',
+    updatePendingHint: 'Une mise à jour est déjà en attente de validation',
     suggestUpdate: 'Proposer une modification',
     links: 'Liens',
     website: 'Site web',
@@ -476,7 +488,7 @@ const pt: MessageTree = {
     developers: 'Desenvolvedores',
     githubIssues: 'Issues no GitHub',
   },
-  common: { clear: 'Limpar', browseAll: 'Ver todos os apps', viewAll: 'Ver tudo', share: 'Compartilhar', copyLink: 'Copiar link', copied: 'Copiado!', retry: 'Tentar de novo', all: 'Todos', by: 'por', hostedBy: 'Hospedado por NimiqMiniApps.com', loading: 'Carregando…' },
+  common: { clear: 'Limpar', browseAll: 'Ver todos os apps', viewAll: 'Ver tudo', share: 'Compartilhar', copyLink: 'Copiar link', copied: 'Copiado!', retry: 'Tentar de novo', all: 'Todos', by: 'por', hostedBy: 'Hospedado por NimiqMiniApps.com', hostedByShort: 'Hospedado', loading: 'Carregando…' },
   apps: {
     title: 'Todos os apps',
     searchPlaceholder: 'Buscar apps…',
@@ -505,6 +517,8 @@ const pt: MessageTree = {
   appDetail: {
     openInWallet: 'Abrir no Nimiq Pay',
     edit: 'Editar',
+    editListing: 'Editar ficha',
+    updatePendingHint: 'Já existe uma atualização pendente de revisão',
     suggestUpdate: 'Sugerir atualização',
     links: 'Links',
     website: 'Site',

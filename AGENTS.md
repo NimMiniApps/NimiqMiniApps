@@ -69,10 +69,11 @@ Configured in `.cursor/mcp.json` → `nimiq-miniapps`. See `mcp/README.md`.
 | Tool | Use for |
 |------|---------|
 | `list_apps`, `get_app` | Browse catalog, check slug collision |
-| `list_categories`, `get_developer` | Discovery |
+| `list_categories`, `get_developer`, `list_developers` | Discovery |
+| `admin_search_users` | Find a wallet to assign as `developer_wallet_address` |
 | `admin_*` | **Moderators only** — requires `MINIAPPS_ADMIN_TOKEN` in `.env` |
 
-There is **no** `submit_app` MCP tool yet. Submit via `POST /api/apps/submit` (curl or `fetch`).
+There is **no** `submit_app` MCP tool. Public submit needs a wallet session cookie (`POST /api/auth/verify` then `POST /api/apps/submit`); use `admin_create_app` / `admin_update_app` with `developer_wallet_address` for agent workflows.
 
 `MINIAPPS_API_URL` defaults to `https://api.nimiqminiapps.com`; use `http://localhost:8080` for local compose.
 

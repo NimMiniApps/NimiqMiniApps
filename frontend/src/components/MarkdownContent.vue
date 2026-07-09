@@ -81,7 +81,7 @@ const html = computed(() => renderMarkdown(props.source))
 
 .markdown :deep(blockquote) {
   margin-top: 0.75rem;
-  border-left: 3px solid var(--nq-accent, #1f74ff);
+  border-left: 3px solid var(--nq-accent, #0582ca);
   padding-left: 0.75rem;
   color: var(--nq-muted, inherit);
 }

@@ -79,11 +79,7 @@ var domainCheckClient = &http.Client{
 }
 
 func probeDomainURL(domain string) string {
-	d := strings.TrimSpace(domain)
-	d = strings.TrimPrefix(d, "https://")
-	d = strings.TrimPrefix(d, "http://")
-	d = strings.TrimSuffix(d, "/")
-	return "https://" + d
+	return "https://" + normalizeDomain(domain)
 }
 
 func checkDomainReachable(domain string) (bool, string) {

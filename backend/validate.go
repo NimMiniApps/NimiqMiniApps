@@ -44,8 +44,24 @@ func validateSubmitterContact(contact string) string {
 	return ""
 }
 
+func normalizeDomain(domain string) string {
+	d := strings.TrimSpace(domain)
+	for {
+		lower := strings.ToLower(d)
+		switch {
+		case strings.HasPrefix(lower, "https://"):
+			d = d[8:]
+		case strings.HasPrefix(lower, "http://"):
+			d = d[7:]
+		default:
+			return strings.TrimSuffix(d, "/")
+		}
+	}
+}
+
 func validateApp(a *App) error {
 	var problems []string
+	a.Domain = normalizeDomain(a.Domain)
 	if !slugRe.MatchString(a.Slug) {
 		problems = append(problems, "slug is required and must be lowercase and url-safe (a-z, 0-9, hyphens)")
 	}

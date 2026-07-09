@@ -10,27 +10,32 @@ import HostedByBadge from './HostedByBadge.vue'
 
 const isMobile = useIsMobileDevice()
 
-const props = defineProps<{ app: App }>()
+const props = defineProps<{
+  app: App
+  owned?: boolean
+  pendingUpdate?: boolean
+  showManageActions?: boolean
+}>()
 
 const categoryThemes: Record<string, { accent: string; soft: string; ink: string }> = {
-  games: { accent: '#1f74ff', soft: 'rgba(31, 116, 255, 0.13)', ink: '#1557c7' },
-  utilities: { accent: '#14b8a6', soft: 'rgba(20, 184, 166, 0.14)', ink: '#0f766e' },
-  finance: { accent: '#22c55e', soft: 'rgba(34, 197, 94, 0.14)', ink: '#15803d' },
-  maps: { accent: '#f59e0b', soft: 'rgba(245, 158, 11, 0.16)', ink: '#b45309' },
-  social: { accent: '#f43f5e', soft: 'rgba(244, 63, 94, 0.14)', ink: '#be123c' },
-  experiments: { accent: '#a855f7', soft: 'rgba(168, 85, 247, 0.15)', ink: '#7e22ce' },
+  games: { accent: '#0582ca', soft: 'rgba(5, 130, 202, 0.1)', ink: '#0582ca' },
+  utilities: { accent: '#21bca5', soft: 'rgba(33, 188, 165, 0.12)', ink: '#168f80' },
+  finance: { accent: '#21bca5', soft: 'rgba(33, 188, 165, 0.12)', ink: '#168f80' },
+  maps: { accent: '#e9b213', soft: 'rgba(233, 178, 19, 0.16)', ink: '#9c7300' },
+  social: { accent: '#fa7268', soft: 'rgba(250, 114, 104, 0.13)', ink: '#c44941' },
+  experiments: { accent: '#5f4b8b', soft: 'rgba(95, 75, 139, 0.13)', ink: '#5f4b8b' },
 }
 
 const appIdentityThemes = [
-  { accent: '#1f74ff', soft: 'rgba(31, 116, 255, 0.13)' },
-  { accent: '#14b8a6', soft: 'rgba(20, 184, 166, 0.14)' },
-  { accent: '#f59e0b', soft: 'rgba(245, 158, 11, 0.16)' },
-  { accent: '#f43f5e', soft: 'rgba(244, 63, 94, 0.14)' },
-  { accent: '#a855f7', soft: 'rgba(168, 85, 247, 0.15)' },
-  { accent: '#22c55e', soft: 'rgba(34, 197, 94, 0.14)' },
+  { accent: '#0582ca', soft: 'rgba(5, 130, 202, 0.1)' },
+  { accent: '#21bca5', soft: 'rgba(33, 188, 165, 0.12)' },
+  { accent: '#e9b213', soft: 'rgba(233, 178, 19, 0.16)' },
+  { accent: '#fa7268', soft: 'rgba(250, 114, 104, 0.13)' },
+  { accent: '#5f4b8b', soft: 'rgba(95, 75, 139, 0.13)' },
+  { accent: '#fc8702', soft: 'rgba(252, 135, 2, 0.14)' },
 ]
 
-const fallbackTheme = { accent: '#64748b', soft: 'rgba(100, 116, 139, 0.14)', ink: '#475569' }
+const fallbackTheme = { accent: '#1f2348', soft: 'rgba(31, 35, 72, 0.06)', ink: '#1f2348' }
 const categoryTheme = computed(() => {
   const key = props.app.category.toLowerCase()
   return categoryThemes[key] ?? fallbackTheme
@@ -48,18 +53,27 @@ const extraTagCount = computed(() => Math.max(0, props.app.tags.length - preview
 
 <template>
   <div
-    class="relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-line bg-surface p-4 shadow-sm shadow-slate-950/5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:shadow-black/20"
+    class="nq-card-shadow relative flex flex-col gap-3 overflow-hidden rounded-[10px] border border-line bg-surface p-4 transition-all duration-200 hover:-translate-y-0.5 dark:shadow-black/20"
     :style="{ borderColor: `${identityTheme.accent}55`, background: `linear-gradient(135deg, ${identityTheme.soft}, transparent 44%), var(--nq-surface)` }"
   >
     <div class="absolute inset-x-0 top-0 h-1.5" :style="{ backgroundColor: identityTheme.accent }" aria-hidden="true"></div>
     <div class="flex items-start gap-3">
       <AppIcon :app="app" />
-      <div class="min-w-0">
-        <div class="flex items-center gap-2">
-          <h3 class="truncate font-bold">{{ app.name }}</h3>
+      <div class="min-w-0 flex-1">
+        <h3 class="truncate font-bold">{{ app.name }}</h3>
+        <div class="mt-1 flex flex-wrap items-center gap-1.5">
+          <span
+            v-if="owned"
+            class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300"
+            title="Linked to your wallet"
+          >Yours</span>
+          <span
+            v-if="pendingUpdate"
+            class="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:text-amber-200"
+          >Update pending</span>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
-          <HostedByBadge :domain="app.domain" />
+          <HostedByBadge :domain="app.domain" compact />
           <DomainStatus
             v-if="app.domain_reachable != null"
             :reachable="app.domain_reachable"
@@ -67,7 +81,7 @@ const extraTagCount = computed(() => Math.max(0, props.app.tags.length - preview
             compact
           />
         </div>
-        <p class="text-sm text-muted line-clamp-2">{{ app.tagline }}</p>
+        <p class="mt-1 text-sm text-muted line-clamp-2">{{ app.tagline }}</p>
       </div>
     </div>
 
@@ -91,14 +105,28 @@ const extraTagCount = computed(() => Math.max(0, props.app.tags.length - preview
     </div>
 
     <div class="mt-auto flex gap-2">
-      <a v-if="isMobile" :href="app.open_url" target="_blank" rel="noopener"
-        class="flex-1 cursor-pointer rounded-xl bg-nq-blue px-3 py-2 text-center text-sm font-bold text-white shadow-sm shadow-blue-700/20 transition duration-200 hover:bg-nq-blue-dark">
+      <a v-if="isMobile && !showManageActions" :href="app.open_url" target="_blank" rel="noopener"
+        class="nq-primary flex-1 cursor-pointer rounded-[500px] px-3 py-2 text-center text-sm font-bold text-white transition duration-200">
         Open in Nimiq Pay
       </a>
-      <RouterLink :to="`/apps/${app.slug}`"
-        class="flex-1 cursor-pointer rounded-xl border border-line px-3 py-2 text-center text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
-        Details
+      <RouterLink
+        v-if="showManageActions"
+        :to="`/apps/${app.slug}/update`"
+        class="nq-primary flex-1 cursor-pointer rounded-[500px] px-3 py-2 text-center text-sm font-bold text-white transition duration-200"
+        :class="{ 'opacity-60 pointer-events-none': pendingUpdate }"
+        :aria-disabled="pendingUpdate"
+        :title="pendingUpdate ? 'An update is already pending review' : undefined"
+      >
+        Edit listing
       </RouterLink>
+      <RouterLink :to="`/apps/${app.slug}`"
+        class="flex-1 cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-center text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+        {{ showManageActions ? 'View' : 'Details' }}
+      </RouterLink>
+      <a v-if="isMobile && showManageActions" :href="app.open_url" target="_blank" rel="noopener"
+        class="cursor-pointer rounded-[500px] border border-line bg-surface px-3 py-2 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+        Open
+      </a>
     </div>
   </div>
 </template>

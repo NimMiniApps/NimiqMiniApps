@@ -54,13 +54,13 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 <template>
   <div class="flex min-h-screen flex-col pb-16 md:pb-0">
     <!-- top bar -->
-    <header class="sticky top-0 z-20 border-b border-line bg-surface/90 shadow-sm shadow-slate-950/5 backdrop-blur dark:shadow-black/20">
+    <header class="sticky top-0 z-20 border-b border-line bg-surface/90 shadow-sm backdrop-blur dark:shadow-black/20">
       <div class="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
         <RouterLink to="/" class="flex items-center gap-2 text-lg font-extrabold">
           <img
             src="/brand/output-smallpngtools.png"
             alt=""
-            class="h-8 w-8 rounded-lg object-cover shadow-sm shadow-blue-700/25"
+            class="h-8 w-8 rounded-[10px] object-cover shadow-sm"
           />
           <span>Nimiq <span class="text-accent-ink">Mini Apps</span></span>
         </RouterLink>
@@ -73,7 +73,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
         </nav>
         <WalletLoginButton class="ml-auto md:ml-0" />
         <button @click="toggleTheme" :aria-label="isDark ? t('theme.light') : t('theme.dark')"
-          class="grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-line bg-surface-2 text-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink md:ml-0">
+          class="grid h-9 w-9 cursor-pointer place-items-center rounded-[10px] border border-line bg-surface-2 text-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink md:ml-0">
           <svg v-if="isDark" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="12" cy="12" r="4" />
             <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
@@ -92,12 +92,12 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
     <!-- Nimiq Pay install banner -->
     <footer class="mt-10">
       <div class="mx-auto max-w-5xl px-4 pb-8">
-        <div class="relative overflow-hidden rounded-3xl border border-line bg-nq-blue p-6 text-white shadow-lg shadow-blue-900/10 md:p-10">
-          <div class="absolute inset-y-0 right-0 hidden w-1/3 bg-accent-2/20 md:block" aria-hidden="true"></div>
-          <div class="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div class="nq-brand-surface relative overflow-hidden rounded-[10px] border border-line p-6 text-ink nq-card-shadow md:p-10 dark:border-white/10 dark:text-white">
+          <div class="nq-hero-accent absolute inset-y-0 right-0 hidden w-[34%] md:block" aria-hidden="true"></div>
+          <div class="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 class="text-xl font-extrabold md:text-2xl">{{ t('footer.title') }}</h2>
-              <p class="mt-1 max-w-md text-white/75">
+              <p class="mt-1 max-w-md text-muted dark:text-white/75">
                 {{ t('footer.body') }}
               </p>
             </div>

@@ -22,10 +22,18 @@ func TestValidateApp(t *testing.T) {
 		t.Errorf("description should fall back to tagline, got %q", a.Description)
 	}
 
+	a = valid()
+	a.Domain = "  HTTPS://my.app/path/  "
+	if err := validateApp(&a); err != nil {
+		t.Fatalf("domain with scheme should normalize: %v", err)
+	}
+	if a.Domain != "my.app/path" {
+		t.Errorf("domain normalize got %q, want my.app/path", a.Domain)
+	}
+
 	bad := map[string]func(*App){
 		"uppercase slug":   func(a *App) { a.Slug = "MyApp" },
 		"empty slug":       func(a *App) { a.Slug = "" },
-		"scheme in domain": func(a *App) { a.Domain = "https://my.app" },
 		"empty name":       func(a *App) { a.Name = "" },
 		"bad category":     func(a *App) { a.Category = "Whatever" },
 		"bad status":        func(a *App) { a.Status = "published" },

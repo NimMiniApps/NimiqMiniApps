@@ -28,10 +28,17 @@ const longDescriptionField = z.string().optional().describe(
 const appFields = {
   slug: z.string().describe('URL-safe id, lowercase with hyphens'),
   name: z.string(),
-  domain: z.string().describe('Mini app domain without https://'),
+  domain: z.string().describe('Mini app host/path — https:// and http:// are stripped automatically if pasted'),
   category: categories,
-  developer_slug: z.string(),
-  developer_name: z.string(),
+  developer_slug: z.string().optional().describe(
+    'Public catalog developer slug. Required for unclaimed apps; auto-filled from the wallet owner profile when developer_wallet_address is set.',
+  ),
+  developer_name: z.string().optional().describe(
+    'Public catalog developer name. Required for unclaimed apps; auto-filled from profile when developer_wallet_address is set.',
+  ),
+  developer_wallet_address: z.string().nullable().optional().describe(
+    'Wallet address of the app owner (My apps + request-update). Null or omit for unclaimed/legacy listings.',
+  ),
   tagline: z.string().describe('One-line pitch shown on cards and in search results'),
   description: descriptionField,
   long_description: longDescriptionField,
@@ -47,7 +54,7 @@ const appFields = {
   media: z.array(mediaItem).optional(),
   socials: z.array(socialItem).optional(),
   submitter_contact: z.string().optional().describe(
-    'Private contact for the submitter (Telegram @handle, email, etc.). Required for public /api/apps/submit; admin-only in API responses.',
+    'Private submitter contact (Telegram, email). Admin-only in API responses; not used for wallet-based public submit.',
   ),
 }
 
@@ -186,9 +193,28 @@ server.registerTool(
 )
 
 server.registerTool(
+  'admin_search_users',
+  {
+    description:
+      'Search users by display name or wallet address prefix (requires admin token). Use before assigning developer_wallet_address on an app.',
+    inputSchema: {
+      q: z.string().describe('Prefix match on display_name or wallet_address'),
+    },
+  },
+  async ({ q }) => {
+    try {
+      return api.asToolResult(await api.adminSearchUsers(q))
+    } catch (error) {
+      return toolError(error)
+    }
+  },
+)
+
+server.registerTool(
   'admin_create_app',
   {
-    description: 'Create a new app (requires admin token). Use plain text for description; Markdown in long_description for the detail page About section.',
+    description:
+      'Create a new app (requires admin token). Set developer_wallet_address to link an owner — name/slug are taken from their profile. Unclaimed apps need developer_name and developer_slug.',
     inputSchema: appFields,
   },
   async (fields) => {
@@ -205,7 +231,8 @@ const { slug: _slugSchema, ...mutableAppFields } = appFields
 server.registerTool(
   'admin_update_app',
   {
-    description: 'Update an app by slug; merges with the current record (requires admin token). long_description supports Markdown on the detail page.',
+    description:
+      'Update an app by slug; merges with the current record (requires admin token). Set developer_wallet_address to assign/reassign ownership (name/slug derived from profile). Pass null to unclaim.',
     inputSchema: {
       slug: z.string().describe('Slug of the app to update'),
       ...Object.fromEntries(

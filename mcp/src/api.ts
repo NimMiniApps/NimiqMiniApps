@@ -105,6 +105,10 @@ export async function adminListApps() {
   return request('/api/admin/apps', { headers: adminHeaders() })
 }
 
+export async function adminSearchUsers(q: string) {
+  return request(`/api/admin/users?q=${encodeURIComponent(q)}`, { headers: adminHeaders() })
+}
+
 export async function adminCreateApp(app: Record<string, unknown>) {
   return request('/api/admin/apps', {
     method: 'POST',

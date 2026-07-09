@@ -87,7 +87,7 @@ onMounted(() => {
         <RouterLink
           v-if="status.public"
           :to="`/apps/${status.slug}`"
-          class="cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 font-bold text-white transition duration-200 hover:bg-nq-blue-dark"
+          class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 font-bold text-white transition duration-200"
         >
           View listing
         </RouterLink>

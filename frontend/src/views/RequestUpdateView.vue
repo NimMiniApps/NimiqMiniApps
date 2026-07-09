@@ -7,6 +7,7 @@ import {
 } from '../api'
 import SocialLinksEditor from '../components/SocialLinksEditor.vue'
 import MediaEditor from '../components/MediaEditor.vue'
+import { normalizeDomain } from '../utils/domain'
 
 const route = useRoute()
 const socialEditor = ref<InstanceType<typeof SocialLinksEditor>>()
@@ -26,6 +27,7 @@ const form = reactive({
   name: '', domain: '', category: '',
   tagline: '', description: '', long_description: '', release_stage: 'released', tags: '', assets: 'NIM',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
+  author_note: '',
 })
 
 const csv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
@@ -55,6 +57,7 @@ async function load(slugParam: string) {
       banner_url: app.banner_url || '',
       website_url: app.website_url || '',
       github_url: app.github_url || '',
+      author_note: '',
     })
     socials.value = app.socials ?? []
     media.value = app.media ?? []
@@ -72,7 +75,7 @@ async function submit() {
   try {
     await requestAppUpdate(slug.value, {
       name: form.name,
-      domain: form.domain,
+      domain: normalizeDomain(form.domain),
       category: form.category,
       tagline: form.tagline,
       description: form.description,
@@ -86,6 +89,7 @@ async function submit() {
       banner_url: form.banner_url || null,
       website_url: form.website_url || null,
       github_url: form.github_url || null,
+      author_note: form.author_note,
     })
     submitted.value = true
     updatePending.value = true
@@ -132,7 +136,7 @@ const fields: [keyof typeof form, string, boolean][] = [
             Back to app
           </RouterLink>
           <RouterLink :to="`/status/${slug}`"
-            class="cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 font-bold text-white hover:bg-nq-blue-dark">
+            class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 font-bold text-white">
             Check status
           </RouterLink>
         </div>
@@ -192,8 +196,13 @@ const fields: [keyof typeof form, string, boolean][] = [
           <span class="mb-2 block font-semibold text-muted">Social links</span>
           <SocialLinksEditor ref="socialEditor" v-model="socials" />
         </div>
+        <label class="block text-sm">
+          <span class="mb-1 block font-semibold text-muted">Note for moderators (optional)</span>
+          <textarea v-model="form.author_note" rows="2" placeholder="What changed and why?"
+            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"></textarea>
+        </label>
         <button type="submit" :disabled="submitting || updatePending"
-          class="w-full cursor-pointer rounded-xl bg-nq-blue px-5 py-3 font-bold text-white hover:bg-nq-blue-dark disabled:opacity-60 sm:w-auto">
+          class="w-full cursor-pointer rounded-[500px] nq-primary px-5 py-3 font-bold text-white disabled:opacity-60 sm:w-auto">
           {{ submitting ? 'Submitting…' : 'Submit update for review' }}
         </button>
       </form>

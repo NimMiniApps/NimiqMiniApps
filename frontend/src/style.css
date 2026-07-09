@@ -3,13 +3,14 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-nq-blue: #1f74ff;
-  --color-nq-blue-dark: #1557c7;
-  --color-nq-blue-darker: #101426;
-  --color-accent: #1f74ff;
-  --color-accent-2: #00b7ff;
-  --color-accent-soft: #d9f3ff;
-  --font-sans: "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-nq-blue: #0582ca;
+  --color-nq-blue-dark: #0071c3;
+  --color-nq-blue-darker: #1f2348;
+  --color-accent: #0582ca;
+  --color-accent-2: #21bca5;
+  --color-accent-soft: rgba(5, 130, 202, 0.1);
+  --font-sans: "Muli", "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 /* Semantic tokens — flip with the .dark class on <html> */
@@ -24,32 +25,104 @@
 }
 
 :root {
-  --nq-page: #f4f7fb;
+  --nimiq-blue: #1f2348;
+  --nimiq-light-blue: #0582ca;
+  --nimiq-gold: #e9b213;
+  --nimiq-green: #21bca5;
+  --nimiq-orange: #fc8702;
+  --nimiq-red: #d94432;
+  --nimiq-purple: #5f4b8b;
+  --nimiq-pink: #fa7268;
+  --nimiq-gray: #f4f4f4;
+  --nimiq-light-gray: #fafafa;
+  --nimiq-blue-bg: radial-gradient(100% 100% at bottom right, #260133, var(--nimiq-blue));
+  --nimiq-light-blue-bg: radial-gradient(100% 100% at bottom right, #265dd7, var(--nimiq-light-blue));
+  --nimiq-light-blue-bg-darkened: radial-gradient(100% 100% at bottom right, #2355c4, #0071c3);
+  --nimiq-green-bg: radial-gradient(100% 100% at bottom right, #41a38e, var(--nimiq-green));
+  --text-100: rgba(31, 35, 72, 1);
+  --text-80: rgba(31, 35, 72, 0.8);
+  --text-60: rgba(31, 35, 72, 0.6);
+  --text-40: rgba(31, 35, 72, 0.4);
+  --text-20: rgba(31, 35, 72, 0.2);
+  --text-10: rgba(31, 35, 72, 0.1);
+  --text-6: rgba(31, 35, 72, 0.06);
+  --nq-page: #fafafa;
   --nq-surface: #ffffff;
-  --nq-surface-2: #eaf1fb;
-  --nq-ink: #151936;
-  --nq-muted: #5d647a;
-  --nq-line: #dce4f0;
-  --nq-accent-ink: #1557c7;
+  --nq-surface-2: rgba(31, 35, 72, 0.06);
+  --nq-ink: var(--text-100);
+  --nq-muted: var(--text-60);
+  --nq-line: var(--text-10);
+  --nq-accent: var(--nimiq-light-blue);
+  --nq-accent-ink: var(--nimiq-light-blue);
 }
 
 .dark {
-  --nq-page: #101426;
-  --nq-surface: #191f35;
-  --nq-surface-2: #24304c;
+  --nq-page: #151833;
+  --nq-surface: #1f2348;
+  --nq-surface-2: rgba(255, 255, 255, 0.08);
   --nq-ink: #f7f9ff;
-  --nq-muted: #aeb8cc;
-  --nq-line: rgba(212, 225, 247, 0.2);
-  --nq-accent-ink: #7fd8ff;
+  --nq-muted: rgba(247, 249, 255, 0.68);
+  --nq-line: rgba(255, 255, 255, 0.13);
+  --nq-accent: #0ca6fe;
+  --nq-accent-ink: #0ca6fe;
 }
 
 body {
   background-color: var(--nq-page);
   background-image:
-    linear-gradient(180deg, rgba(31, 116, 255, 0.08), transparent 260px),
-    linear-gradient(90deg, rgba(0, 183, 255, 0.05), transparent 42%);
+    radial-gradient(70% 48rem at 100% 0%, rgba(33, 188, 165, 0.16), transparent 58%),
+    linear-gradient(180deg, rgba(5, 130, 202, 0.08), transparent 260px);
   color: var(--nq-ink);
   font-family: var(--font-sans);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.nq-primary {
+  background: var(--nimiq-light-blue-bg);
+  box-shadow: 0 0.5rem 1.5rem rgba(5, 130, 202, 0.22);
+}
+
+.nq-primary:hover {
+  background: var(--nimiq-light-blue-bg-darkened);
+}
+
+.nq-blue-surface {
+  background: var(--nimiq-blue-bg);
+}
+
+.nq-brand-surface {
+  background:
+    radial-gradient(110% 90% at 100% 0%, rgba(33, 188, 165, 0.18), transparent 52%),
+    radial-gradient(110% 90% at 100% 100%, rgba(5, 130, 202, 0.14), transparent 58%),
+    var(--nq-surface);
+}
+
+.dark .nq-brand-surface {
+  background: var(--nimiq-blue-bg);
+}
+
+.nq-hero-accent {
+  background:
+    radial-gradient(120% 90% at 100% 100%, rgba(33, 188, 165, 0.24), transparent 58%),
+    radial-gradient(120% 90% at 100% 0%, rgba(5, 130, 202, 0.2), transparent 62%);
+  mask-image: linear-gradient(to left, black 12%, transparent 100%);
+  opacity: 0.9;
+}
+
+.dark .nq-hero-accent {
+  opacity: 0.45;
+}
+
+.nq-card-shadow {
+  box-shadow: 0 0.5rem 3.5rem rgba(0, 0, 0, 0.111158);
 }
 
 @media (prefers-reduced-motion: reduce) {

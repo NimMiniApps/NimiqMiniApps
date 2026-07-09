@@ -45,7 +45,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
     <div v-else-if="walletAddress" ref="menuRef" class="relative">
       <button
         type="button"
-        class="flex items-center gap-1 rounded-lg border border-line bg-surface-2 py-1 pl-1 pr-1.5 transition-colors duration-200 hover:border-accent/50"
+        class="flex items-center gap-1 rounded-[500px] border border-line bg-surface-2 py-1 pl-1 pr-2 transition-colors duration-200 hover:border-accent/50"
         :aria-expanded="menuOpen"
         aria-haspopup="menu"
         @click.stop="toggleMenu"
@@ -88,6 +88,14 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
           Profile
         </RouterLink>
         <RouterLink
+          to="/my-apps"
+          role="menuitem"
+          class="block px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+          @click="closeMenu"
+        >
+          My apps
+        </RouterLink>
+        <RouterLink
           v-if="isAdmin"
           to="/admin"
           role="menuitem"
@@ -115,7 +123,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 
     <button
       v-else
-      class="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-xs font-semibold text-accent-ink transition-colors duration-200 hover:border-accent/50 disabled:opacity-50 sm:px-3 sm:text-sm"
+      class="rounded-[500px] border border-line bg-surface-2 px-3 py-1.5 text-xs font-semibold text-accent-ink transition-colors duration-200 hover:border-accent/50 disabled:opacity-50 sm:px-4 sm:text-sm"
       :disabled="loggingIn"
       @click="login"
     >

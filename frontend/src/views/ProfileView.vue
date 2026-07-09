@@ -72,12 +72,13 @@ watch([checking, walletAddress], () => {
         <span class="text-xs text-muted">Must be unique. Shown on your reviews instead of your wallet address.</span>
       </label>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <button
           class="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
           :disabled="saving"
           @click="save"
         >{{ saving ? 'Saving…' : 'Save' }}</button>
+        <RouterLink to="/my-apps" class="text-sm font-semibold text-accent-ink hover:underline">My apps</RouterLink>
         <span v-if="saved" class="text-sm text-muted">Saved.</span>
         <span v-if="error" class="text-sm text-red-500">{{ error }}</span>
       </div>

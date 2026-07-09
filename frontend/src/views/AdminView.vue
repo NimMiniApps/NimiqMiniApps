@@ -12,6 +12,7 @@ import ReleaseStageBadge from '../components/ReleaseStageBadge.vue'
 import { formatMediaLines, parseMediaLines } from '../utils/media'
 import { formatSocialLines, parseSocialLines } from '../utils/socials'
 import { diffRevision } from '../utils/revisionDiff'
+import { normalizeDomain } from '../utils/domain'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,19 +41,42 @@ const developerResults = ref<AdminUserResult[]>([])
 let developerSearchTimer: ReturnType<typeof setTimeout> | undefined
 
 function onDeveloperQueryInput() {
+  form.developer_wallet_address = null
   clearTimeout(developerSearchTimer)
   developerSearchTimer = setTimeout(async () => {
-    developerResults.value = developerQuery.value.trim()
-      ? await adminSearchUsers(developerQuery.value.trim())
-      : []
+    const q = developerQuery.value.trim()
+    if (!q) {
+      developerResults.value = []
+      return
+    }
+    try {
+      developerResults.value = await adminSearchUsers(q)
+    } catch {
+      developerResults.value = []
+    }
   }, 250)
 }
 
 function pickDeveloper(user: AdminUserResult) {
+  if (!user.display_name?.trim()) {
+    error.value = 'This user must set a display name on their profile before they can own an app.'
+    return
+  }
+  error.value = ''
   form.developer_wallet_address = user.wallet_address
-  developerQuery.value = user.display_name ?? user.wallet_address
+  developerQuery.value = user.display_name
   developerResults.value = []
+  form.developer_name = user.display_name
+  form.developer_slug = slugify(user.display_name)
 }
+
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+const developerLinked = computed(() => !!form.developer_wallet_address)
+const developerPickPending = computed(
+  () => developerQuery.value.trim() !== '' && !form.developer_wallet_address,
+)
 
 function saveToken() {
   localStorage.setItem('admin_token', token.value)
@@ -86,6 +110,8 @@ function openEditFromQuery() {
 
 function startCreate() {
   Object.assign(form, emptyForm)
+  developerQuery.value = ''
+  developerResults.value = []
   editingSlug.value = ''
   showForm.value = true
 }
@@ -105,7 +131,10 @@ function startEdit(app: App) {
     socials: formatSocialLines(app.socials),
     submitter_contact: app.submitter_contact || '',
   })
-  developerQuery.value = app.developer_name
+  developerQuery.value = app.developer_wallet_address
+    ? (app.developer_name || app.developer_wallet_address)
+    : ''
+  developerResults.value = []
   editingSlug.value = app.slug
   showForm.value = true
 }
@@ -114,8 +143,13 @@ const csv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
 
 async function submit() {
   error.value = ''
+  if (developerPickPending.value) {
+    error.value = 'Pick a wallet from the search results under Owning developer — typing a name alone does not link the app.'
+    return
+  }
   const payload = {
     ...form,
+    domain: normalizeDomain(form.domain),
     developer_wallet_address: form.developer_wallet_address || null,
     tags: csv(form.tags),
     assets: csv(form.assets),
@@ -255,8 +289,6 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
   ['slug', 'Slug (lowercase, url-safe)', true],
   ['name', 'Name', true],
   ['domain', 'Domain (no https://)', true],
-  ['developer_slug', 'Developer slug', true],
-  ['developer_name', 'Developer name', true],
   ['submitter_contact', 'Submitter contact (private)', false],
   ['tagline', 'Tagline', true],
   ['tags', 'Tags (comma-separated)', false],
@@ -282,7 +314,7 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
       <div class="mt-3 flex gap-2">
         <input v-model="token" type="password" placeholder="Admin token"
           class="flex-1 rounded-xl border border-line bg-surface-2 px-4 py-2.5 placeholder:text-muted/60 focus:border-accent outline-none" />
-        <button @click="saveToken" class="rounded-xl bg-nq-blue px-4 py-2.5 font-bold text-white hover:bg-nq-blue-dark">
+        <button @click="saveToken" class="rounded-[500px] nq-primary px-4 py-2.5 font-bold text-white">
           Save
         </button>
       </div>
@@ -310,24 +342,62 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
           <input v-model="(form as any)[key]" :required="required"
             class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
         </label>
-        <label class="relative text-sm sm:col-span-2">
-          <span class="mb-1 block font-semibold text-muted">Owning developer (optional)</span>
-          <input v-model="developerQuery" @input="onDeveloperQueryInput"
-            placeholder="Search by display name or wallet address — leave blank for an unclaimed/anonymous app"
-            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent" />
-          <ul v-if="developerResults.length" class="absolute z-10 mt-1 w-full rounded-lg border border-line bg-surface shadow-lg">
-            <li v-for="user in developerResults" :key="user.wallet_address"
-              @click="pickDeveloper(user)"
-              class="cursor-pointer px-3 py-2 text-sm hover:bg-surface-2">
-              {{ user.display_name ?? 'No display name' }}
-              <span class="block font-mono text-xs text-muted">{{ user.wallet_address }}</span>
-            </li>
-          </ul>
-          <span v-if="form.developer_wallet_address" class="mt-1 block text-xs text-muted">
-            Linked to <span class="font-mono">{{ form.developer_wallet_address }}</span>
-            <button type="button" @click="form.developer_wallet_address = null; developerQuery = ''" class="ml-1 text-accent-ink hover:underline">clear</button>
-          </span>
-        </label>
+
+        <div class="space-y-3 rounded-xl border border-line bg-surface-2/50 p-4 sm:col-span-2">
+          <div>
+            <h3 class="text-sm font-bold">Developer</h3>
+            <p class="mt-0.5 text-xs text-muted">
+              Link a <strong>wallet owner</strong> to grant My apps access. Catalog name and slug are taken from their profile automatically.
+              For legacy listings without a wallet, enter a public name and slug manually below.
+            </p>
+          </div>
+
+          <label class="relative block text-sm">
+            <span class="mb-1 block font-semibold text-muted">Wallet owner</span>
+            <input v-model="developerQuery" @input="onDeveloperQueryInput"
+              placeholder="Search by display name or wallet address — pick a result to link"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent"
+              :class="developerPickPending ? 'border-amber-500/60' : developerLinked ? 'border-emerald-500/40' : ''" />
+            <p v-if="developerPickPending" class="mt-1 text-xs text-amber-700 dark:text-amber-200">
+              Choose a user from the list below (they must have connected their wallet on the site first).
+            </p>
+            <p v-else-if="!developerLinked" class="mt-1 text-xs text-muted">
+              Unclaimed — only admins can edit this listing until a wallet is linked.
+            </p>
+            <ul v-if="developerResults.length" class="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-line bg-surface shadow-lg">
+              <li v-for="user in developerResults" :key="user.wallet_address"
+                @click="pickDeveloper(user)"
+                class="cursor-pointer px-3 py-2 text-sm hover:bg-surface-2"
+                :class="{ 'opacity-50': !user.display_name?.trim() }">
+                {{ user.display_name ?? 'No display name' }}
+                <span class="block font-mono text-xs text-muted">{{ user.wallet_address }}</span>
+              </li>
+            </ul>
+            <p v-else-if="developerQuery.trim() && !developerLinked" class="mt-1 text-xs text-muted">
+              No matching wallets — the user must log in at least once before you can assign them.
+            </p>
+            <span v-if="form.developer_wallet_address" class="mt-1 block text-xs text-emerald-700 dark:text-emerald-300">
+              Linked to <span class="font-mono">{{ form.developer_wallet_address }}</span>
+              <button type="button" @click="form.developer_wallet_address = null; developerQuery = ''" class="ml-1 text-accent-ink hover:underline">clear</button>
+            </span>
+          </label>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="text-sm">
+              <span class="mb-1 block text-muted">Public developer name *</span>
+              <input v-model="form.developer_name" required
+                placeholder="Shown on listings"
+                class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
+              <p v-if="developerLinked" class="mt-1 text-xs text-muted">Pre-filled from the linked wallet's profile — edit freely to rebrand.</p>
+            </label>
+            <label class="text-sm">
+              <span class="mb-1 block text-muted">Public developer slug *</span>
+              <input v-model="form.developer_slug" required
+                placeholder="Used in developer URLs"
+                class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
+            </label>
+          </div>
+        </div>
         <label class="text-sm">
           <span class="mb-1 block text-muted">Category *</span>
           <select v-model="form.category" required class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none">
@@ -381,7 +451,7 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
         <span class="mt-1 block text-xs text-muted">twitter, discord, telegram, bluesky, instagram, youtube, linkedin, mastodon, reddit, tiktok</span>
       </label>
       <div class="flex gap-2">
-        <button type="submit" class="rounded-xl bg-nq-blue px-5 py-2 font-bold text-white hover:bg-nq-blue-dark">
+        <button type="submit" class="rounded-[500px] nq-primary px-5 py-2 font-bold text-white">
           {{ editingSlug ? 'Save changes' : 'Create app' }}
         </button>
         <button type="button" @click="showForm = false" class="rounded-xl border border-line px-5 py-2 font-semibold hover:bg-surface-2">

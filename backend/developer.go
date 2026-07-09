@@ -30,6 +30,35 @@ func slugifyDisplayName(name string) string {
 	return strings.TrimSuffix(b.String(), "-")
 }
 
+// validateDeveloperWallet checks that a caller-supplied developer_wallet_address (if
+// any) points at a wallet that has logged in and set a display name. It does not
+// overwrite developer_name/developer_slug — those stay admin-editable even for
+// wallet-linked apps (rebrands, anonymous/legacy apps); only the wallet-driven
+// submit flow (submitApp) derives them, and it does so itself before calling in here.
+func (s *server) validateDeveloperWallet(ctx context.Context, a *App) error {
+	if a.DeveloperWalletAddress == nil || strings.TrimSpace(*a.DeveloperWalletAddress) == "" {
+		a.DeveloperWalletAddress = nil
+		return nil
+	}
+	addr := strings.TrimSpace(*a.DeveloperWalletAddress)
+	a.DeveloperWalletAddress = &addr
+
+	var displayName *string
+	err := s.pool.QueryRow(ctx,
+		`SELECT display_name FROM users WHERE wallet_address=$1`, addr).
+		Scan(&displayName)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return errors.New("wallet owner must have logged in at least once")
+	}
+	if err != nil {
+		return err
+	}
+	if displayName == nil || strings.TrimSpace(*displayName) == "" {
+		return errors.New("wallet owner must set a display name on their profile first")
+	}
+	return nil
+}
+
 // resolveDeveloperSlug returns the developer_slug a wallet should submit under.
 // A wallet that already owns an app reuses that app's developer_slug (identity is
 // assigned once, at first submission — see the developer portal spec). Otherwise it

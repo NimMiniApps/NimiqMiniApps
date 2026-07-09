@@ -5,11 +5,14 @@ import { listAppsPaginated, listCategories, listDevelopers, type App, type Categ
 import AppCard from '../components/AppCard.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { useI18n } from '../composables/useI18n'
+import { useWalletAuth } from '../composables/useWalletAuth'
+import { walletOwnsApp } from '../utils/wallet'
 import { setPageMeta, resetPageMeta } from '../utils/meta'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const { walletAddress } = useWalletAuth()
 const apps = ref<App[]>([])
 const categories = ref<Category[]>([])
 const developers = ref<DeveloperSummary[]>([])
@@ -273,7 +276,7 @@ onMounted(async () => {
         </button>
         <RouterLink
           to="/apps"
-          class="cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 text-sm font-bold text-white transition duration-200 hover:bg-nq-blue-dark"
+          class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 text-sm font-bold text-white transition duration-200"
         >
           {{ t('common.browseAll') }}
         </RouterLink>
@@ -288,7 +291,12 @@ onMounted(async () => {
 
     <div v-else class="space-y-4">
       <div class="grid gap-4 sm:grid-cols-2">
-        <AppCard v-for="app in apps" :key="app.id" :app="app" />
+        <AppCard
+          v-for="app in apps"
+          :key="app.id"
+          :app="app"
+          :owned="walletOwnsApp(walletAddress, app.developer_wallet_address)"
+        />
       </div>
       <div class="flex flex-col items-center gap-2">
         <p class="text-sm text-muted">{{ t('apps.showingCount', { shown: apps.length, total }) }}</p>

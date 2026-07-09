@@ -25,16 +25,16 @@ const isSearching = computed(() => homeQuery.value.trim().length > 0)
 let searchTimer: ReturnType<typeof setTimeout>
 
 const homeCategoryThemes: Record<string, { accent: string; soft: string; ink: string }> = {
-  games: { accent: '#1f74ff', soft: 'rgba(31, 116, 255, 0.13)', ink: '#7fd8ff' },
-  utilities: { accent: '#14b8a6', soft: 'rgba(20, 184, 166, 0.14)', ink: '#5eead4' },
-  finance: { accent: '#22c55e', soft: 'rgba(34, 197, 94, 0.14)', ink: '#86efac' },
-  maps: { accent: '#f59e0b', soft: 'rgba(245, 158, 11, 0.16)', ink: '#fbbf24' },
-  social: { accent: '#f43f5e', soft: 'rgba(244, 63, 94, 0.14)', ink: '#fb7185' },
-  experiments: { accent: '#a855f7', soft: 'rgba(168, 85, 247, 0.15)', ink: '#c084fc' },
+  games: { accent: '#0582ca', soft: 'rgba(5, 130, 202, 0.1)', ink: '#0582ca' },
+  utilities: { accent: '#21bca5', soft: 'rgba(33, 188, 165, 0.12)', ink: '#168f80' },
+  finance: { accent: '#21bca5', soft: 'rgba(33, 188, 165, 0.12)', ink: '#168f80' },
+  maps: { accent: '#e9b213', soft: 'rgba(233, 178, 19, 0.16)', ink: '#9c7300' },
+  social: { accent: '#fa7268', soft: 'rgba(250, 114, 104, 0.13)', ink: '#c44941' },
+  experiments: { accent: '#5f4b8b', soft: 'rgba(95, 75, 139, 0.13)', ink: '#5f4b8b' },
 }
 
 function categoryStyle(name: string) {
-  const theme = homeCategoryThemes[name.toLowerCase()] ?? { accent: '#64748b', soft: 'rgba(100, 116, 139, 0.14)', ink: '#cbd5e1' }
+  const theme = homeCategoryThemes[name.toLowerCase()] ?? { accent: '#1f2348', soft: 'rgba(31, 35, 72, 0.06)', ink: '#1f2348' }
   return {
     borderColor: `${theme.accent}66`,
     backgroundColor: theme.soft,
@@ -87,18 +87,17 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-10">
-    <section class="relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-xl shadow-blue-950/5 md:p-12 dark:shadow-black/20">
-      <div class="absolute inset-y-0 right-0 hidden w-[32%] bg-nq-blue md:block" aria-hidden="true"></div>
-      <div class="absolute bottom-0 right-0 hidden h-28 w-[32%] bg-accent-2/35 md:block" aria-hidden="true"></div>
+    <section class="nq-brand-surface nq-card-shadow relative overflow-hidden rounded-[10px] border border-line p-6 md:p-12 dark:border-white/10 dark:text-white dark:shadow-black/20">
+      <div class="nq-hero-accent absolute inset-y-0 right-0 hidden w-[36%] md:block" aria-hidden="true"></div>
       <div class="relative max-w-xl">
-        <p class="text-sm font-bold uppercase tracking-widest text-accent-ink">{{ t('home.eyebrow') }}</p>
+        <p class="text-sm font-bold uppercase tracking-widest text-accent-ink dark:text-white/80">{{ t('home.eyebrow') }}</p>
         <h1 class="mt-2 max-w-xl text-3xl font-extrabold leading-tight md:text-5xl">
           {{ t('home.title') }}
         </h1>
-        <p class="mt-3 max-w-xl text-muted md:text-lg">
+        <p class="mt-3 max-w-xl text-muted md:text-lg dark:text-white/75">
           {{ t('home.subtitle') }}
         </p>
-        <div class="mt-6 max-w-xl rounded-2xl border border-line bg-page/80 p-2 shadow-sm shadow-slate-950/5 dark:bg-surface-2/60">
+        <div class="mt-6 max-w-xl rounded-[10px] border border-line bg-white/90 p-2 shadow-sm dark:border-white/15 dark:bg-white/10">
           <label for="home-app-search" class="sr-only">{{ t('home.searchLabel') }}</label>
           <div class="flex flex-col gap-2 sm:flex-row">
             <div class="relative flex-1">
@@ -111,18 +110,18 @@ onMounted(async () => {
                 v-model="homeQuery"
                 type="search"
                 :placeholder="t('home.searchPlaceholder')"
-                class="h-12 w-full rounded-xl border border-line bg-surface pl-10 pr-4 font-semibold outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
+                class="h-12 w-full rounded-[10px] border border-line bg-surface pl-10 pr-4 font-semibold outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
               />
             </div>
             <RouterLink
               to="/apps"
-              class="grid h-12 cursor-pointer place-items-center rounded-xl border border-line bg-surface px-5 text-sm font-bold text-ink transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+              class="grid h-12 cursor-pointer place-items-center rounded-[500px] border border-line bg-surface px-5 text-sm font-bold text-ink transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
             >
               {{ t('home.allApps') }}
             </RouterLink>
           </div>
           <div v-if="categories.length" class="mt-2 border-t border-line pt-2">
-            <p class="mb-2 text-xs font-bold uppercase tracking-wide text-muted">{{ t('home.browseCategories') }}</p>
+            <p class="mb-2 text-xs font-bold uppercase tracking-wide text-muted dark:text-white/60">{{ t('home.browseCategories') }}</p>
             <div class="flex flex-wrap gap-2">
               <RouterLink
                 v-for="category in categories"
@@ -138,20 +137,20 @@ onMounted(async () => {
         </div>
         <div class="mt-6 flex flex-wrap gap-2.5">
           <RouterLink to="/apps"
-            class="cursor-pointer rounded-xl bg-nq-blue px-6 py-3 font-bold text-white shadow-sm shadow-blue-700/25 transition duration-200 hover:bg-nq-blue-dark">
+            class="nq-primary cursor-pointer rounded-[500px] px-6 py-3 font-bold text-white transition duration-200">
             {{ t('home.browseAll') }}
           </RouterLink>
           <RouterLink to="/submit"
-            class="cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-bold text-ink transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+            class="cursor-pointer rounded-[500px] border border-line bg-white/90 px-6 py-3 font-bold text-ink transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:text-white">
             {{ t('home.submitApp') }}
           </RouterLink>
           <RouterLink to="/build"
-            class="cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-bold text-ink transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+            class="cursor-pointer rounded-[500px] border border-line bg-white/90 px-6 py-3 font-bold text-ink transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:text-white">
             {{ t('home.buildApp') }}
           </RouterLink>
         </div>
-        <div class="mt-8 border-t border-line pt-5">
-          <p class="mb-3 text-sm font-semibold text-muted">{{ t('home.walletPrompt') }}</p>
+        <div class="mt-8 border-t border-line pt-5 dark:border-white/15">
+          <p class="mb-3 text-sm font-semibold text-muted dark:text-white/70">{{ t('home.walletPrompt') }}</p>
           <StoreBadges />
         </div>
       </div>
@@ -189,7 +188,7 @@ onMounted(async () => {
         <template #actions>
           <RouterLink
             to="/apps"
-            class="cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 text-sm font-bold text-white transition duration-200 hover:bg-nq-blue-dark"
+            class="nq-primary cursor-pointer rounded-[500px] px-5 py-2.5 text-sm font-bold text-white transition duration-200"
           >
             {{ t('common.browseAll') }}
           </RouterLink>

@@ -55,7 +55,7 @@ const examples = [
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
         <a href="https://nimiq.dev/mini-apps/mini-app-tutorial" target="_blank" rel="noopener"
-          class="cursor-pointer rounded-xl bg-nq-blue px-6 py-3 font-bold text-white transition duration-200 hover:bg-nq-blue-dark">
+          class="cursor-pointer rounded-[500px] nq-primary px-6 py-3 font-bold text-white transition duration-200">
           Start the tutorial
         </a>
         <RouterLink to="/submit"
@@ -82,7 +82,7 @@ const examples = [
       </ul>
       <div class="mt-6 flex flex-wrap gap-3">
         <a :href="COMPETITION_URL" target="_blank" rel="noopener"
-          class="cursor-pointer rounded-xl bg-nq-blue px-6 py-3 font-bold text-white transition duration-200 hover:bg-nq-blue-dark">
+          class="cursor-pointer rounded-[500px] nq-primary px-6 py-3 font-bold text-white transition duration-200">
           Register &amp; rules
         </a>
         <a :href="COMPETITION_SKOOL_URL" target="_blank" rel="noopener"

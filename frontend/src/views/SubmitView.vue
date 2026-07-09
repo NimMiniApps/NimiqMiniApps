@@ -6,6 +6,7 @@ import MediaEditor from '../components/MediaEditor.vue'
 import WalletLoginButton from '../components/WalletLoginButton.vue'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { CATALOG_ISSUES_URL } from '../utils/catalogLinks'
+import { normalizeDomain } from '../utils/domain'
 
 const { walletAddress, displayName, checking } = useWalletAuth()
 
@@ -42,6 +43,7 @@ async function submit() {
     await submitApp({
       ...form,
       slug: slugify(form.slug),
+      domain: normalizeDomain(form.domain),
       tags: csv(form.tags),
       assets: csv(form.assets),
       media: mediaEditor.value?.validate() ?? [],
@@ -100,7 +102,7 @@ const fields: [keyof typeof form, string, boolean, string][] = [
       </div>
       <div v-else-if="!displayName" class="rounded-2xl border border-line bg-surface p-5 text-center">
         <p class="text-sm text-muted">Set a display name on your profile before submitting — it becomes your public developer name.</p>
-        <RouterLink to="/profile" class="mt-3 inline-block rounded-xl bg-nq-blue px-5 py-2.5 font-bold text-white">Go to profile</RouterLink>
+        <RouterLink to="/profile" class="mt-3 inline-block rounded-[500px] nq-primary px-5 py-2.5 font-bold text-white">Go to profile</RouterLink>
       </div>
       <template v-else>
         <p class="text-xs text-muted">
@@ -150,7 +152,7 @@ const fields: [keyof typeof form, string, boolean, string][] = [
             <SocialLinksEditor ref="socialEditor" v-model="socials" />
           </div>
           <button type="submit" :disabled="submitting"
-            class="w-full cursor-pointer rounded-xl bg-nq-blue px-5 py-3 font-bold text-white transition duration-200 hover:bg-nq-blue-dark disabled:cursor-default disabled:opacity-60 sm:w-auto">
+            class="w-full cursor-pointer rounded-[500px] nq-primary px-5 py-3 font-bold text-white transition duration-200 disabled:cursor-default disabled:opacity-60 sm:w-auto">
             {{ submitting ? 'Submitting…' : 'Submit for review' }}
           </button>
         </form>
@@ -177,7 +179,7 @@ const fields: [keyof typeof form, string, boolean, string][] = [
           class="inline-block cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 font-bold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
           Check status
         </RouterLink>
-        <RouterLink to="/apps" class="inline-block cursor-pointer rounded-xl bg-nq-blue px-5 py-2.5 font-bold text-white transition duration-200 hover:bg-nq-blue-dark">
+        <RouterLink to="/apps" class="inline-block cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 font-bold text-white transition duration-200">
           Browse apps
         </RouterLink>
       </div>
