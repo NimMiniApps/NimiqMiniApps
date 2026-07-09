@@ -3,7 +3,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   APP_CATEGORIES, APP_RELEASE_STAGES, adminListApps, adminCreateApp, adminUpdateApp, adminDeleteApp, adminSetStatus, adminCheckDomains,
-  adminListRevisions, adminApproveRevision, adminRejectRevision, type App, type RevisionReviewItem,
+  adminListRevisions, adminApproveRevision, adminRejectRevision, adminSearchUsers,
+  type App, type RevisionReviewItem, type AdminUserResult,
 } from '../api'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import StatusBadge from '../components/StatusBadge.vue'
@@ -25,6 +26,7 @@ const checkingDomains = ref(false)
 
 const emptyForm = {
   slug: '', name: '', domain: '', category: '', developer_slug: '', developer_name: '',
+  developer_wallet_address: null as string | null,
   tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', status: 'submitted',
   release_stage: 'released', featured: false, featured_order: 0,
   website_url: '', github_url: '', icon_url: '', banner_url: '', media: '', socials: '',
@@ -33,6 +35,24 @@ const emptyForm = {
 const form = reactive({ ...emptyForm })
 const editingSlug = ref('') // '' = create mode
 const showForm = ref(false)
+const developerQuery = ref('')
+const developerResults = ref<AdminUserResult[]>([])
+let developerSearchTimer: ReturnType<typeof setTimeout> | undefined
+
+function onDeveloperQueryInput() {
+  clearTimeout(developerSearchTimer)
+  developerSearchTimer = setTimeout(async () => {
+    developerResults.value = developerQuery.value.trim()
+      ? await adminSearchUsers(developerQuery.value.trim())
+      : []
+  }, 250)
+}
+
+function pickDeveloper(user: AdminUserResult) {
+  form.developer_wallet_address = user.wallet_address
+  developerQuery.value = user.display_name ?? user.wallet_address
+  developerResults.value = []
+}
 
 function saveToken() {
   localStorage.setItem('admin_token', token.value)
@@ -74,6 +94,7 @@ function startEdit(app: App) {
   Object.assign(form, {
     slug: app.slug, name: app.name, domain: app.domain, category: app.category,
     developer_slug: app.developer_slug, developer_name: app.developer_name,
+    developer_wallet_address: app.developer_wallet_address,
     tagline: app.tagline, description: app.description, long_description: app.long_description || '',
     tags: app.tags.join(', '), assets: app.assets.join(', '),
     status: app.status, release_stage: app.release_stage, featured: app.featured,
@@ -84,6 +105,7 @@ function startEdit(app: App) {
     socials: formatSocialLines(app.socials),
     submitter_contact: app.submitter_contact || '',
   })
+  developerQuery.value = app.developer_name
   editingSlug.value = app.slug
   showForm.value = true
 }
@@ -94,6 +116,7 @@ async function submit() {
   error.value = ''
   const payload = {
     ...form,
+    developer_wallet_address: form.developer_wallet_address || null,
     tags: csv(form.tags),
     assets: csv(form.assets),
     media: parseMediaLines(form.media),
@@ -286,6 +309,24 @@ const fields: [keyof typeof emptyForm, string, boolean][] = [
           <span class="mb-1 block text-muted">{{ label }}{{ required ? ' *' : '' }}</span>
           <input v-model="(form as any)[key]" :required="required"
             class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
+        </label>
+        <label class="relative text-sm sm:col-span-2">
+          <span class="mb-1 block font-semibold text-muted">Owning developer (optional)</span>
+          <input v-model="developerQuery" @input="onDeveloperQueryInput"
+            placeholder="Search by display name or wallet address — leave blank for an unclaimed/anonymous app"
+            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent" />
+          <ul v-if="developerResults.length" class="absolute z-10 mt-1 w-full rounded-lg border border-line bg-surface shadow-lg">
+            <li v-for="user in developerResults" :key="user.wallet_address"
+              @click="pickDeveloper(user)"
+              class="cursor-pointer px-3 py-2 text-sm hover:bg-surface-2">
+              {{ user.display_name ?? 'No display name' }}
+              <span class="block font-mono text-xs text-muted">{{ user.wallet_address }}</span>
+            </li>
+          </ul>
+          <span v-if="form.developer_wallet_address" class="mt-1 block text-xs text-muted">
+            Linked to <span class="font-mono">{{ form.developer_wallet_address }}</span>
+            <button type="button" @click="form.developer_wallet_address = null; developerQuery = ''" class="ml-1 text-accent-ink hover:underline">clear</button>
+          </span>
         </label>
         <label class="text-sm">
           <span class="mb-1 block text-muted">Category *</span>

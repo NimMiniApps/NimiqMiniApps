@@ -3,7 +3,7 @@
   "info": {
     "title": "Nimiq Mini Apps API",
     "version": "1.0.0",
-    "description": "REST API for the [Nimiq Mini Apps](https://nimiqminiapps.com) community directory.\n\n**Submitting an app** — `POST /api/apps/submit` (no auth). Rate limit: **5 requests per hour per IP**.\nRequired field `submitter_contact` (Telegram, email, etc.) is stored privately and omitted from public responses.\n\n**Open in Nimiq Pay** — listed apps expose `open_url` as `https://nimpay.app/miniapps/open/{domain}` (domain without `https://`).\n\nMachine-readable spec: `GET /openapi.json` or `GET /openapi.yaml`.\n",
+    "description": "REST API for the [Nimiq Mini Apps](https://nimiqminiapps.com) community directory.\n\n**Submitting an app** — `POST /api/apps/submit` (wallet login required). Rate limit: **5 requests per hour per IP**.\nRequired field `submitter_contact` (Telegram, email, etc.) is stored privately and omitted from public responses.\n\n**Open in Nimiq Pay** — listed apps expose `open_url` as `https://nimpay.app/miniapps/open/{domain}` (domain without `https://`).\n\nMachine-readable spec: `GET /openapi.json` or `GET /openapi.yaml`.\n",
     "contact": {
       "name": "Nimiq Mini Apps",
       "url": "https://nimiqminiapps.com"
@@ -33,7 +33,7 @@
     },
     {
       "name": "Submit",
-      "description": "Developer submissions (no account required)"
+      "description": "Developer submissions (wallet login required for submit and update requests)"
     },
     {
       "name": "Admin",
@@ -192,8 +192,13 @@
           "Submit"
         ],
         "summary": "Submit a new app for review",
-        "description": "Creates an app with `status=submitted` and `featured=false`. No authentication required.\nRate limited to 5 submissions per hour per client IP (HTTP 429).\n",
+        "description": "Creates an app with `status=submitted` and `featured=false`. Requires a wallet\nsession (see `POST /api/auth/verify`); the caller must have a `display_name` set\non their profile first. `developer_slug`/`developer_name` are derived from the\ncaller's wallet identity, not taken from the request body.\nRate limited to 5 submissions per hour per client IP (HTTP 429).\n",
         "operationId": "submitApp",
+        "security": [
+          {
+            "walletCookie": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -206,8 +211,6 @@
                 "name": "My Mini App",
                 "domain": "myapp.example.com",
                 "category": "Games",
-                "developer_slug": "my-team",
-                "developer_name": "My Team",
                 "tagline": "One sentence pitch",
                 "submitter_contact": "@telegram or you@example.com",
                 "description": "Short plain-text summary for listings",
@@ -236,6 +239,9 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "409": {
             "description": "Slug already exists",
@@ -349,8 +355,13 @@
           "Submit"
         ],
         "summary": "Request a listing update (reviewed by admins)",
-        "description": "Proposes changes to an existing public listing. Rate limited (same 5/hour per IP as submit).\nOnly one pending revision per app at a time.\n",
+        "description": "Proposes changes to an existing public listing. Requires a wallet session matching\nthe app's `developer_wallet_address`. `developer_name`/`developer_slug` in the\nrequest body are ignored — identity changes are admin-only. Rate limited (same\n5/hour per IP as submit). Only one pending revision per app at a time.\n",
         "operationId": "requestAppUpdate",
+        "security": [
+          {
+            "walletCookie": []
+          }
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/slug"
@@ -380,6 +391,19 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "The wallet session does not own this app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
@@ -395,6 +419,50 @@
           },
           "429": {
             "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/api/my/apps": {
+      "get": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "List apps owned by the logged-in wallet",
+        "operationId": "myApps",
+        "security": [
+          {
+            "walletCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Apps owned by the caller, each with has_pending_revision",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/AppAdmin"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "has_pending_revision": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -583,6 +651,57 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Search users by display name or wallet address (for the developer picker)",
+        "operationId": "adminSearchUsers",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Prefix match on display_name or wallet_address; empty returns []",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "wallet_address": {
+                        "type": "string"
+                      },
+                      "display_name": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -1029,6 +1148,12 @@
         "type": "http",
         "scheme": "bearer",
         "description": "Set ADMIN_TOKEN on the server; send as Authorization Bearer token"
+      },
+      "walletCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "wallet_session",
+        "description": "Signed wallet-session cookie set by POST /api/auth/verify"
       }
     },
     "parameters": {
@@ -1404,31 +1529,99 @@
         }
       },
       "AppSubmitRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/AppInput"
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "domain",
+          "category",
+          "tagline",
+          "submitter_contact"
+        ],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
           },
-          {
-            "type": "object",
-            "required": [
-              "submitter_contact"
-            ]
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Hostname only — must not include `https://`"
+          },
+          "category": {
+            "$ref": "#/components/schemas/CategoryName"
+          },
+          "tagline": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "Plain-text short summary; defaults to tagline if omitted"
+          },
+          "long_description": {
+            "type": "string",
+            "description": "Markdown for the app detail page"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "release_stage": {
+            "$ref": "#/components/schemas/ReleaseStage"
+          },
+          "website_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "github_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "icon_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "banner_url": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaItem"
+            }
+          },
+          "socials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SocialLink"
+            }
+          },
+          "submitter_contact": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Private contact; required for public submit"
           }
-        ]
+        }
       },
       "AppUpdateRequest": {
         "allOf": [
           {
             "$ref": "#/components/schemas/AppInput"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "author_note": {
-                "type": "string",
-                "description": "Optional note for reviewers"
-              }
-            }
           }
         ]
       },
@@ -1456,6 +1649,10 @@
           },
           "developer_name": {
             "type": "string"
+          },
+          "developer_wallet_address": {
+            "type": "string",
+            "nullable": true
           },
           "tagline": {
             "type": "string"
@@ -1556,6 +1753,10 @@
             "properties": {
               "submitter_contact": {
                 "type": "string"
+              },
+              "developer_wallet_address": {
+                "type": "string",
+                "nullable": true
               }
             }
           }

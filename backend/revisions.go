@@ -96,7 +96,7 @@ type updateRequestBody struct {
 	AuthorNote string `json:"author_note"`
 }
 
-func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request) {
+func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, address string) {
 	slug := r.PathValue("slug")
 	if !allowSubmit(clientIP(r), time.Now()) {
 		writeError(w, http.StatusTooManyRequests, "too many requests, try again later")
@@ -114,6 +114,10 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 	if !isPublicStatus(current.Status) {
 		writeError(w, http.StatusNotFound, "app not found")
+		return
+	}
+	if current.DeveloperWalletAddress == nil || *current.DeveloperWalletAddress != address {
+		writeError(w, http.StatusForbidden, "you don't own this app")
 		return
 	}
 
@@ -173,9 +177,9 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request) {
 			website_url, github_url, icon_url, banner_url, media, socials, author_note)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
 		RETURNING `+revisionColumns,
-		slug, body.Name, body.Domain, body.Category, body.DeveloperSlug, body.DeveloperName,
+		slug, body.Name, body.Domain, body.Category, current.DeveloperSlug, current.DeveloperName,
 		body.Tagline, body.Description, body.LongDescription, body.Tags, body.Assets, body.ReleaseStage,
-		body.WebsiteURL, body.GithubURL, body.IconURL, body.BannerURL, mediaJSON, socialsJSON, body.AuthorNote))
+		body.WebsiteURL, body.GithubURL, body.IconURL, body.BannerURL, mediaJSON, socialsJSON, ""))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

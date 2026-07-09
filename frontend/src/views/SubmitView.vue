@@ -3,7 +3,11 @@ import { reactive, ref } from 'vue'
 import { APP_CATEGORIES, APP_RELEASE_STAGES, submitApp, type MediaItem, type SocialLink } from '../api'
 import SocialLinksEditor from '../components/SocialLinksEditor.vue'
 import MediaEditor from '../components/MediaEditor.vue'
+import WalletLoginButton from '../components/WalletLoginButton.vue'
+import { useWalletAuth } from '../composables/useWalletAuth'
 import { CATALOG_ISSUES_URL } from '../utils/catalogLinks'
+
+const { walletAddress, displayName, checking } = useWalletAuth()
 
 const socialEditor = ref<InstanceType<typeof SocialLinksEditor>>()
 const mediaEditor = ref<InstanceType<typeof MediaEditor>>()
@@ -11,7 +15,7 @@ const socials = ref<SocialLink[]>([])
 const media = ref<MediaItem[]>([])
 
 const form = reactive({
-  name: '', slug: '', domain: '', category: '', developer_slug: '', developer_name: '',
+  name: '', slug: '', domain: '', category: '',
   tagline: '', description: '', long_description: '', release_stage: 'beta', tags: '', assets: 'NIM',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
   submitter_contact: '',
@@ -38,7 +42,6 @@ async function submit() {
     await submitApp({
       ...form,
       slug: slugify(form.slug),
-      developer_slug: slugify(form.developer_slug || form.developer_name),
       tags: csv(form.tags),
       assets: csv(form.assets),
       media: mediaEditor.value?.validate() ?? [],
@@ -61,7 +64,6 @@ const fields: [keyof typeof form, string, boolean, string][] = [
   ['name', 'App name', true, 'My Mini App'],
   ['slug', 'Slug', true, 'my-mini-app'],
   ['domain', 'Domain (no https://)', true, 'myapp.example.com'],
-  ['developer_name', 'Developer name', true, 'Your name or team'],
   ['submitter_contact', 'Contact (Telegram, email, etc.)', true, '@yourhandle or you@example.com'],
   ['tagline', 'Tagline', true, 'One sentence about your app'],
   ['tags', 'Tags (comma-separated)', false, 'games, multiplayer'],
@@ -89,54 +91,70 @@ const fields: [keyof typeof form, string, boolean, string][] = [
 
       <p v-if="error" class="rounded-xl bg-red-500/15 p-4 text-red-600 dark:text-red-300">{{ error }}</p>
 
-      <form @submit.prevent="submit" class="space-y-3 rounded-2xl border border-line bg-surface p-5 shadow-sm">
-        <div class="grid gap-3 sm:grid-cols-2">
-          <label v-for="[key, label, required, placeholder] in fields" :key="key" class="text-sm">
-            <span class="mb-1 block font-semibold text-muted">{{ label }}{{ required ? ' *' : '' }}</span>
-            <input v-model="form[key]" :required="required" :placeholder="placeholder"
-              @input="key === 'name' ? onNameInput() : key === 'slug' ? (slugTouched = true) : null"
-              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent" />
+      <div v-if="checking" class="rounded-2xl border border-line bg-surface p-5 text-sm text-muted">
+        Checking wallet session…
+      </div>
+      <div v-else-if="!walletAddress" class="rounded-2xl border border-line bg-surface p-5 text-center">
+        <p class="text-sm text-muted">Connect your Nimiq wallet to submit an app. It will be linked to your wallet as the developer of record — admins can reassign it later.</p>
+        <WalletLoginButton class="mt-3 inline-block" />
+      </div>
+      <div v-else-if="!displayName" class="rounded-2xl border border-line bg-surface p-5 text-center">
+        <p class="text-sm text-muted">Set a display name on your profile before submitting — it becomes your public developer name.</p>
+        <RouterLink to="/profile" class="mt-3 inline-block rounded-xl bg-nq-blue px-5 py-2.5 font-bold text-white">Go to profile</RouterLink>
+      </div>
+      <template v-else>
+        <p class="text-xs text-muted">
+          Submitting as <span class="font-mono">{{ walletAddress }}</span> — this app will be linked to your wallet as the developer of record; admins can reassign it later.
+        </p>
+        <form @submit.prevent="submit" class="space-y-3 rounded-2xl border border-line bg-surface p-5 shadow-sm">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label v-for="[key, label, required, placeholder] in fields" :key="key" class="text-sm">
+              <span class="mb-1 block font-semibold text-muted">{{ label }}{{ required ? ' *' : '' }}</span>
+              <input v-model="form[key]" :required="required" :placeholder="placeholder"
+                @input="key === 'name' ? onNameInput() : key === 'slug' ? (slugTouched = true) : null"
+                class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent" />
+            </label>
+            <label class="text-sm">
+              <span class="mb-1 block font-semibold text-muted">Category *</span>
+              <select v-model="form.category" required
+                class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent">
+                <option value="" disabled>Select a category</option>
+                <option v-for="category in APP_CATEGORIES" :key="category" :value="category">{{ category }}</option>
+              </select>
+            </label>
+            <label class="text-sm">
+              <span class="mb-1 block font-semibold text-muted">Release stage</span>
+              <select v-model="form.release_stage"
+                class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent">
+                <option v-for="stage in APP_RELEASE_STAGES" :key="stage" :value="stage">{{ stage }}</option>
+              </select>
+            </label>
+          </div>
+          <label class="block text-sm">
+            <span class="mb-1 block font-semibold text-muted">Short description</span>
+            <textarea v-model="form.description" rows="3" placeholder="Brief summary shown in listings"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"></textarea>
           </label>
-          <label class="text-sm">
-            <span class="mb-1 block font-semibold text-muted">Category *</span>
-            <select v-model="form.category" required
-              class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent">
-              <option value="" disabled>Select a category</option>
-              <option v-for="category in APP_CATEGORIES" :key="category" :value="category">{{ category }}</option>
-            </select>
+          <label class="block text-sm">
+            <span class="mb-1 block font-semibold text-muted">Full description</span>
+            <textarea v-model="form.long_description" rows="6" placeholder="Features, gameplay, how it works — shown on the detail page"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"></textarea>
+            <span class="mt-1 block text-xs text-muted">Markdown supported: **bold**, lists, [links](https://…), ## headings.</span>
           </label>
-          <label class="text-sm">
-            <span class="mb-1 block font-semibold text-muted">Release stage</span>
-            <select v-model="form.release_stage"
-              class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent">
-              <option v-for="stage in APP_RELEASE_STAGES" :key="stage" :value="stage">{{ stage }}</option>
-            </select>
-          </label>
-        </div>
-        <label class="block text-sm">
-          <span class="mb-1 block font-semibold text-muted">Short description</span>
-          <textarea v-model="form.description" rows="3" placeholder="Brief summary shown in listings"
-            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"></textarea>
-        </label>
-        <label class="block text-sm">
-          <span class="mb-1 block font-semibold text-muted">Full description</span>
-          <textarea v-model="form.long_description" rows="6" placeholder="Features, gameplay, how it works — shown on the detail page"
-            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"></textarea>
-          <span class="mt-1 block text-xs text-muted">Markdown supported: **bold**, lists, [links](https://…), ## headings.</span>
-        </label>
-        <div class="block text-sm">
-          <span class="mb-2 block font-semibold text-muted">Screenshots &amp; video</span>
-          <MediaEditor ref="mediaEditor" v-model="media" />
-        </div>
-        <div class="block text-sm">
-          <span class="mb-2 block font-semibold text-muted">Social links</span>
-          <SocialLinksEditor ref="socialEditor" v-model="socials" />
-        </div>
-        <button type="submit" :disabled="submitting"
-          class="w-full cursor-pointer rounded-xl bg-nq-blue px-5 py-3 font-bold text-white transition duration-200 hover:bg-nq-blue-dark disabled:cursor-default disabled:opacity-60 sm:w-auto">
-          {{ submitting ? 'Submitting…' : 'Submit for review' }}
-        </button>
-      </form>
+          <div class="block text-sm">
+            <span class="mb-2 block font-semibold text-muted">Screenshots &amp; video</span>
+            <MediaEditor ref="mediaEditor" v-model="media" />
+          </div>
+          <div class="block text-sm">
+            <span class="mb-2 block font-semibold text-muted">Social links</span>
+            <SocialLinksEditor ref="socialEditor" v-model="socials" />
+          </div>
+          <button type="submit" :disabled="submitting"
+            class="w-full cursor-pointer rounded-xl bg-nq-blue px-5 py-3 font-bold text-white transition duration-200 hover:bg-nq-blue-dark disabled:cursor-default disabled:opacity-60 sm:w-auto">
+            {{ submitting ? 'Submitting…' : 'Submit for review' }}
+          </button>
+        </form>
+      </template>
     </template>
 
     <div v-else class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-8 text-center">

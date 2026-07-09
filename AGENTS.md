@@ -7,7 +7,7 @@ Read this file when helping developers **submit listings**, **change the API**, 
 
 ## Submit a developer's app to the catalog
 
-Use the **public REST API** (no account, no admin token). Do not use admin endpoints for normal submissions.
+Use the **public REST API** with a **wallet session** for developer submissions. Do not use admin endpoints for normal submissions.
 
 ### 1. Fetch the live contract
 
@@ -32,13 +32,12 @@ Source of truth in git: `docs/openapi.yaml`
 ```bash
 curl -X POST https://api.nimiqminiapps.com/api/apps/submit \
   -H "Content-Type: application/json" \
+  -H "Cookie: wallet_session=<value from POST /api/auth/verify>" \
   -d '{
     "slug": "my-mini-app",
     "name": "My Mini App",
     "domain": "myapp.example.com",
     "category": "Games",
-    "developer_slug": "my-team",
-    "developer_name": "My Team",
     "tagline": "One sentence pitch",
     "submitter_contact": "@telegram or you@example.com",
     "description": "Plain-text short summary for listings",
@@ -49,7 +48,9 @@ curl -X POST https://api.nimiqminiapps.com/api/apps/submit \
   }'
 ```
 
-**Required:** `slug`, `name`, `domain`, `category`, `developer_slug`, `developer_name`, `tagline`, `submitter_contact`
+Agents submitting on a developer's behalf cannot complete wallet login themselves — direct the developer to submit via `/submit` in the browser instead, or ask an admin to create the listing via the `admin_create_app` MCP tool (unaffected by this change — it's admin-token-authenticated, not wallet-authenticated).
+
+**Required:** `slug`, `name`, `domain`, `category`, `tagline`, `submitter_contact`
 
 **Rate limit:** 5 requests/hour per IP → HTTP 429. On 429, stop and tell the user to wait.
 

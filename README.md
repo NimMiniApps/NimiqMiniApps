@@ -29,7 +29,9 @@ LAN, and API examples.
 
 - **Browse** — search, filter by category, and view app details. Every app gets an
   `Open in Nimiq Pay` link of the form `https://nimpay.app/miniapps/open/<domain>`.
-- **Submit** — developers submit apps at `/submit` (rate-limited, no account needed).
+- **Submit** — developers log in with their Nimiq wallet and submit apps at `/submit`
+  (rate-limited). Once approved, the submitting wallet can request edits to its own
+  apps via `/apps/{slug}/update` or manage them from `/my-apps`.
   Submissions are hidden until reviewed.
 - **Moderate** — connect an allowlisted admin wallet (see `ADMIN_WALLET_ADDRESSES`) or use a bearer token at `/admin`.
 

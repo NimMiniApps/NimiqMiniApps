@@ -5,7 +5,7 @@ info:
   description: |
     REST API for the [Nimiq Mini Apps](https://nimiqminiapps.com) community directory.
 
-    **Submitting an app** — `POST /api/apps/submit` (no auth). Rate limit: **5 requests per hour per IP**.
+    **Submitting an app** — `POST /api/apps/submit` (wallet login required). Rate limit: **5 requests per hour per IP**.
     Required field `submitter_contact` (Telegram, email, etc.) is stored privately and omitted from public responses.
 
     **Open in Nimiq Pay** — listed apps expose `open_url` as `https://nimpay.app/miniapps/open/{domain}` (domain without `https://`).
@@ -29,7 +29,7 @@ tags:
   - name: Catalog
     description: Public browse and discovery
   - name: Submit
-    description: Developer submissions (no account required)
+    description: Developer submissions (wallet login required for submit and update requests)
   - name: Admin
     description: Moderation and catalog management (Bearer token)
 
@@ -116,9 +116,14 @@ paths:
       tags: [Submit]
       summary: Submit a new app for review
       description: |
-        Creates an app with `status=submitted` and `featured=false`. No authentication required.
+        Creates an app with `status=submitted` and `featured=false`. Requires a wallet
+        session (see `POST /api/auth/verify`); the caller must have a `display_name` set
+        on their profile first. `developer_slug`/`developer_name` are derived from the
+        caller's wallet identity, not taken from the request body.
         Rate limited to 5 submissions per hour per client IP (HTTP 429).
       operationId: submitApp
+      security:
+        - walletCookie: []
       requestBody:
         required: true
         content:
@@ -130,8 +135,6 @@ paths:
               name: My Mini App
               domain: myapp.example.com
               category: Games
-              developer_slug: my-team
-              developer_name: My Team
               tagline: One sentence pitch
               submitter_contact: '@telegram or you@example.com'
               description: Short plain-text summary for listings
@@ -148,6 +151,8 @@ paths:
                 $ref: '#/components/schemas/AppPublic'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '409':
           description: Slug already exists
           content:
@@ -215,9 +220,13 @@ paths:
       tags: [Submit]
       summary: Request a listing update (reviewed by admins)
       description: |
-        Proposes changes to an existing public listing. Rate limited (same 5/hour per IP as submit).
-        Only one pending revision per app at a time.
+        Proposes changes to an existing public listing. Requires a wallet session matching
+        the app's `developer_wallet_address`. `developer_name`/`developer_slug` in the
+        request body are ignored — identity changes are admin-only. Rate limited (same
+        5/hour per IP as submit). Only one pending revision per app at a time.
       operationId: requestAppUpdate
+      security:
+        - walletCookie: []
       parameters:
         - $ref: '#/components/parameters/slug'
       requestBody:
@@ -235,6 +244,14 @@ paths:
                 $ref: '#/components/schemas/UpdateRequestCreated'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The wallet session does not own this app
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
@@ -245,6 +262,30 @@ paths:
                 $ref: '#/components/schemas/Error'
         '429':
           $ref: '#/components/responses/TooManyRequests'
+
+  /api/my/apps:
+    get:
+      tags: [Submit]
+      summary: List apps owned by the logged-in wallet
+      operationId: myApps
+      security:
+        - walletCookie: []
+      responses:
+        '200':
+          description: Apps owned by the caller, each with has_pending_revision
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/AppAdmin'
+                    - type: object
+                      properties:
+                        has_pending_revision:
+                          type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/categories:
     get:
@@ -359,6 +400,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: Search users by display name or wallet address (for the developer picker)
+      operationId: adminSearchUsers
+      security:
+        - adminBearer: []
+      parameters:
+        - name: q
+          in: query
+          description: Prefix match on display_name or wallet_address; empty returns []
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    wallet_address:
+                      type: string
+                    display_name:
+                      type: string
+                      nullable: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/admin/apps/{slug}:
     put:
@@ -619,6 +691,11 @@ components:
       type: http
       scheme: bearer
       description: "Set ADMIN_TOKEN on the server; send as Authorization Bearer token"
+    walletCookie:
+      type: apiKey
+      in: cookie
+      name: wallet_session
+      description: "Signed wallet-session cookie set by POST /api/auth/verify"
 
   parameters:
     slug:
@@ -859,19 +936,75 @@ components:
           description: Private contact; required for public submit
 
     AppSubmitRequest:
-      allOf:
-        - $ref: '#/components/schemas/AppInput'
-        - type: object
-          required: [submitter_contact]
+      type: object
+      required:
+        - slug
+        - name
+        - domain
+        - category
+        - tagline
+        - submitter_contact
+      properties:
+        slug:
+          type: string
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+        name:
+          type: string
+        domain:
+          type: string
+          description: Hostname only — must not include `https://`
+        category:
+          $ref: '#/components/schemas/CategoryName'
+        tagline:
+          type: string
+        description:
+          type: string
+          description: Plain-text short summary; defaults to tagline if omitted
+        long_description:
+          type: string
+          description: Markdown for the app detail page
+        tags:
+          type: array
+          items:
+            type: string
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        release_stage:
+          $ref: '#/components/schemas/ReleaseStage'
+        website_url:
+          type: string
+          format: uri
+          nullable: true
+        github_url:
+          type: string
+          format: uri
+          nullable: true
+        icon_url:
+          type: string
+          format: uri
+          nullable: true
+        banner_url:
+          type: string
+          format: uri
+          nullable: true
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaItem'
+        socials:
+          type: array
+          items:
+            $ref: '#/components/schemas/SocialLink'
+        submitter_contact:
+          type: string
+          maxLength: 200
+          description: Private contact; required for public submit
 
     AppUpdateRequest:
       allOf:
         - $ref: '#/components/schemas/AppInput'
-        - type: object
-          properties:
-            author_note:
-              type: string
-              description: Optional note for reviewers
 
     AppPublic:
       type: object
@@ -891,6 +1024,9 @@ components:
           type: string
         developer_name:
           type: string
+        developer_wallet_address:
+          type: string
+          nullable: true
         tagline:
           type: string
         description:
@@ -961,6 +1097,9 @@ components:
           properties:
             submitter_contact:
               type: string
+            developer_wallet_address:
+              type: string
+              nullable: true
 
     SubmissionStatus:
       type: object

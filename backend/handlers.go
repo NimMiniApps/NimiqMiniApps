@@ -25,41 +25,42 @@ type SocialLink struct {
 }
 
 type App struct {
-	ID              string      `json:"id"`
-	Slug            string      `json:"slug"`
-	Name            string      `json:"name"`
-	Domain          string      `json:"domain"`
-	Category        string      `json:"category"`
-	DeveloperSlug   string      `json:"developer_slug"`
-	DeveloperName   string      `json:"developer_name"`
-	Tagline         string      `json:"tagline"`
-	Description     string      `json:"description"`
-	LongDescription string      `json:"long_description"`
-	Tags            []string    `json:"tags"`
-	Assets          []string    `json:"assets"`
-	Status          string      `json:"status"`
-	ReleaseStage    string      `json:"release_stage"`
-	Featured        bool        `json:"featured"`
-	FeaturedOrder   int         `json:"featured_order"`
-	WebsiteURL      *string     `json:"website_url"`
-	GithubURL       *string     `json:"github_url"`
-	IconURL            *string     `json:"icon_url"`
-	DiscoveredIconURL  *string     `json:"discovered_icon_url"`
-	BannerURL          *string     `json:"banner_url"`
-	Media           []MediaItem  `json:"media"`
-	Socials         []SocialLink `json:"socials"`
-	DomainReachable *bool        `json:"domain_reachable"`
-	DomainCheckedAt *time.Time   `json:"domain_checked_at"`
-	SubmitterContact string      `json:"submitter_contact,omitempty"`
-	CreatedAt       time.Time    `json:"created_at"`
-	UpdatedAt       time.Time   `json:"updated_at"`
-	OpenURL         string      `json:"open_url"`
+	ID                     string       `json:"id"`
+	Slug                   string       `json:"slug"`
+	Name                   string       `json:"name"`
+	Domain                 string       `json:"domain"`
+	Category               string       `json:"category"`
+	DeveloperSlug          string       `json:"developer_slug"`
+	DeveloperName          string       `json:"developer_name"`
+	DeveloperWalletAddress *string      `json:"developer_wallet_address"`
+	Tagline                string       `json:"tagline"`
+	Description            string       `json:"description"`
+	LongDescription        string       `json:"long_description"`
+	Tags                   []string     `json:"tags"`
+	Assets                 []string     `json:"assets"`
+	Status                 string       `json:"status"`
+	ReleaseStage           string       `json:"release_stage"`
+	Featured               bool         `json:"featured"`
+	FeaturedOrder          int          `json:"featured_order"`
+	WebsiteURL             *string      `json:"website_url"`
+	GithubURL              *string      `json:"github_url"`
+	IconURL                *string      `json:"icon_url"`
+	DiscoveredIconURL      *string      `json:"discovered_icon_url"`
+	BannerURL              *string      `json:"banner_url"`
+	Media                  []MediaItem  `json:"media"`
+	Socials                []SocialLink `json:"socials"`
+	DomainReachable        *bool        `json:"domain_reachable"`
+	DomainCheckedAt        *time.Time   `json:"domain_checked_at"`
+	SubmitterContact       string       `json:"submitter_contact,omitempty"`
+	CreatedAt              time.Time    `json:"created_at"`
+	UpdatedAt              time.Time    `json:"updated_at"`
+	OpenURL                string       `json:"open_url"`
 }
 
 const appColumns = `id, slug, name, domain, category, developer_slug, developer_name, tagline,
 	description, long_description, tags, assets, status, release_stage, featured, featured_order,
 	website_url, github_url, icon_url, discovered_icon_url, banner_url, media, socials, domain_reachable, domain_checked_at,
-	submitter_contact, created_at, updated_at`
+	submitter_contact, created_at, updated_at, developer_wallet_address`
 
 func stripPrivateAppFields(a *App) {
 	a.SubmitterContact = ""
@@ -71,7 +72,8 @@ func scanApp(row pgx.Row) (App, error) {
 	err := row.Scan(&a.ID, &a.Slug, &a.Name, &a.Domain, &a.Category, &a.DeveloperSlug,
 		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.Status,
 		&a.ReleaseStage, &a.Featured, &a.FeaturedOrder, &a.WebsiteURL, &a.GithubURL, &a.IconURL, &a.DiscoveredIconURL, &a.BannerURL,
-		&mediaJSON, &socialsJSON, &a.DomainReachable, &a.DomainCheckedAt, &a.SubmitterContact, &a.CreatedAt, &a.UpdatedAt)
+		&mediaJSON, &socialsJSON, &a.DomainReachable, &a.DomainCheckedAt, &a.SubmitterContact, &a.CreatedAt, &a.UpdatedAt,
+		&a.DeveloperWalletAddress)
 	if err != nil {
 		return a, err
 	}
@@ -465,12 +467,12 @@ func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force f
 	a, err = scanApp(s.pool.QueryRow(r.Context(), `
 		INSERT INTO apps (slug, name, domain, category, developer_slug, developer_name, tagline,
 			description, long_description, tags, assets, status, release_stage, featured, featured_order,
-			website_url, github_url, icon_url, banner_url, media, socials, submitter_contact)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
+			website_url, github_url, icon_url, banner_url, media, socials, submitter_contact, developer_wallet_address)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
 		RETURNING `+appColumns,
 		a.Slug, a.Name, a.Domain, a.Category, a.DeveloperSlug, a.DeveloperName, a.Tagline,
 		a.Description, a.LongDescription, a.Tags, a.Assets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
-		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact))
+		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact, a.DeveloperWalletAddress))
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		writeError(w, http.StatusConflict, "slug already exists")
@@ -539,12 +541,12 @@ func (s *server) updateApp(w http.ResponseWriter, r *http.Request) {
 		UPDATE apps SET slug=$1, name=$2, domain=$3, category=$4, developer_slug=$5,
 			developer_name=$6, tagline=$7, description=$8, long_description=$9, tags=$10, assets=$11,
 			status=$12, release_stage=$13, featured=$14, featured_order=$15, website_url=$16, github_url=$17,
-			icon_url=$18, banner_url=$19, media=$20, socials=$21, submitter_contact=$22, updated_at=now()
-		WHERE id=$23
+			icon_url=$18, banner_url=$19, media=$20, socials=$21, submitter_contact=$22, developer_wallet_address=$23, updated_at=now()
+		WHERE id=$24
 		RETURNING `+appColumns,
 		a.Slug, a.Name, a.Domain, a.Category, a.DeveloperSlug, a.DeveloperName, a.Tagline,
 		a.Description, a.LongDescription, a.Tags, a.Assets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
-		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact, a.ID))
+		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact, a.DeveloperWalletAddress, a.ID))
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 		writeError(w, http.StatusConflict, "slug already exists")

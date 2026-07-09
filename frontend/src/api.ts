@@ -19,6 +19,7 @@ export interface App {
   category: string
   developer_slug: string
   developer_name: string
+  developer_wallet_address: string | null
   tagline: string
   description: string
   long_description: string
@@ -128,6 +129,7 @@ function normalizeApp(raw: RawApp): App {
   }
   return {
     ...raw,
+    developer_wallet_address: raw.developer_wallet_address ?? null,
     long_description: raw.long_description ?? '',
     release_stage: raw.release_stage ?? 'released',
     featured_order: raw.featured_order ?? 0,
@@ -185,6 +187,7 @@ export const submitApp = (app: Partial<App>) =>
   request<RawApp>('/api/apps/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(app),
   }).then(normalizeApp)
 
@@ -194,9 +197,14 @@ export const requestAppUpdate = (slug: string, app: Partial<App> & { author_note
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(app),
     },
   )
+
+export const getMyApps = () =>
+  request<(RawApp & { has_pending_revision: boolean })[]>('/api/my/apps', { credentials: 'include' })
+    .then((items) => items.map((item) => ({ ...normalizeApp(item), has_pending_revision: item.has_pending_revision })))
 
 // --- admin ---
 
@@ -219,6 +227,14 @@ function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const adminListApps = () =>
   adminRequest<RawApp[]>('/api/admin/apps').then(normalizeApps)
+
+export interface AdminUserResult {
+  wallet_address: string
+  display_name: string | null
+}
+
+export const adminSearchUsers = (q: string) =>
+  adminRequest<AdminUserResult[]>(`/api/admin/users?q=${encodeURIComponent(q)}`)
 
 export const adminStats = () =>
   adminRequest<{ pending: number; unreachable: number; pending_updates: number }>('/api/admin/stats')

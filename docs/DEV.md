@@ -110,9 +110,11 @@ API=http://localhost:8080
 # OpenAPI spec
 curl $API/openapi.json
 
-# public submission (no auth; forced to status=submitted, featured=false; 5/hour per IP)
+# public submission (wallet login required; forced to status=submitted, featured=false; 5/hour per IP)
+# developer_slug/developer_name are derived from the caller's profile display_name, not sent here
 curl -X POST $API/api/apps/submit -H "Content-Type: application/json" \
-  -d '{"slug":"my-app","name":"My App","domain":"myapp.example.com","category":"Utilities","developer_slug":"me","developer_name":"Me","tagline":"Does a thing.","submitter_contact":"you@example.com"}'
+  -H "Cookie: wallet_session=<value from POST /api/auth/verify>" \
+  -d '{"slug":"my-app","name":"My App","domain":"myapp.example.com","category":"Utilities","tagline":"Does a thing.","submitter_contact":"you@example.com"}'
 
 # public reads
 curl "$API/api/apps?q=game&category=Games&sort=newest"
@@ -168,8 +170,11 @@ curl $API/api/admin/apps -H "Authorization: Bearer $TOKEN"
   (no scheme after `/open/`; the API rejects domains containing `://`).
 - Public listings only show `approved`/`verified`/`experimental` apps. `submitted` and
   `rejected` ones are visible via an explicit `?status=` query or the admin endpoints.
-- Developers self-submit at `/submit` on the site (or `POST /api/apps/submit`); new
-  submissions land as `submitted` and appear publicly once approved in `/admin`.
+- Developers log in with their wallet and self-submit at `/submit` on the site (or
+  `POST /api/apps/submit` with a wallet session cookie); new submissions land as
+  `submitted` and appear publicly once approved in `/admin`. Once approved, the
+  submitting wallet can request edits via `/apps/{slug}/update` (owner-only) or see
+  all its apps at `/my-apps`.
 - Backend is stateless (config via env, no local files) — Swarm-ready as-is.
 
 ### Optional backend env
@@ -208,7 +213,7 @@ Webhook payload shape (submission):
 Public status check: `GET /api/apps/{slug}/status` or browse `/status/{slug}` on the frontend.
 Status responses for live apps include `update_pending` when a change request is in the queue.
 
-Author update requests: authors open `/apps/{slug}/update` (or **Suggest an update** on the detail page), which calls `POST /api/apps/{slug}/request-update`. The live listing stays unchanged until an admin approves the revision in `/admin`. One pending request per app at a time.
+Author update requests: owners open `/apps/{slug}/update` from **My apps** (`/my-apps`), which calls `POST /api/apps/{slug}/request-update` (wallet login + ownership required). The live listing stays unchanged until an admin approves the revision in `/admin`. One pending request per app at a time.
 
 Admin revision review:
 ```bash

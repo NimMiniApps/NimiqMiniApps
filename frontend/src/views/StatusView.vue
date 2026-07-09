@@ -91,13 +91,6 @@ onMounted(() => {
         >
           View listing
         </RouterLink>
-        <RouterLink
-          v-if="status.public && !status.update_pending"
-          :to="`/apps/${status.slug}/update`"
-          class="cursor-pointer rounded-xl border border-line px-5 py-2.5 font-semibold hover:border-accent/50 hover:text-accent-ink"
-        >
-          Suggest an update
-        </RouterLink>
         <RouterLink to="/submit" class="cursor-pointer rounded-xl border border-line px-5 py-2.5 font-semibold hover:border-accent/50 hover:text-accent-ink">
           Submit another app
         </RouterLink>

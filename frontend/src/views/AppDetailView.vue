@@ -159,10 +159,6 @@ onUnmounted(resetPageMeta)
           {{ t('appDetail.openInWallet') }}
         </a>
         <ShareButton :title="app.name" />
-        <RouterLink :to="`/apps/${app.slug}/update`"
-          class="inline-flex h-10 cursor-pointer items-center rounded-xl border border-line bg-surface px-4 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
-          {{ t('appDetail.suggestUpdate') }}
-        </RouterLink>
         <LinkIconButton
           v-if="app.website_url"
           :href="app.website_url"

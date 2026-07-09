@@ -23,10 +23,9 @@ const submitting = ref(false)
 const updatePending = ref(false)
 
 const form = reactive({
-  name: '', domain: '', category: '', developer_slug: '', developer_name: '',
+  name: '', domain: '', category: '',
   tagline: '', description: '', long_description: '', release_stage: 'released', tags: '', assets: 'NIM',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
-  author_note: '',
 })
 
 const csv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
@@ -46,8 +45,6 @@ async function load(slugParam: string) {
       name: app.name,
       domain: app.domain,
       category: app.category,
-      developer_slug: app.developer_slug,
-      developer_name: app.developer_name,
       tagline: app.tagline,
       description: app.description,
       long_description: app.long_description || '',
@@ -58,7 +55,6 @@ async function load(slugParam: string) {
       banner_url: app.banner_url || '',
       website_url: app.website_url || '',
       github_url: app.github_url || '',
-      author_note: '',
     })
     socials.value = app.socials ?? []
     media.value = app.media ?? []
@@ -78,8 +74,6 @@ async function submit() {
       name: form.name,
       domain: form.domain,
       category: form.category,
-      developer_slug: form.developer_slug,
-      developer_name: form.developer_name,
       tagline: form.tagline,
       description: form.description,
       long_description: form.long_description,
@@ -92,7 +86,6 @@ async function submit() {
       banner_url: form.banner_url || null,
       website_url: form.website_url || null,
       github_url: form.github_url || null,
-      author_note: form.author_note,
     })
     submitted.value = true
     updatePending.value = true
@@ -111,7 +104,6 @@ onMounted(() => {
 const fields: [keyof typeof form, string, boolean][] = [
   ['name', 'App name', true],
   ['domain', 'Domain (no https://)', true],
-  ['developer_name', 'Developer name', true],
   ['tagline', 'Tagline', true],
   ['tags', 'Tags (comma-separated)', false],
   ['assets', 'Assets (NIM, USDT, USDC, BTC, ETH)', false],
@@ -150,9 +142,9 @@ const fields: [keyof typeof form, string, boolean][] = [
     <template v-else>
       <div>
         <RouterLink :to="`/apps/${slug}`" class="text-sm font-semibold text-accent-ink hover:underline">← Back to {{ form.name }}</RouterLink>
-        <h1 class="mt-2 text-2xl font-extrabold">Suggest an update</h1>
+        <h1 class="mt-2 text-2xl font-extrabold">Request an update</h1>
         <p class="mt-1 text-muted">
-          Propose changes to this listing. Moderators will review your request before anything goes live.
+          Propose changes to your listing. Moderators will review your request before anything goes live.
           Slug: <code class="rounded bg-surface-2 px-1.5 py-0.5 text-sm">{{ slug }}</code>
         </p>
       </div>
@@ -200,11 +192,6 @@ const fields: [keyof typeof form, string, boolean][] = [
           <span class="mb-2 block font-semibold text-muted">Social links</span>
           <SocialLinksEditor ref="socialEditor" v-model="socials" />
         </div>
-        <label class="block text-sm">
-          <span class="mb-1 block font-semibold text-muted">Note for moderators (optional)</span>
-          <textarea v-model="form.author_note" rows="2" placeholder="What changed and why?"
-            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"></textarea>
-        </label>
         <button type="submit" :disabled="submitting || updatePending"
           class="w-full cursor-pointer rounded-xl bg-nq-blue px-5 py-3 font-bold text-white hover:bg-nq-blue-dark disabled:opacity-60 sm:w-auto">
           {{ submitting ? 'Submitting…' : 'Submit update for review' }}

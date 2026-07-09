@@ -9,7 +9,7 @@ const router = createRouter({
   routes: [
     { path: '/', component: () => import('./views/HomeView.vue'), meta: { title: 'Home' } },
     { path: '/apps', component: () => import('./views/AppsView.vue'), meta: { title: 'All Apps' } },
-    { path: '/apps/:slug/update', component: () => import('./views/RequestUpdateView.vue'), meta: { title: 'Suggest an Update' } },
+    { path: '/apps/:slug/update', component: () => import('./views/RequestUpdateView.vue'), meta: { title: 'Request an Update' } },
     { path: '/apps/:slug', component: () => import('./views/AppDetailView.vue') },
     { path: '/developers/:slug', redirect: (to) => ({ path: '/apps', query: { developer: to.params.slug as string } }) },
     { path: '/developers', redirect: '/apps' },
@@ -19,6 +19,7 @@ const router = createRouter({
     { path: '/status/:slug', component: () => import('./views/StatusView.vue'), meta: { title: 'Submission Status' } },
     { path: '/admin', component: () => import('./views/AdminView.vue'), meta: { title: 'Admin' } },
     { path: '/profile', component: () => import('./views/ProfileView.vue'), meta: { title: 'Profile' } },
+    { path: '/my-apps', component: () => import('./views/MyAppsView.vue'), meta: { title: 'My Apps' } },
   ],
   scrollBehavior(to) {
     if (to.hash) return { el: to.hash, behavior: 'smooth' }
