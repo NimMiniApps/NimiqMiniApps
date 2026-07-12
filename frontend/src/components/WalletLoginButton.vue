@@ -133,6 +133,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
       v-else
       class="rounded-[500px] border border-line bg-surface-2 px-3 py-1.5 text-xs font-semibold text-accent-ink transition-colors duration-200 hover:border-accent/50 disabled:opacity-50 sm:px-4 sm:text-sm"
       :disabled="loggingIn"
+      title="Connecting opens a popup window — please allow it if your browser asks"
       @click="login"
     >
       {{ loggingIn ? 'Connecting…' : 'Connect Wallet' }}

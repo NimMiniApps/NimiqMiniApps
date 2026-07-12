@@ -47,7 +47,10 @@ export function useWalletAuth() {
       })
       await applySession()
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to connect wallet'
+      const message = err instanceof Error ? err.message : 'Failed to connect wallet'
+      error.value = message === 'Failed to open popup'
+        ? 'Your browser blocked the wallet popup. Allow popups for this site and try again.'
+        : message
       throw err
     } finally {
       loggingIn.value = false
