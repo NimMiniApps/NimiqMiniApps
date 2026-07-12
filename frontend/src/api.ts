@@ -79,6 +79,7 @@ export interface SubmissionStatus {
   public: boolean
   updated_at: string
   update_pending?: boolean
+  rejection_note?: string
 }
 
 export interface AppRevision {
@@ -317,8 +318,11 @@ export const adminUpdateApp = (slug: string, app: Partial<App>) =>
 export const adminDeleteApp = (slug: string) =>
   adminRequest<void>(`/api/admin/apps/${slug}`, { method: 'DELETE' })
 
-export const adminSetStatus = (slug: string, action: 'verify' | 'approve' | 'reject') =>
-  adminRequest<RawApp>(`/api/admin/apps/${slug}/${action}`, { method: 'POST' }).then(normalizeApp)
+export const adminSetStatus = (slug: string, action: 'verify' | 'approve' | 'reject', note?: string) =>
+  adminRequest<RawApp>(`/api/admin/apps/${slug}/${action}`, {
+    method: 'POST',
+    ...(action === 'reject' ? { body: JSON.stringify({ note: note ?? '' }) } : {}),
+  }).then(normalizeApp)
 
 export function hasAdminToken(): boolean {
   return !!localStorage.getItem('admin_token')

@@ -21,9 +21,14 @@ Improvement ideas for the community directory, grouped by priority.
 - [x] Add USDC to allowed assets
 - [x] Status badge tooltips (verified / approved / experimental)
 - [x] Fix NimLens placeholder domain in seed migration
+- [x] Share button on app detail (Web Share API, falls back to copy URL)
+- [x] Nimiq UI Kit reference on Build page
+- [x] i18n (`window.nimiqPay.language` → browser language → `en` fallback)
+- [x] App detail breadcrumb (`AppBreadcrumb.vue`)
+- [x] Empty / error states polish (`EmptyState` on Favorites, My Apps, Status, plus i18n copy)
 
 ### High impact
-- [x] Developers directory (`GET /api/developers`, `/developers` page)
+- [x] Developers directory — later folded into `/apps?developer=` filter; `/developers` now redirects there, footer links to it too
 - [x] Related apps (`GET /api/apps/{slug}/related`, detail section)
 - [x] Build page (`/build`) with human-readable nimiq.dev doc links
 - [x] Per-page Open Graph / meta tags (app detail, developers, static routes)
@@ -42,26 +47,22 @@ Improvement ideas for the community directory, grouped by priority.
 | 5 | **Admin pending badge in nav** | Done |
 | 6 | **Submission notifications** (`SUBMIT_WEBHOOK_URL` env) | Done |
 | 7 | **Default OG image** (`/og-default.svg`) | Done |
+| 8 | **Distributed rate limiting** (`submit_rate_limits` Postgres table) | Done |
+| 9 | **Review notes / rejection reason** (admin note → `/status/{slug}`) | Done |
 
 ---
 
 ## Next — ecosystem & UX
 
-| # | Item | Why |
-|---|------|-----|
-| 8 | **i18n** | Read `window.nimiqPay.language` when embedded in Nimiq Pay; match wallet language for UI strings |
-| 9 | **Share button on app detail** | Web Share API on mobile, copy URL on desktop |
-| 10 | **Developers in mobile nav** | Footer link exists; optional 5th tab or “More” menu on small screens |
-| 11 | **Empty / error states polish** | Richer copy on “No apps found”, failed load, and 404 app slug |
-| 12 | **App detail breadcrumb** | e.g. Apps → Games → NimDoom |
+_All items in this section are done._
 
 ---
 
 ## Infrastructure & scale
 
-| # | Item | Why |
-|---|------|-----|
-| 13 | **Distributed rate limiting** | In-memory submit limit breaks with multiple backend replicas; move to Postgres or Redis |
+| # | Item | Status |
+|---|------|--------|
+| 13 | **Distributed rate limiting** | Done — `submit_rate_limits` table in Postgres |
 | 14 | **Pagination on `GET /api/apps`** | Done |
 | 15 | **Automated domain health check** | Done |
 | 16 | **SSR or prerender for OG crawlers** | Done |
@@ -75,7 +76,7 @@ Improvement ideas for the community directory, grouped by priority.
 | 17 | **Directory as a mini app** | Load this catalog inside Nimiq Pay natively (meta: dogfooding) |
 | 18 | **Privacy-friendly open analytics** | Count “Open in Nimiq Pay” clicks to surface popular apps |
 | 19 | **Developer accounts** | Let builders edit / resubmit their listing without full admin access (partial: public update requests + admin review) |
-| 20 | **Review notes / rejection reason** | Admin can leave a message; optional email to submitter on reject |
+| 20 | **Review notes / rejection reason** | Done — admin optional note on reject; shown on `/status/{slug}`; `app.rejected` webhook |
 | 21 | **RSS / Atom feed** | `GET /api/feed` of newly approved apps for community bots and newsletters |
 | 22 | **Chain metadata** | First-class `chains` field (Polygon, Base, …) alongside `assets` for dual-chain discovery |
 
@@ -93,11 +94,9 @@ Improvement ideas for the community directory, grouped by priority.
 
 ## Suggested order for the next sprint
 
-1. Share button on app detail (Web Share API / copy URL)
-2. i18n via `window.nimiqPay.language`
-3. Empty / error states polish
-4. Pagination on `GET /api/apps`
-5. Distributed rate limiting for submit endpoint
+1. RSS / Atom feed (`GET /api/feed`)
+2. Privacy-friendly open analytics (track “Open in Nimiq Pay” popularity)
+3. Shared category theme tokens (code quality #23)
 
 ---
 

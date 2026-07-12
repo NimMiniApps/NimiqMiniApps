@@ -4,6 +4,7 @@ import { useWalletAuth } from '../composables/useWalletAuth'
 import { useI18n } from '../composables/useI18n'
 import { getMyApps, getAppStats, addAppOwner, removeAppOwner, type App, type AppStats } from '../api'
 import AppCard from '../components/AppCard.vue'
+import EmptyState from '../components/EmptyState.vue'
 import StatsSparkline from '../components/StatsSparkline.vue'
 
 const { walletAddress, checking } = useWalletAuth()
@@ -59,7 +60,7 @@ async function load() {
     }
     void loadStats(apps.value.map((a) => a.slug))
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Failed to load your apps'
+    error.value = err instanceof Error ? err.message : t('myApps.errorBody')
   } finally {
     loading.value = false
   }
@@ -110,14 +111,51 @@ watch([checking, walletAddress], () => {
       <p class="mt-1 text-sm text-muted">Apps linked to your wallet — edit listings or check review status.</p>
     </div>
 
-    <p v-if="checking || loading" class="text-sm text-muted">Loading…</p>
-    <p v-else-if="!walletAddress" class="text-sm text-muted">Connect your wallet to see the apps you own.</p>
-    <p v-else-if="error" class="rounded-xl bg-red-500/15 p-4 text-red-600 dark:text-red-300">{{ error }}</p>
-    <p v-else-if="apps.length === 0" class="text-sm text-muted">
-      No apps linked to this wallet yet. Ask a catalog admin to assign your listings in
-      <RouterLink to="/admin" class="font-semibold text-accent-ink hover:underline">Admin</RouterLink>,
-      or <RouterLink to="/submit" class="font-semibold text-accent-ink hover:underline">submit a new one</RouterLink>.
-    </p>
+    <p v-if="checking || loading" class="text-sm text-muted">{{ t('common.loading') }}</p>
+
+    <EmptyState
+      v-else-if="!walletAddress"
+      title="My apps"
+      :description="t('myApps.connectWallet')"
+    />
+
+    <EmptyState
+      v-else-if="error"
+      :title="t('myApps.errorTitle')"
+      :description="t('myApps.errorBody')"
+      variant="error"
+    >
+      <template #actions>
+        <button
+          type="button"
+          class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+          @click="load"
+        >
+          {{ t('common.retry') }}
+        </button>
+      </template>
+    </EmptyState>
+
+    <EmptyState
+      v-else-if="apps.length === 0"
+      :title="t('myApps.emptyTitle')"
+      :description="t('myApps.emptyBody')"
+    >
+      <template #actions>
+        <RouterLink
+          to="/submit"
+          class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 text-sm font-bold text-white transition duration-200"
+        >
+          {{ t('nav.submit') }}
+        </RouterLink>
+        <RouterLink
+          to="/admin"
+          class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+        >
+          {{ t('nav.admin') }}
+        </RouterLink>
+      </template>
+    </EmptyState>
 
     <div v-else class="grid items-stretch gap-4 sm:grid-cols-2">
       <div v-for="app in apps" :key="app.id" class="flex min-h-0 flex-col gap-2">

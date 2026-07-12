@@ -25,6 +25,8 @@ const error = ref('')
 const notice = ref('')
 const reordering = ref(false)
 const checkingDomains = ref(false)
+const rejectTarget = ref<App | null>(null)
+const rejectNote = ref('')
 type AppSortKey = 'name' | 'total_opens' | 'total_views'
 const sortKey = ref<AppSortKey>('name')
 const sortAsc = ref(true)
@@ -235,6 +237,29 @@ async function setStatus(app: App, action: 'verify' | 'approve' | 'reject') {
   }
 }
 
+function startReject(app: App) {
+  rejectTarget.value = app
+  rejectNote.value = ''
+}
+
+function cancelReject() {
+  rejectTarget.value = null
+  rejectNote.value = ''
+}
+
+async function confirmReject() {
+  if (!rejectTarget.value) return
+  const app = rejectTarget.value
+  try {
+    await adminSetStatus(app.slug, 'reject', rejectNote.value.trim())
+    notice.value = `Rejected ${app.name}.`
+    cancelReject()
+    load()
+  } catch (e) {
+    error.value = (e as Error).message
+  }
+}
+
 const featuredApps = computed(() =>
   apps.value
     .filter((app) => app.featured)
@@ -361,6 +386,28 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
 
     <p v-if="error" class="rounded-xl bg-red-500/20 p-4 text-red-600 dark:text-red-600 dark:text-red-300">{{ error }}</p>
     <p v-if="notice" class="rounded-xl bg-emerald-500/15 p-4 text-emerald-700 dark:text-emerald-700 dark:text-emerald-300">{{ notice }}</p>
+
+    <div v-if="rejectTarget" class="space-y-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-5">
+      <div>
+        <h2 class="font-bold">Reject {{ rejectTarget.name }}</h2>
+        <p class="text-sm text-muted">Optional note shown to the submitter on the status page.</p>
+      </div>
+      <textarea
+        v-model="rejectNote"
+        rows="3"
+        maxlength="2000"
+        placeholder="e.g. Domain does not load a mini app, or listing duplicates an existing app."
+        class="w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm placeholder:text-muted/60 focus:border-accent outline-none"
+      />
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="rounded-lg bg-red-500/20 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-300 hover:bg-red-500/30" @click="confirmReject">
+          Confirm reject
+        </button>
+        <button type="button" class="rounded-xl border border-line px-4 py-2 text-sm font-semibold hover:bg-surface-2" @click="cancelReject">
+          Cancel
+        </button>
+      </div>
+    </div>
 
     <button v-if="!showForm" @click="startCreate"
       class="rounded-xl border border-accent/50 px-4 py-2.5 font-bold text-accent-ink hover:bg-accent/10">
@@ -531,7 +578,7 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
           </div>
           <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
             <button @click="setStatus(app, 'approve')" class="rounded-lg bg-sky-500/20 px-2.5 py-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-500/30">Approve</button>
-            <button @click="setStatus(app, 'reject')" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Reject</button>
+            <button @click="startReject(app)" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Reject</button>
             <button @click="startEdit(app)" class="rounded-lg bg-surface-2 px-2.5 py-1.5 hover:bg-line">Edit</button>
           </div>
         </div>
@@ -666,7 +713,7 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
         <div class="flex flex-wrap gap-1.5 text-xs font-semibold">
           <button @click="setStatus(app, 'approve')" class="rounded-lg bg-sky-500/20 px-2.5 py-1.5 text-sky-700 dark:text-sky-300 hover:bg-sky-500/30">Approve</button>
           <button @click="setStatus(app, 'verify')" class="rounded-lg bg-emerald-500/20 px-2.5 py-1.5 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/30">Verify</button>
-          <button @click="setStatus(app, 'reject')" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Reject</button>
+          <button @click="startReject(app)" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Reject</button>
           <button @click="startEdit(app)" class="rounded-lg bg-surface-2 px-2.5 py-1.5 hover:bg-line">Edit</button>
           <button @click="remove(app)" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Delete</button>
         </div>

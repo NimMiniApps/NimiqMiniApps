@@ -100,7 +100,10 @@ type updateRequestBody struct {
 
 func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, address string) {
 	slug := r.PathValue("slug")
-	if !allowSubmit(clientIP(r), time.Now()) {
+	if ok, err := s.allowSubmit(r.Context(), clientIP(r), time.Now()); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	} else if !ok {
 		writeError(w, http.StatusTooManyRequests, "too many requests, try again later")
 		return
 	}

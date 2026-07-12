@@ -1233,6 +1233,23 @@
             "$ref": "#/components/parameters/slug"
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "maxLength": 2000,
+                    "description": "Optional moderator note shown to the submitter on the status page"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "App rejected",
@@ -2174,6 +2191,10 @@
           },
           "update_pending": {
             "type": "boolean"
+          },
+          "rejection_note": {
+            "type": "string",
+            "description": "Present when status is rejected and a moderator left a note"
           }
         }
       },

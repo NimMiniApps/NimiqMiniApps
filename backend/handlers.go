@@ -680,19 +680,3 @@ func (s *server) deleteApp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (s *server) setStatus(status string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		a, err := scanApp(s.pool.QueryRow(r.Context(),
-			`UPDATE apps SET status=$1, updated_at=now() WHERE slug=$2 RETURNING `+appColumns,
-			status, r.PathValue("slug")))
-		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "app not found")
-			return
-		}
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		writeJSON(w, http.StatusOK, a)
-	}
-}

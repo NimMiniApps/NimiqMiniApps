@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import { CATALOG_ISSUES_URL, CATALOG_REPO_URL, COMPETITION_SKOOL_URL, COMPETITION_URL } from '../utils/catalogLinks'
 
+const designResources = [
+  {
+    title: 'Nimiq UI Kit',
+    description:
+      'Design tokens, CSS components, live @nimiq/vue-components catalog, identicons, utilities, and icons — the authoritative reference for matching Nimiq Pay.',
+    href: 'https://nimiqtoolbox.github.io/nimiq-ui-kit/',
+    github: 'https://github.com/NimiqToolbox/nimiq-ui-kit',
+  },
+]
+
 const docs = [
   {
     title: 'Mini Apps Overview',
@@ -97,6 +107,42 @@ const examples = [
     </section>
 
     <section class="space-y-3">
+      <h2 class="text-xl font-extrabold">Design system</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        <div
+          v-for="resource in designResources"
+          :key="resource.href"
+          class="rounded-2xl border border-line bg-surface p-4 shadow-sm sm:col-span-2"
+        >
+          <a
+            :href="resource.href"
+            target="_blank"
+            rel="noopener"
+            class="block transition duration-200 hover:-translate-y-0.5"
+          >
+            <p class="font-bold">{{ resource.title }}</p>
+            <p class="mt-1 text-sm text-muted">{{ resource.description }}</p>
+          </a>
+          <p class="mt-3 text-xs">
+            <a
+              :href="resource.href"
+              target="_blank"
+              rel="noopener"
+              class="font-semibold text-accent-ink hover:underline"
+            >Browse the kit</a>
+            <span class="mx-1 text-muted" aria-hidden="true">·</span>
+            <a
+              :href="resource.github"
+              target="_blank"
+              rel="noopener"
+              class="font-semibold text-accent-ink hover:underline"
+            >GitHub</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="space-y-3">
       <h2 class="text-xl font-extrabold">Documentation</h2>
       <div class="grid gap-3 sm:grid-cols-2">
         <a
@@ -143,6 +189,7 @@ const examples = [
     <section class="rounded-2xl border border-line bg-surface-2 p-5 text-sm text-muted">
       <p class="font-semibold text-ink">Quick tips</p>
       <ul class="mt-2 list-inside list-disc space-y-1">
+        <li>Use the <a href="https://nimiqtoolbox.github.io/nimiq-ui-kit/" target="_blank" rel="noopener" class="font-semibold text-accent-ink hover:underline">Nimiq UI Kit</a> for tokens, components, and icons that match Nimiq Pay.</li>
         <li>Design mobile-first — mini apps run in a phone WebView.</li>
         <li>Never access private keys; all wallet actions go through Nimiq Pay dialogs.</li>
         <li>USDT and USDC use 6 decimals, not 18.</li>

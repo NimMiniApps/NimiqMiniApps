@@ -119,6 +119,42 @@ export type MessageTree = {
       views: string
       last7Days: string
     }
+    errorTitle: string
+    errorBody: string
+    emptyTitle: string
+    emptyBody: string
+    connectWallet: string
+  }
+  favorites: {
+    title: string
+    subtitle: string
+    errorTitle: string
+    errorBody: string
+    emptyTitle: string
+    emptyBody: string
+    connectWallet: string
+  }
+  status: {
+    title: string
+    subtitle: string
+    errorTitle: string
+    errorBody: string
+    notFoundTitle: string
+    notFoundBody: string
+    pendingTitle: string
+    pendingBody: string
+    liveTitle: string
+    liveBody: string
+    rejectedTitle: string
+    rejectedBody: string
+    rejectionNoteLabel: string
+    updatePendingTitle: string
+    updatePendingBody: string
+    lastUpdated: string
+    questions: string
+    githubIssue: string
+    viewListing: string
+    submitAnother: string
   }
 }
 
@@ -241,6 +277,42 @@ const en: MessageTree = {
       views: 'Views',
       last7Days: 'Last 7 days',
     },
+    errorTitle: "Couldn't load your apps",
+    errorBody: 'Something went wrong while fetching apps linked to your wallet. Check your connection and try again.',
+    emptyTitle: 'No apps linked yet',
+    emptyBody: 'Ask a catalog admin to assign your listings, or submit a new mini app for review.',
+    connectWallet: 'Connect your wallet to see the apps you own.',
+  },
+  favorites: {
+    title: 'Favorites',
+    subtitle: "Apps you've saved with the heart icon.",
+    errorTitle: "Couldn't load favorites",
+    errorBody: 'Something went wrong while fetching your saved apps. Check your connection and try again.',
+    emptyTitle: 'No favorites yet',
+    emptyBody: 'Tap the heart on any app in the catalog to save it here for quick access.',
+    connectWallet: 'Connect your wallet to see your favorites.',
+  },
+  status: {
+    title: 'Submission status',
+    subtitle: 'Check whether your app has been reviewed.',
+    errorTitle: "Couldn't load status",
+    errorBody: 'Something went wrong while checking this submission. Verify the slug and try again.',
+    notFoundTitle: 'Submission not found',
+    notFoundBody: 'No app with this slug exists. Double-check the link or submit a new listing.',
+    pendingTitle: 'Awaiting review',
+    pendingBody: 'Your submission is in the queue. Moderators will review it before it appears in the public directory.',
+    liveTitle: 'Live in the directory',
+    liveBody: 'This app is approved and visible to everyone browsing Nimiq Mini Apps.',
+    rejectedTitle: 'Not listed',
+    rejectedBody: 'This submission was not accepted. You can submit an updated version with a new slug, or open a GitHub issue if you have questions.',
+    rejectionNoteLabel: 'Moderator note',
+    updatePendingTitle: 'Update pending review',
+    updatePendingBody: 'A change request is in the queue. The public listing will update once moderators approve it.',
+    lastUpdated: 'Last updated',
+    questions: 'Questions about your submission?',
+    githubIssue: 'Open a GitHub issue',
+    viewListing: 'View listing',
+    submitAnother: 'Submit another app',
   },
 }
 

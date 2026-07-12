@@ -1,24 +1,49 @@
 package main
 
 import (
+	"context"
 	"testing"
 	"time"
 )
 
 func TestAllowSubmit(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	s := &server{pool: pool}
+	ip := "test-submit-" + time.Now().Format("150405.000000")
 	now := time.Now()
+
 	for i := 0; i < submitLimit; i++ {
-		if !allowSubmit("1.2.3.4", now) {
+		ok, err := s.allowSubmit(ctx, ip, now)
+		if err != nil {
+			t.Fatalf("submission %d: %v", i+1, err)
+		}
+		if !ok {
 			t.Fatalf("submission %d should be allowed", i+1)
 		}
 	}
-	if allowSubmit("1.2.3.4", now) {
+	ok, err := s.allowSubmit(ctx, ip, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok {
 		t.Error("submission over the limit should be rejected")
 	}
-	if !allowSubmit("5.6.7.8", now) {
+
+	otherIP := ip + "-other"
+	ok, err = s.allowSubmit(ctx, otherIP, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
 		t.Error("different IP should be unaffected")
 	}
-	if !allowSubmit("1.2.3.4", now.Add(submitWindow+time.Minute)) {
+
+	ok, err = s.allowSubmit(ctx, ip, now.Add(submitWindow+time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
 		t.Error("limit should reset after the window passes")
 	}
 }

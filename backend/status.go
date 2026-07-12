@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -43,10 +44,11 @@ func publicStatusLabel(status string) string {
 func (s *server) getSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	var name, status string
+	var rejectionNote *string
 	var updatedAt time.Time
 	err := s.pool.QueryRow(r.Context(),
-		`SELECT name, status, updated_at FROM apps WHERE slug=$1`, slug).
-		Scan(&name, &status, &updatedAt)
+		`SELECT name, status, rejection_note, updated_at FROM apps WHERE slug=$1`, slug).
+		Scan(&name, &status, &rejectionNote, &updatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "app not found")
 		return
@@ -56,7 +58,7 @@ func (s *server) getSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	updatePending, _ := s.hasPendingRevision(r.Context(), slug)
-	writeJSON(w, http.StatusOK, map[string]any{
+	resp := map[string]any{
 		"slug":            slug,
 		"name":            name,
 		"status":          publicStatusLabel(status),
@@ -64,5 +66,9 @@ func (s *server) getSubmissionStatus(w http.ResponseWriter, r *http.Request) {
 		"public":          isPublicStatus(status),
 		"updated_at":      updatedAt,
 		"update_pending":  updatePending,
-	})
+	}
+	if rejectionNote != nil && strings.TrimSpace(*rejectionNote) != "" {
+		resp["rejection_note"] = strings.TrimSpace(*rejectionNote)
+	}
+	writeJSON(w, http.StatusOK, resp)
 }

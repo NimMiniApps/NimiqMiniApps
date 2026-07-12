@@ -206,7 +206,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/admin/apps/{slug}", s.adminAuth(s.deleteApp))
 	mux.HandleFunc("POST /api/admin/apps/{slug}/verify", s.adminAuth(s.setStatus("verified")))
 	mux.HandleFunc("POST /api/admin/apps/{slug}/approve", s.adminAuth(s.setStatus("approved")))
-	mux.HandleFunc("POST /api/admin/apps/{slug}/reject", s.adminAuth(s.setStatus("rejected")))
+	mux.HandleFunc("POST /api/admin/apps/{slug}/reject", s.adminAuth(s.rejectApp))
 	mux.HandleFunc("DELETE /api/admin/apps/{slug}/reviews/{id}", s.adminAuth(s.adminDeleteReview))
 
 	srv := &http.Server{

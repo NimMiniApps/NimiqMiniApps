@@ -17,6 +17,17 @@ func notifySubmission(app App) {
 	})
 }
 
+func notifyRejected(app App, note string) {
+	payload := map[string]any{
+		"rejected_at": time.Now().UTC().Format(time.RFC3339),
+		"app":         appSummary(app),
+	}
+	if note != "" {
+		payload["note"] = note
+	}
+	notifyWebhook("app.rejected", payload)
+}
+
 func notifyUpdateRequest(current App, rev AppRevision) {
 	notifyWebhook("app.update_requested", map[string]any{
 		"requested_at": time.Now().UTC().Format(time.RFC3339),

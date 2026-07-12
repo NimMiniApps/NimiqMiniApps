@@ -1,20 +1,14 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
-)
-
-// ponytail: in-memory per-IP rate limit, resets on restart; move to postgres/redis if we ever run >1 replica
-var (
-	submitMu  sync.Mutex
-	submitLog = map[string][]time.Time{}
 )
 
 const (
@@ -22,21 +16,23 @@ const (
 	submitWindow = time.Hour
 )
 
-func allowSubmit(ip string, now time.Time) bool {
-	submitMu.Lock()
-	defer submitMu.Unlock()
-	recent := submitLog[ip][:0]
-	for _, t := range submitLog[ip] {
-		if now.Sub(t) < submitWindow {
-			recent = append(recent, t)
-		}
+func (s *server) allowSubmit(ctx context.Context, ip string, now time.Time) (bool, error) {
+	cutoff := now.Add(-submitWindow)
+	var count int
+	if err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM submit_rate_limits WHERE ip=$1 AND created_at > $2`, ip, cutoff).
+		Scan(&count); err != nil {
+		return false, err
 	}
-	if len(recent) >= submitLimit {
-		submitLog[ip] = recent
-		return false
+	if count >= submitLimit {
+		return false, nil
 	}
-	submitLog[ip] = append(recent, now)
-	return true
+	if _, err := s.pool.Exec(ctx, `INSERT INTO submit_rate_limits (ip, created_at) VALUES ($1, $2)`, ip, now); err != nil {
+		return false, err
+	}
+	// Best-effort cleanup; keeps the table small across replicas.
+	_, _ = s.pool.Exec(ctx, `DELETE FROM submit_rate_limits WHERE created_at < $1`, cutoff)
+	return true, nil
 }
 
 func clientIP(r *http.Request) string {
@@ -51,7 +47,12 @@ func clientIP(r *http.Request) string {
 }
 
 func (s *server) submitApp(w http.ResponseWriter, r *http.Request, address string) {
-	if !allowSubmit(clientIP(r), time.Now()) {
+	ok, err := s.allowSubmit(r.Context(), clientIP(r), time.Now())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if !ok {
 		writeError(w, http.StatusTooManyRequests, "too many submissions, try again later")
 		return
 	}
