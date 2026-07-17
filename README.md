@@ -29,6 +29,8 @@ LAN, and API examples.
 
 - **Browse** — search, filter by category or rewards, and view app details. Home highlights featured picks, trending (most viewed in the last 7 days), and curated collections. Every
   app gets an `Open in Nimiq Pay` link of the form `https://nimpay.app/miniapps/open/<domain>`.
+  When an app’s first owner has a claimed NimConnect `@handle`, app detail and developer
+  filter pages link to their public page at `https://nimconnect.nimiqminiapps.com/@handle`.
 - **Submit** — developers log in with their Nimiq wallet and submit apps at `/submit`
   (rate-limited). Once approved, the submitting wallet can request edits to its own
   apps via `/apps/{slug}/update` or manage them from `/my-apps`.

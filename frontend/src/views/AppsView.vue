@@ -8,6 +8,7 @@ import { useI18n } from '../composables/useI18n'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { walletOwnsApp } from '../utils/wallet'
 import { setPageMeta, resetPageMeta } from '../utils/meta'
+import { nimConnectPublicUrl, resolveNimConnectHandle } from '../utils/nimconnect'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,7 +28,12 @@ const error = ref('')
 const loading = ref(true)
 const loadingMore = ref(false)
 const total = ref(0)
+const nimConnectHandle = ref<string | null>(null)
 const PAGE_SIZE = 20
+
+const nimConnectUrl = computed(() =>
+  nimConnectHandle.value ? nimConnectPublicUrl(nimConnectHandle.value) : null,
+)
 
 const hasMore = computed(() => apps.value.length < total.value)
 
@@ -185,6 +191,18 @@ watch([developer, developerLabel, total], () => {
   }
 })
 
+let nimConnectLookupSeq = 0
+watch(
+  () => (developer.value ? apps.value[0]?.owner_wallet_addresses?.[0] : undefined),
+  async (address) => {
+    const seq = ++nimConnectLookupSeq
+    nimConnectHandle.value = null
+    if (!address) return
+    const handle = await resolveNimConnectHandle(address)
+    if (seq === nimConnectLookupSeq) nimConnectHandle.value = handle
+  },
+)
+
 onMounted(async () => {
   load(true)
   try {
@@ -199,9 +217,20 @@ onMounted(async () => {
 <template>
   <div class="space-y-4">
     <h1 class="text-2xl font-extrabold">{{ pageTitle }}</h1>
-    <p v-if="developer && developerLabel" class="text-sm text-muted">
-      {{ t('apps.developerMeta', { count: total, name: developerLabel }) }}
-    </p>
+    <div v-if="developer && developerLabel" class="space-y-1">
+      <p class="text-sm text-muted">
+        {{ t('apps.developerMeta', { count: total, name: developerLabel }) }}
+      </p>
+      <a
+        v-if="nimConnectUrl && nimConnectHandle"
+        :href="nimConnectUrl"
+        target="_blank"
+        rel="noopener"
+        :aria-label="t('common.nimconnectProfile')"
+        :title="t('common.nimconnectProfile')"
+        class="inline-block text-sm text-accent-ink-dark hover:underline dark:text-accent-ink"
+      >@{{ nimConnectHandle }}</a>
+    </div>
 
     <div v-if="activeFilter" class="flex items-center gap-2 text-sm">
       <span class="text-muted">{{ t('apps.filteredBy', { type: activeFilter.type }) }}</span>

@@ -17,4 +17,12 @@ export default defineConfig({
       '/og': 'http://localhost:8080',
     },
   },
+  test: {
+    // Package emits extensionless ESM imports; Vite must transform it for Node.
+    server: {
+      deps: {
+        inline: ['@nimconnect/profile-client'],
+      },
+    },
+  },
 })

@@ -27,6 +27,7 @@ import { useI18n } from '../composables/useI18n'
 import { setPageMeta, resetPageMeta } from '../utils/meta'
 import { walletOwnsApp } from '../utils/wallet'
 import { resolveAppOpenUrl } from '../utils/nimiqWallet'
+import { nimConnectPublicUrl, resolveNimConnectHandle } from '../utils/nimconnect'
 
 const route = useRoute()
 const isMobile = useIsMobileDevice()
@@ -41,9 +42,25 @@ const error = ref('')
 const loading = ref(true)
 const notFound = ref(false)
 const updatePending = ref(false)
+const nimConnectHandle = ref<string | null>(null)
 
 const isOwner = computed(() => walletOwnsApp(walletAddress.value, app.value?.owner_wallet_addresses))
 const openUrl = computed(() => (app.value ? resolveAppOpenUrl(app.value) : ''))
+const nimConnectUrl = computed(() =>
+  nimConnectHandle.value ? nimConnectPublicUrl(nimConnectHandle.value) : null,
+)
+
+let nimConnectLookupSeq = 0
+watch(
+  () => app.value?.owner_wallet_addresses?.[0],
+  async (address) => {
+    const seq = ++nimConnectLookupSeq
+    nimConnectHandle.value = null
+    if (!address) return
+    const handle = await resolveNimConnectHandle(address)
+    if (seq === nimConnectLookupSeq) nimConnectHandle.value = handle
+  },
+)
 
 const aboutSource = computed(() => {
   if (!app.value) return ''
@@ -165,9 +182,20 @@ onUnmounted(resetPageMeta)
           <DomainStatus v-if="app.domain_reachable === false" :reachable="app.domain_reachable" />
         </div>
         <p class="text-muted">{{ app.tagline }}</p>
-        <RouterLink :to="`/apps?developer=${encodeURIComponent(app.developer_slug)}`" class="text-sm text-accent-ink-dark hover:underline dark:text-accent-ink">
-          {{ t('common.by') }} {{ app.developer_name }}
-        </RouterLink>
+        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+          <RouterLink :to="`/apps?developer=${encodeURIComponent(app.developer_slug)}`" class="text-accent-ink-dark hover:underline dark:text-accent-ink">
+            {{ t('common.by') }} {{ app.developer_name }}
+          </RouterLink>
+          <a
+            v-if="nimConnectUrl && nimConnectHandle"
+            :href="nimConnectUrl"
+            target="_blank"
+            rel="noopener"
+            :aria-label="t('common.nimconnectProfile')"
+            :title="t('common.nimconnectProfile')"
+            class="text-muted hover:text-accent-ink-dark hover:underline dark:hover:text-accent-ink"
+          >@{{ nimConnectHandle }}</a>
+        </div>
       </div>
     </div>
 

@@ -29,6 +29,7 @@ export type MessageTree = {
     retry: string
     all: string
     by: string
+    nimconnectProfile: string
     hostedBy: string
     hostedByShort: string
     loading: string
@@ -187,6 +188,7 @@ const en: MessageTree = {
     retry: 'Try again',
     all: 'All',
     by: 'by',
+    nimconnectProfile: 'NimConnect profile',
     hostedBy: 'Hosted by NimiqMiniApps.com',
     hostedByShort: 'Hosted',
     loading: 'Loading…',
@@ -327,7 +329,7 @@ const de: MessageTree = {
     developers: 'Entwickler',
     githubIssues: 'GitHub-Issues',
   },
-  common: { clear: 'Zurücksetzen', browseAll: 'Alle Apps', viewAll: 'Alle anzeigen', share: 'Teilen', copyLink: 'Link kopieren', copied: 'Kopiert!', retry: 'Erneut versuchen', all: 'Alle', by: 'von', hostedBy: 'Gehostet von NimiqMiniApps.com', hostedByShort: 'Gehostet', loading: 'Laden…' },
+  common: { clear: 'Zurücksetzen', browseAll: 'Alle Apps', viewAll: 'Alle anzeigen', share: 'Teilen', copyLink: 'Link kopieren', copied: 'Kopiert!', retry: 'Erneut versuchen', all: 'Alle', by: 'von', nimconnectProfile: 'NimConnect-Profil', hostedBy: 'Gehostet von NimiqMiniApps.com', hostedByShort: 'Gehostet', loading: 'Laden…' },
   apps: {
     title: 'Alle Apps',
     searchPlaceholder: 'Apps suchen…',
@@ -411,7 +413,7 @@ const es: MessageTree = {
     developers: 'Desarrolladores',
     githubIssues: 'Issues en GitHub',
   },
-  common: { clear: 'Limpiar', browseAll: 'Ver todas las apps', viewAll: 'Ver todo', share: 'Compartir', copyLink: 'Copiar enlace', copied: '¡Copiado!', retry: 'Reintentar', all: 'Todas', by: 'por', hostedBy: 'Alojado por NimiqMiniApps.com', hostedByShort: 'Alojado', loading: 'Cargando…' },
+  common: { clear: 'Limpiar', browseAll: 'Ver todas las apps', viewAll: 'Ver todo', share: 'Compartir', copyLink: 'Copiar enlace', copied: '¡Copiado!', retry: 'Reintentar', all: 'Todas', by: 'por', nimconnectProfile: 'Perfil de NimConnect', hostedBy: 'Alojado por NimiqMiniApps.com', hostedByShort: 'Alojado', loading: 'Cargando…' },
   apps: {
     title: 'Todas las apps',
     searchPlaceholder: 'Buscar apps…',
@@ -495,7 +497,7 @@ const fr: MessageTree = {
     developers: 'Développeurs',
     githubIssues: 'Issues GitHub',
   },
-  common: { clear: 'Effacer', browseAll: 'Parcourir toutes les apps', viewAll: 'Tout voir', share: 'Partager', copyLink: 'Copier le lien', copied: 'Copié !', retry: 'Réessayer', all: 'Toutes', by: 'par', hostedBy: 'Hébergé par NimiqMiniApps.com', hostedByShort: 'Hébergé', loading: 'Chargement…' },
+  common: { clear: 'Effacer', browseAll: 'Parcourir toutes les apps', viewAll: 'Tout voir', share: 'Partager', copyLink: 'Copier le lien', copied: 'Copié !', retry: 'Réessayer', all: 'Toutes', by: 'par', nimconnectProfile: 'Profil NimConnect', hostedBy: 'Hébergé par NimiqMiniApps.com', hostedByShort: 'Hébergé', loading: 'Chargement…' },
   apps: {
     title: 'Toutes les apps',
     searchPlaceholder: 'Rechercher des apps…',
@@ -579,7 +581,7 @@ const pt: MessageTree = {
     developers: 'Desenvolvedores',
     githubIssues: 'Issues no GitHub',
   },
-  common: { clear: 'Limpar', browseAll: 'Ver todos os apps', viewAll: 'Ver tudo', share: 'Compartilhar', copyLink: 'Copiar link', copied: 'Copiado!', retry: 'Tentar de novo', all: 'Todos', by: 'por', hostedBy: 'Hospedado por NimiqMiniApps.com', hostedByShort: 'Hospedado', loading: 'Carregando…' },
+  common: { clear: 'Limpar', browseAll: 'Ver todos os apps', viewAll: 'Ver tudo', share: 'Compartilhar', copyLink: 'Copiar link', copied: 'Copiado!', retry: 'Tentar de novo', all: 'Todos', by: 'por', nimconnectProfile: 'Perfil NimConnect', hostedBy: 'Hospedado por NimiqMiniApps.com', hostedByShort: 'Hospedado', loading: 'Carregando…' },
   apps: {
     title: 'Todos os apps',
     searchPlaceholder: 'Buscar apps…',
