@@ -168,9 +168,7 @@ onUnmounted(resetPageMeta)
 
     <DomainStatus :reachable="app.domain_reachable" variant="banner" />
 
-    <div v-if="app.banner_url" class="aspect-[21/9] w-full overflow-hidden rounded-2xl bg-slate-900">
-      <img :src="app.banner_url" :alt="app.name" class="h-full w-full object-contain" />
-    </div>
+    <img v-if="app.banner_url" :src="app.banner_url" :alt="app.name" class="h-auto w-full rounded-2xl" />
 
     <div class="flex items-start gap-4">
       <AppIcon :app="app" size="md" />

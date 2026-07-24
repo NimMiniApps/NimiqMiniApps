@@ -23,15 +23,12 @@ defineProps<{ items: MediaItem[]; title?: string }>()
             />
           </div>
         </div>
-        <div v-else-if="item.type === 'image'"
-          class="aspect-video w-full overflow-hidden rounded-2xl border border-line bg-slate-900 shadow-sm">
-          <img
-            :src="item.url"
-            :alt="`Screenshot ${i + 1}`"
-            loading="lazy"
-            class="h-full w-full object-contain"
-          />
-        </div>
+        <img v-else-if="item.type === 'image'"
+          :src="item.url"
+          :alt="`Screenshot ${i + 1}`"
+          loading="lazy"
+          class="h-auto w-full rounded-2xl border border-line shadow-sm"
+        />
       </template>
     </div>
   </section>
