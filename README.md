@@ -1,7 +1,26 @@
-# Nimiq Mini Apps
+<p align="center">
+  <img src="frontend/public/og-default.svg" alt="Nimiq Mini Apps" width="100%" />
+</p>
 
-A community directory for [Nimiq Pay](https://nimiq.com) mini apps. Browse apps, open
-them straight in your Nimiq Pay wallet, and submit your own for review.
+<p align="center">
+  <img src="frontend/public/brand/nimiq-mini-apps-logo.png" alt="Nimiq Mini Apps logo" width="260" />
+</p>
+
+<h1 align="center">Nimiq Mini Apps</h1>
+
+<p align="center">
+  A community directory for <strong>Nimiq Pay</strong> mini apps.<br />
+  Browse apps, open them in your wallet, and submit your own for review.
+</p>
+
+<p align="center">
+  <a href="https://nimiqminiapps.com">Explore the catalog</a> ·
+  <a href="https://nimpay.app">Nimiq Pay</a> ·
+  <a href="https://nimiqminiapps.com/submit">Submit an app</a> ·
+  <a href="./docs/DEV.md">Development guide</a>
+</p>
+
+---
 
 ## Stack
 
