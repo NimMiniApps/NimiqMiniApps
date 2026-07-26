@@ -139,7 +139,7 @@ onUnmounted(resetPageMeta)
     <template #actions>
       <RouterLink
         to="/apps"
-        class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 text-sm font-bold text-white transition duration-200"
+        class="cursor-pointer board-plate board-plate-primary px-5 py-2.5 text-sm"
       >
         {{ t('common.browseAll') }}
       </RouterLink>
@@ -155,7 +155,7 @@ onUnmounted(resetPageMeta)
     <template #actions>
       <button
         type="button"
-        class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+        class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm"
         @click="loadApp(route.params.slug as string)"
       >
         {{ t('common.retry') }}
@@ -202,7 +202,7 @@ onUnmounted(resetPageMeta)
     <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
       <div class="flex flex-wrap items-center gap-2">
         <a v-if="isMobile" :href="openUrl" target="_blank" rel="noopener"
-          class="inline-flex h-10 cursor-pointer items-center rounded-[500px] nq-primary px-5 text-sm font-bold text-white transition duration-200"
+          class="inline-flex h-10 cursor-pointer items-center board-plate board-plate-primary px-5 text-sm"
           @click="trackAppEvent(app.slug, 'open')">
           {{ t('appDetail.openInWallet') }}
         </a>

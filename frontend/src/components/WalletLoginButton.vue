@@ -40,24 +40,24 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 
 <template>
   <div class="relative shrink-0">
-    <span v-if="checking" class="text-sm text-muted">…</span>
+    <span v-if="checking" class="text-sm text-board-flap-muted">…</span>
 
     <div v-else-if="walletAddress" ref="menuRef" class="relative">
       <button
         type="button"
-        class="flex items-center gap-1 rounded-[500px] border border-line bg-surface-2 py-1 pl-1 pr-2 transition-colors duration-200 hover:border-accent/50"
+        class="flex items-center gap-1 rounded-[4px] border border-board-hairline bg-board-flap-hover py-1 pl-1 pr-2 text-board-flap-ink transition-colors duration-200 hover:border-lamp-live/50"
         :aria-expanded="menuOpen"
         aria-haspopup="menu"
         @click.stop="toggleMenu"
       >
-        <AddressIdenticon :address="walletAddress" img-class="h-7 w-7" />
+        <AddressIdenticon :address="walletAddress" img-class="h-7 w-7 rounded-[3px]" />
         <span
           class="hidden max-w-[8rem] truncate text-xs text-accent-ink sm:inline"
           :class="displayName ? 'font-semibold' : 'font-mono'"
         >{{ headerLabel }}</span>
         <svg
           viewBox="0 0 24 24"
-          class="h-4 w-4 text-muted transition-transform duration-200"
+          class="h-4 w-4 text-board-flap-muted transition-transform duration-200"
           :class="menuOpen ? 'rotate-180' : ''"
           fill="none"
           stroke="currentColor"
@@ -73,16 +73,16 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
       <div
         v-if="menuOpen"
         role="menu"
-        class="absolute right-0 top-full z-30 mt-2 min-w-[11rem] overflow-hidden rounded-xl border border-line bg-surface shadow-lg shadow-slate-950/10 dark:shadow-black/30"
+        class="board absolute right-0 top-full z-30 mt-2 min-w-[11rem]"
       >
-        <p class="border-b border-line px-3 py-2 text-[11px] leading-snug text-muted sm:hidden">
+        <p class="border-b border-board-hairline px-3 py-2 text-[11px] leading-snug text-board-flap-muted sm:hidden">
           <span v-if="displayName" class="block font-semibold text-accent-ink">{{ displayName }}</span>
           <span :class="displayName ? 'mt-0.5 block font-mono' : 'font-mono'">{{ truncate(walletAddress) }}</span>
         </p>
         <RouterLink
           to="/profile"
           role="menuitem"
-          class="block px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+          class="block px-4 py-3 text-sm font-semibold text-board-flap-ink transition-colors hover:bg-board-flap-hover"
           @click="closeMenu"
         >
           Profile
@@ -90,7 +90,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
         <RouterLink
           to="/my-apps"
           role="menuitem"
-          class="block px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+          class="block px-4 py-3 text-sm font-semibold text-board-flap-ink transition-colors hover:bg-board-flap-hover"
           @click="closeMenu"
         >
           My apps
@@ -98,7 +98,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
         <RouterLink
           to="/favorites"
           role="menuitem"
-          class="block px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+          class="block px-4 py-3 text-sm font-semibold text-board-flap-ink transition-colors hover:bg-board-flap-hover"
           @click="closeMenu"
         >
           Favorites
@@ -107,13 +107,13 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
           v-if="isAdmin"
           to="/admin"
           role="menuitem"
-          class="flex items-center justify-between px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-2"
+          class="flex items-center justify-between px-4 py-3 text-sm font-semibold text-board-flap-ink transition-colors hover:bg-board-flap-hover"
           @click="closeMenu"
         >
           Admin
           <span
             v-if="pendingCount > 0"
-            class="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 dark:text-amber-200"
+            class="ml-2 inline-flex min-w-[1.25rem] items-center justify-center rounded-[3px] bg-lamp-pending/20 px-1.5 py-0.5 text-[10px] font-bold text-lamp-pending"
           >
             {{ pendingCount }}
           </span>
@@ -121,7 +121,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
         <button
           type="button"
           role="menuitem"
-          class="block w-full px-4 py-3 text-left text-sm font-semibold text-muted transition-colors hover:bg-surface-2 hover:text-red-500"
+          class="block w-full px-4 py-3 text-left text-sm font-semibold text-board-flap-muted transition-colors hover:bg-board-flap-hover hover:text-lamp-cancelled"
           @click="handleLogout"
         >
           Log out
@@ -131,7 +131,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
 
     <button
       v-else
-      class="rounded-[500px] border border-line bg-surface-2 px-3 py-1.5 text-xs font-semibold text-accent-ink transition-colors duration-200 hover:border-accent/50 disabled:opacity-50 sm:px-4 sm:text-sm"
+      class="board-plate board-plate-ghost px-3 py-1.5 text-[11px] disabled:opacity-50 sm:px-4 sm:text-xs"
       :disabled="loggingIn"
       title="Connecting opens a popup window — please allow it if your browser asks"
       @click="login"
@@ -139,7 +139,7 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
       {{ loggingIn ? 'Connecting…' : 'Connect Wallet' }}
     </button>
 
-    <p v-if="error" class="absolute right-0 top-full z-30 mt-1 max-w-[12rem] text-right text-[10px] leading-snug text-red-500 sm:max-w-xs sm:text-xs">
+    <p v-if="error" class="absolute right-0 top-full z-30 mt-1 max-w-[12rem] text-right text-[10px] leading-snug text-lamp-cancelled sm:max-w-xs sm:text-xs">
       {{ error }}
     </p>
   </div>

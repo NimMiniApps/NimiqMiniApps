@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   APP_CATEGORIES, APP_RELEASE_STAGES, adminListApps, adminCreateApp, adminUpdateApp, adminDeleteApp, adminSetStatus, adminCheckDomains,
@@ -155,6 +155,10 @@ function openEditFromQuery() {
   router.replace({ query: { ...route.query, edit: undefined } })
 }
 
+function scrollToForm() {
+  nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
+}
+
 function startCreate() {
   Object.assign(form, emptyForm)
   developerQuery.value = ''
@@ -162,6 +166,7 @@ function startCreate() {
   currentOwners.value = []
   editingSlug.value = ''
   showForm.value = true
+  scrollToForm()
 }
 
 function startEdit(app: App) {
@@ -183,6 +188,7 @@ function startEdit(app: App) {
   developerResults.value = []
   editingSlug.value = app.slug
   showForm.value = true
+  scrollToForm()
 }
 
 const csv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
@@ -378,7 +384,7 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
       <div class="mt-3 flex gap-2">
         <input v-model="token" type="password" placeholder="Admin token"
           class="flex-1 rounded-xl border border-line bg-surface-2 px-4 py-2.5 placeholder:text-muted/60 focus:border-accent outline-none" />
-        <button @click="saveToken" class="rounded-[500px] nq-primary px-4 py-2.5 font-bold text-white">
+        <button @click="saveToken" class="board-plate board-plate-primary px-4 py-2.5 text-sm">
           Save
         </button>
       </div>
@@ -552,7 +558,7 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
         <span class="mt-1 block text-xs text-muted">twitter, discord, telegram, bluesky, instagram, youtube, linkedin, mastodon, reddit, tiktok</span>
       </label>
       <div class="flex gap-2">
-        <button type="submit" class="rounded-[500px] nq-primary px-5 py-2 font-bold text-white">
+        <button type="submit" class="board-plate board-plate-primary px-5 py-2 text-sm">
           {{ editingSlug ? 'Save changes' : 'Create app' }}
         </button>
         <button type="button" @click="showForm = false" class="rounded-xl border border-line px-5 py-2 font-semibold hover:bg-surface-2">

@@ -58,7 +58,7 @@ watch([checking, walletAddress], () => {
       <template #actions>
         <button
           type="button"
-          class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+          class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm"
           @click="load"
         >
           {{ t('common.retry') }}
@@ -74,7 +74,7 @@ watch([checking, walletAddress], () => {
       <template #actions>
         <RouterLink
           to="/apps"
-          class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 text-sm font-bold text-white transition duration-200"
+          class="cursor-pointer board-plate board-plate-primary px-5 py-2.5 text-sm"
         >
           {{ t('common.browseAll') }}
         </RouterLink>

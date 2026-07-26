@@ -1,11 +1,11 @@
 <script setup lang="ts">
 defineProps<{ stage: string }>()
 
-const styles: Record<string, string> = {
-  released: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300',
-  beta: 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300',
-  alpha: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300',
-  concept: 'bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300',
+const lamp: Record<string, string> = {
+  released: 'board-lamp-live',
+  beta: 'board-lamp-pending',
+  alpha: 'board-lamp-pending',
+  concept: 'board-lamp-info',
 }
 
 const labels: Record<string, string> = {
@@ -17,6 +17,10 @@ const labels: Record<string, string> = {
 </script>
 
 <template>
-  <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-    :class="styles[stage] || styles.released">{{ labels[stage] || stage }}</span>
+  <span
+    class="inline-flex items-center gap-1.5 rounded-[3px] border border-board-hairline bg-board-flap px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-board-flap-ink"
+  >
+    <span class="board-lamp" :class="lamp[stage] || 'board-lamp-live'" aria-hidden="true"></span>
+    {{ labels[stage] || stage }}
+  </span>
 </template>

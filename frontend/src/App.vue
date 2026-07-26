@@ -39,27 +39,27 @@ function toggleTheme() {
 
 <template>
   <div class="flex min-h-dvh flex-col pb-mobile-nav md:min-h-screen md:pb-0">
-    <!-- top bar -->
-    <header class="sticky top-0 z-20 border-b border-line bg-surface/90 shadow-sm backdrop-blur dark:shadow-black/20">
+    <!-- top bar: the header is board casing, present on every surface -->
+    <header class="sticky top-0 z-20 bg-board-frame text-board-flap-ink shadow-lg shadow-black/20">
       <div class="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
         <RouterLink to="/" class="flex items-center gap-2 text-lg font-extrabold">
           <img
             src="/brand/output-smallpngtools.png"
             alt=""
-            class="h-8 w-8 rounded-[10px] object-cover shadow-sm"
+            class="h-8 w-8 rounded-[4px] object-cover"
           />
-          <span>Nimiq <span class="text-accent-ink">Mini Apps</span></span>
+          <span class="uppercase tracking-wide">Nimiq <span class="text-accent-ink">Mini Apps</span></span>
         </RouterLink>
         <nav class="ml-auto hidden gap-1 md:flex">
           <RouterLink
             v-for="item in desktopNavItems" :key="item.to" :to="item.to"
-            class="rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors duration-200 hover:bg-surface-2"
-            :class="isActive(item.to) ? 'bg-surface-2 text-accent-ink' : 'text-muted'"
+            class="rounded-[4px] px-3 py-1.5 text-sm font-bold uppercase tracking-wide transition-colors duration-200 hover:bg-board-flap-hover"
+            :class="isActive(item.to) ? 'bg-board-flap-hover text-accent-ink' : 'text-board-flap-muted'"
           >{{ t(item.key) }}</RouterLink>
         </nav>
         <WalletLoginButton class="ml-auto md:ml-0" />
         <button @click="toggleTheme" :aria-label="isDark ? t('theme.light') : t('theme.dark')"
-          class="grid h-9 w-9 cursor-pointer place-items-center rounded-[10px] border border-line bg-surface-2 text-muted transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink md:ml-0">
+          class="grid h-9 w-9 cursor-pointer place-items-center rounded-[4px] border border-board-hairline bg-board-flap-hover text-board-flap-muted transition-colors duration-200 hover:border-lamp-live/50 hover:text-accent-ink md:ml-0">
           <svg v-if="isDark" viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="12" cy="12" r="4" />
             <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
@@ -78,12 +78,11 @@ function toggleTheme() {
     <!-- Nimiq Pay install banner -->
     <footer class="mt-10">
       <div class="mx-auto max-w-5xl px-4 pb-8">
-        <div v-if="!insideNimiqPay" class="nq-brand-surface relative overflow-hidden rounded-[10px] border border-line p-6 text-ink nq-card-shadow md:p-10 dark:border-white/10 dark:text-white">
-          <div class="nq-hero-accent absolute inset-y-0 right-0 hidden w-[34%] md:block" aria-hidden="true"></div>
+        <div v-if="!insideNimiqPay" class="board relative p-6 md:p-10">
           <div class="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 class="text-xl font-extrabold md:text-2xl">{{ t('footer.title') }}</h2>
-              <p class="mt-1 max-w-md text-muted dark:text-white/75">
+              <h2 class="text-xl font-extrabold uppercase tracking-wide text-board-flap-ink md:text-2xl">{{ t('footer.title') }}</h2>
+              <p class="mt-1 max-w-md text-board-flap-muted">
                 {{ t('footer.body') }}
               </p>
             </div>
@@ -101,13 +100,13 @@ function toggleTheme() {
       </div>
     </footer>
 
-    <!-- bottom nav (mobile) -->
-    <nav class="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-safe backdrop-blur md:hidden">
+    <!-- bottom nav (mobile): a fixed row of board plates -->
+    <nav class="fixed inset-x-0 bottom-0 z-20 bg-board-frame pb-safe shadow-[0_-0.5rem_1.5rem_rgba(0,0,0,0.3)] md:hidden">
       <div class="grid grid-cols-4">
         <RouterLink
           v-for="item in navItems" :key="item.to" :to="item.to"
-          class="flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors duration-200"
-          :class="isActive(item.to) ? 'bg-surface-2 text-accent-ink' : 'text-muted'"
+          class="flex flex-col items-center gap-1 border-t-2 py-2.5 text-[11px] font-bold uppercase tracking-wide transition-colors duration-200"
+          :class="isActive(item.to) ? 'border-lamp-live text-accent-ink' : 'border-transparent text-board-flap-muted'"
         >
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path :d="item.icon" />

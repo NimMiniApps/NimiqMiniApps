@@ -134,11 +134,11 @@ const fields: [keyof typeof form, string, boolean, string?][] = [
         </p>
         <div class="mt-5 flex flex-wrap justify-center gap-2">
           <RouterLink :to="`/apps/${slug}`"
-            class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 font-bold hover:border-accent/50">
+            class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm">
             Back to app
           </RouterLink>
           <RouterLink :to="`/status/${slug}`"
-            class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 font-bold text-white">
+            class="cursor-pointer board-plate board-plate-primary px-5 py-2.5 text-sm">
             Check status
           </RouterLink>
         </div>
@@ -215,7 +215,7 @@ const fields: [keyof typeof form, string, boolean, string?][] = [
             class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"></textarea>
         </label>
         <button type="submit" :disabled="submitting || updatePending"
-          class="w-full cursor-pointer rounded-[500px] nq-primary px-5 py-3 font-bold text-white disabled:opacity-60 sm:w-auto">
+          class="w-full cursor-pointer board-plate board-plate-primary px-5 py-3 text-sm disabled:opacity-60 sm:w-auto">
           {{ submitting ? 'Submitting…' : 'Submit update for review' }}
         </button>
       </form>

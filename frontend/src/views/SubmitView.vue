@@ -103,7 +103,7 @@ const fields: [keyof typeof form, string, boolean, string, string?][] = [
       </div>
       <div v-else-if="!displayName" class="rounded-2xl border border-line bg-surface p-5 text-center">
         <p class="text-sm text-muted">Set a display name on your profile before submitting — it becomes your public developer name.</p>
-        <RouterLink to="/profile" class="mt-3 inline-block rounded-[500px] nq-primary px-5 py-2.5 font-bold text-white">Go to profile</RouterLink>
+        <RouterLink to="/profile" class="mt-3 inline-block board-plate board-plate-primary px-5 py-2.5 text-sm">Go to profile</RouterLink>
       </div>
       <template v-else>
         <p class="text-xs text-muted">
@@ -165,7 +165,7 @@ const fields: [keyof typeof form, string, boolean, string, string?][] = [
             <SocialLinksEditor ref="socialEditor" v-model="socials" />
           </div>
           <button type="submit" :disabled="submitting"
-            class="w-full cursor-pointer rounded-[500px] nq-primary px-5 py-3 font-bold text-white transition duration-200 disabled:cursor-default disabled:opacity-60 sm:w-auto">
+            class="w-full cursor-pointer board-plate board-plate-primary px-5 py-3 text-sm disabled:cursor-default disabled:opacity-60 sm:w-auto">
             {{ submitting ? 'Submitting…' : 'Submit for review' }}
           </button>
         </form>
@@ -189,10 +189,10 @@ const fields: [keyof typeof form, string, boolean, string, string?][] = [
       </p>
       <div class="mt-5 flex flex-wrap justify-center gap-2">
         <RouterLink :to="`/status/${submittedSlug}`"
-          class="inline-block cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 font-bold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+          class="inline-block cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm">
           Check status
         </RouterLink>
-        <RouterLink to="/apps" class="inline-block cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 font-bold text-white transition duration-200">
+        <RouterLink to="/apps" class="inline-block cursor-pointer board-plate board-plate-primary px-5 py-2.5 text-sm">
           Browse apps
         </RouterLink>
       </div>

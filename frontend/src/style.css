@@ -11,6 +11,12 @@
   --color-accent-soft: rgba(5, 130, 202, 0.1);
   --font-sans: "Muli", "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Lamp/status colors stay constant across themes — signal color, not surface material. */
+  --color-lamp-live: #0ca6fe;
+  --color-lamp-pending: #fc8702;
+  --color-lamp-cancelled: #d94432;
+  --color-lamp-info: #21bca5;
 }
 
 /* Semantic tokens — flip with the .dark class on <html> */
@@ -22,6 +28,14 @@
   --color-muted: var(--nq-muted);
   --color-line: var(--nq-line);
   --color-accent-ink: var(--nq-accent-ink);
+
+  /* Departures Board: casing/rows re-tint with theme like every other surface. */
+  --color-board-frame: var(--nq-board-frame);
+  --color-board-flap: var(--nq-board-flap);
+  --color-board-flap-hover: var(--nq-board-flap-hover);
+  --color-board-flap-ink: var(--nq-board-flap-ink);
+  --color-board-flap-muted: var(--nq-board-flap-muted);
+  --color-board-hairline: var(--nq-board-hairline);
 }
 
 :root {
@@ -54,6 +68,12 @@
   --nq-line: var(--text-10);
   --nq-accent: var(--nimiq-light-blue);
   --nq-accent-ink: var(--nimiq-light-blue);
+  --nq-board-frame: #eef0f9;
+  --nq-board-flap: #ffffff;
+  --nq-board-flap-hover: #f1f2fa;
+  --nq-board-flap-ink: var(--text-100);
+  --nq-board-flap-muted: var(--text-60);
+  --nq-board-hairline: var(--text-10);
 }
 
 .dark {
@@ -65,6 +85,12 @@
   --nq-line: rgba(255, 255, 255, 0.13);
   --nq-accent: #0ca6fe;
   --nq-accent-ink: #0ca6fe;
+  --nq-board-frame: #14162b;
+  --nq-board-flap: #1f2348;
+  --nq-board-flap-hover: #262b52;
+  --nq-board-flap-ink: #f4f6ff;
+  --nq-board-flap-muted: rgba(244, 246, 255, 0.62);
+  --nq-board-hairline: rgba(244, 246, 255, 0.14);
 }
 
 .pb-safe {
@@ -138,6 +164,105 @@ textarea {
 
 .nq-card-shadow {
   box-shadow: 0 0.5rem 3.5rem rgba(0, 0, 0, 0.111158);
+}
+
+/* Departures Board — the board is a single physical object: dark casing,
+   flat ruled rows, no per-row shadow. Rows only round at the outer edge. */
+.board {
+  background: var(--color-board-frame);
+  border-radius: 8px;
+  box-shadow: 0 1.5rem 3rem rgba(3, 4, 12, 0.28);
+  overflow: hidden;
+}
+
+.dark .board {
+  box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.45);
+}
+
+.board-row {
+  background: var(--color-board-flap);
+  border-bottom: 1px solid var(--color-board-hairline);
+  color: var(--color-board-flap-ink);
+  transition: background-color 0.15s ease;
+}
+
+.board-row:last-child {
+  border-bottom: none;
+}
+
+.board-row:hover,
+.board-row:focus-within {
+  background: var(--color-board-flap-hover);
+}
+
+.board-flap-muted {
+  color: var(--color-board-flap-muted);
+}
+
+.board-lamp {
+  display: inline-block;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 999px;
+  box-shadow: 0 0 0.375rem currentColor;
+}
+
+.board-lamp-live { color: var(--color-lamp-live); }
+.board-lamp-pending { color: var(--color-lamp-pending); }
+.board-lamp-cancelled { color: var(--color-lamp-cancelled); }
+.board-lamp-info { color: var(--color-lamp-info); }
+
+/* Rectangular board plates replace pill buttons: chamfered, not rounded. */
+.board-plate {
+  border-radius: 4px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.board-plate-primary {
+  background: var(--color-nq-blue);
+  color: #ffffff;
+  box-shadow: 0 0.375rem 1.25rem rgba(5, 130, 202, 0.3);
+}
+
+.board-plate-primary:hover {
+  background: var(--color-nq-blue-dark);
+}
+
+.board-plate-ghost {
+  background: var(--color-board-flap-hover);
+  color: var(--color-board-flap-ink);
+  border: 1px solid var(--color-board-hairline);
+}
+
+.board-plate-ghost:hover {
+  border-color: var(--color-lamp-live);
+  color: var(--color-accent-ink);
+}
+
+/* Signature motion: a per-character split-flap cascade, played once on
+   mount for a row's key changing value (status, count). Not looped. */
+@keyframes board-flap-in {
+  0% {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  60% {
+    transform: rotateX(10deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.board-flap-char {
+  display: inline-block;
+  transform-origin: 50% 100%;
+  animation: board-flap-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

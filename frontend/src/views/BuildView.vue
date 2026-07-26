@@ -65,11 +65,11 @@ const examples = [
       </p>
       <div class="mt-6 flex flex-wrap gap-3">
         <a href="https://nimiq.dev/mini-apps/mini-app-tutorial" target="_blank" rel="noopener"
-          class="cursor-pointer rounded-[500px] nq-primary px-6 py-3 font-bold text-white transition duration-200">
+          class="cursor-pointer board-plate board-plate-primary px-6 py-3 text-sm">
           Start the tutorial
         </a>
         <RouterLink to="/submit"
-          class="cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-bold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+          class="cursor-pointer board-plate board-plate-ghost px-6 py-3 text-sm">
           Submit your app
         </RouterLink>
       </div>
@@ -92,11 +92,11 @@ const examples = [
       </ul>
       <div class="mt-6 flex flex-wrap gap-3">
         <a :href="COMPETITION_URL" target="_blank" rel="noopener"
-          class="cursor-pointer rounded-[500px] nq-primary px-6 py-3 font-bold text-white transition duration-200">
+          class="cursor-pointer board-plate board-plate-primary px-6 py-3 text-sm">
           Register &amp; rules
         </a>
         <a :href="COMPETITION_SKOOL_URL" target="_blank" rel="noopener"
-          class="cursor-pointer rounded-xl border border-line bg-surface px-6 py-3 font-bold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink">
+          class="cursor-pointer board-plate board-plate-ghost px-6 py-3 text-sm">
           Join Skool community
         </a>
         <RouterLink to="/submit"

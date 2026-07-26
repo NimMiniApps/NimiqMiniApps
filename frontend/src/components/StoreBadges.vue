@@ -18,12 +18,12 @@ const stores = [
 <template>
   <div class="flex flex-wrap gap-2.5">
     <a v-for="s in stores" :key="s.big" :href="s.href" target="_blank" rel="noopener"
-      class="flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-4 py-2 text-ink transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink dark:border-white/15 dark:bg-white/10 dark:text-white dark:hover:bg-white/15">
+      class="flex cursor-pointer items-center gap-2.5 rounded-[4px] border border-board-hairline bg-board-flap-hover px-4 py-2 text-board-flap-ink transition-colors duration-200 hover:border-lamp-live/50">
       <svg viewBox="0 0 24 24" class="h-6 w-6 shrink-0 fill-current" aria-hidden="true">
         <path :d="s.icon" />
       </svg>
       <span class="text-left leading-tight">
-        <span class="block text-[10px] uppercase tracking-wide text-muted dark:text-white/70">{{ s.small }}</span>
+        <span class="block text-[10px] uppercase tracking-wide text-board-flap-muted">{{ s.small }}</span>
         <span class="block text-sm font-bold">{{ s.big }}</span>
       </span>
     </a>

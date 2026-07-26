@@ -289,7 +289,7 @@ onMounted(async () => {
       <template #actions>
         <button
           type="button"
-          class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+          class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm"
           @click="load(true)"
         >
           {{ t('common.retry') }}
@@ -310,20 +310,20 @@ onMounted(async () => {
         <button
           v-if="hasFilters"
           type="button"
-          class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+          class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm"
           @click="clearAll"
         >
           {{ t('common.clear') }}
         </button>
         <RouterLink
           to="/apps"
-          class="cursor-pointer rounded-[500px] nq-primary px-5 py-2.5 text-sm font-bold text-white transition duration-200"
+          class="cursor-pointer board-plate board-plate-primary px-5 py-2.5 text-sm"
         >
           {{ t('common.browseAll') }}
         </RouterLink>
         <RouterLink
           to="/submit"
-          class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-semibold transition-colors duration-200 hover:border-accent/50 hover:text-accent-ink"
+          class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm"
         >
           {{ t('nav.submit') }}
         </RouterLink>
@@ -342,7 +342,7 @@ onMounted(async () => {
       <div class="flex flex-col items-center gap-2">
         <p class="text-sm text-muted">{{ t('apps.showingCount', { shown: apps.length, total }) }}</p>
         <button v-if="hasMore" type="button" @click="load(false)" :disabled="loadingMore"
-          class="cursor-pointer rounded-xl border border-line bg-surface px-5 py-2.5 text-sm font-bold hover:border-accent disabled:opacity-50">
+          class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm disabled:opacity-50">
           {{ loadingMore ? t('common.loading') : t('apps.loadMore') }}
         </button>
       </div>

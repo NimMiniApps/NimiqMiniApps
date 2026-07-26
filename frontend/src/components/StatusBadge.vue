@@ -1,12 +1,12 @@
 <script setup lang="ts">
 defineProps<{ status: string }>()
 
-const styles: Record<string, string> = {
-  verified: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
-  approved: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300',
-  experimental: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
-  submitted: 'bg-surface-2 text-muted',
-  rejected: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
+const lamp: Record<string, string> = {
+  verified: 'board-lamp-live',
+  approved: 'board-lamp-live',
+  experimental: 'board-lamp-info',
+  submitted: 'board-lamp-pending',
+  rejected: 'board-lamp-cancelled',
 }
 
 const titles: Record<string, string> = {
@@ -17,7 +17,11 @@ const titles: Record<string, string> = {
 </script>
 
 <template>
-  <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
-    :class="styles[status] || styles.submitted"
-    :title="titles[status]">{{ status }}</span>
+  <span
+    class="inline-flex items-center gap-1.5 rounded-[3px] border border-board-hairline bg-board-flap px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-board-flap-ink"
+    :title="titles[status]"
+  >
+    <span class="board-lamp" :class="lamp[status] || 'board-lamp-pending'" aria-hidden="true"></span>
+    {{ status }}
+  </span>
 </template>
