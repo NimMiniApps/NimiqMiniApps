@@ -34,7 +34,9 @@ func TestWalletCookieExpired(t *testing.T) {
 func TestWalletCookieTampered(t *testing.T) {
 	secret := "test-secret"
 	value := signWalletCookie(secret, "NQ07", time.Now().Add(time.Hour))
-	tampered := value[:len(value)-1] + "x"
+	// Change an encoded payload byte, not the final Base64URL character. The
+	// final character of a 32-byte HMAC has unused bits and can decode unchanged.
+	tampered := "x" + value[1:]
 	if _, err := verifyWalletCookie(secret, tampered); err == nil {
 		t.Fatal("expected tampered cookie to fail verification")
 	}
