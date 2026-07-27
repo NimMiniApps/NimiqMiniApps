@@ -13,6 +13,7 @@ import DomainStatus from './DomainStatus.vue'
 import AppIcon from './AppIcon.vue'
 import HostedByBadge from './HostedByBadge.vue'
 import RewardBadge from './RewardBadge.vue'
+import CompetitionCycleBadge from './CompetitionCycleBadge.vue'
 import FlapText from './FlapText.vue'
 
 const isMobile = useIsMobileDevice()
@@ -79,6 +80,7 @@ function onFavoriteClick() {
           >Update pending</span>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
+          <CompetitionCycleBadge v-if="app.competition_cycle" :cycle="app.competition_cycle" compact />
           <RewardBadge :assets="app.reward_assets" compact />
           <HostedByBadge :domain="app.domain" compact />
           <DomainStatus

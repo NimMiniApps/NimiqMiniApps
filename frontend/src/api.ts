@@ -26,6 +26,7 @@ export interface App {
   tags: string[]
   assets: string[]
   reward_assets: string[]
+  competition_cycle: number | null
   status: string
   release_stage: string
   featured: boolean
@@ -97,6 +98,7 @@ export interface AppRevision {
   tags: string[]
   assets: string[]
   reward_assets: string[]
+  competition_cycle: number | null
   release_stage: string
   website_url: string | null
   github_url: string | null
@@ -144,6 +146,7 @@ function normalizeApp(raw: RawApp): App {
     tags: raw.tags ?? [],
     assets: raw.assets ?? [],
     reward_assets: raw.reward_assets ?? [],
+    competition_cycle: raw.competition_cycle ?? null,
     media,
     socials: raw.socials ?? [],
   }

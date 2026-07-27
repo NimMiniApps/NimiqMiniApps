@@ -17,6 +17,7 @@ import MarkdownContent from '../components/MarkdownContent.vue'
 import AppIcon from '../components/AppIcon.vue'
 import HostedByBadge from '../components/HostedByBadge.vue'
 import RewardBadge from '../components/RewardBadge.vue'
+import CompetitionCycleBadge from '../components/CompetitionCycleBadge.vue'
 import ReviewForm from '../components/ReviewForm.vue'
 import ReviewList from '../components/ReviewList.vue'
 import { displayIconUrl } from '../utils/appIcon'
@@ -177,6 +178,7 @@ onUnmounted(resetPageMeta)
           <h1 class="text-2xl font-extrabold">{{ app.name }}</h1>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
+          <CompetitionCycleBadge v-if="app.competition_cycle" :cycle="app.competition_cycle" />
           <RewardBadge :assets="app.reward_assets" />
           <HostedByBadge :domain="app.domain" />
           <DomainStatus v-if="app.domain_reachable === false" :reachable="app.domain_reachable" />
