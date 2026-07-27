@@ -65,6 +65,7 @@ export async function listApps(params: {
   tag?: string
   asset?: string
   rewards?: boolean
+  competition_cycle?: number | 'none'
   collection?: 'new-week' | 'popular' | 'rewards' | 'games' | 'usdt'
   status?: string
   featured?: boolean

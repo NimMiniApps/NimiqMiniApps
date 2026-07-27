@@ -9,6 +9,7 @@ const categories = z.enum(['Games', 'Utilities', 'Finance', 'Maps', 'Social', 'E
 const statuses = z.enum(['submitted', 'approved', 'verified', 'experimental', 'rejected'])
 const releaseStages = z.enum(['concept', 'alpha', 'beta', 'released'])
 const assets = z.enum(['NIM', 'USDT', 'USDC', 'BTC', 'ETH'])
+const competitionCycleFilter = z.union([z.number().int().positive(), z.literal('none')])
 const mediaItem = z.object({
   type: z.enum(['image', 'youtube']),
   url: z.string(),
@@ -43,6 +44,9 @@ const appFields = {
   assets: z.array(assets).optional(),
   reward_assets: z.array(assets).optional().describe(
     'Assets users can actually receive from this app: daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.',
+  ),
+  competition_cycle: z.number().int().positive().nullable().optional().describe(
+    'Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry.',
   ),
   status: statuses.optional(),
   release_stage: releaseStages.optional(),
@@ -98,6 +102,9 @@ server.registerTool(
       tag: z.string().optional().describe('Filter by exact tag match'),
       asset: z.string().optional().describe('Filter by asset (NIM, USDT, USDC, BTC, ETH)'),
       rewards: z.boolean().optional().describe('Only return apps with one or more reward assets'),
+      competition_cycle: competitionCycleFilter.optional().describe(
+        'Filter by a positive competition cycle number, or use "none" for apps outside the competition',
+      ),
       collection: z.enum(['new-week', 'popular', 'rewards', 'games', 'usdt']).optional(),
       status: statuses.optional().describe('Defaults to approved, verified, and experimental'),
       featured: z.boolean().optional(),
