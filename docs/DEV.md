@@ -118,6 +118,8 @@ curl -X POST $API/api/apps/submit -H "Content-Type: application/json" \
 
 # public reads
 curl "$API/api/apps?q=game&category=Games&sort=newest"
+curl "$API/api/apps?competition_cycle=1"
+curl "$API/api/apps?competition_cycle=none" # apps outside the competition
 curl "$API/api/apps?paginate=1&limit=20&offset=0"
 curl $API/api/apps/nimbomber
 curl $API/api/categories

@@ -91,6 +91,7 @@ paths:
         - $ref: '#/components/parameters/tag'
         - $ref: '#/components/parameters/asset'
         - $ref: '#/components/parameters/rewards'
+        - $ref: '#/components/parameters/competitionCycle'
         - $ref: '#/components/parameters/status'
         - $ref: '#/components/parameters/featured'
         - $ref: '#/components/parameters/sort'
@@ -143,6 +144,7 @@ paths:
               tags: [games]
               assets: [NIM]
               reward_assets: [NIM]
+              competition_cycle: 1
               release_stage: beta
       responses:
         '201':
@@ -927,6 +929,23 @@ components:
       description: Use `true` to return only apps with one or more reward assets.
       schema:
         type: boolean
+    competitionCycle:
+      name: competition_cycle
+      in: query
+      description: Filter by a positive competition cycle number, or use `none` for apps that are not competition entries.
+      schema:
+        oneOf:
+          - type: integer
+            minimum: 1
+          - type: string
+            enum: [none]
+      examples:
+        cycleOne:
+          summary: Cycle 1 entries
+          value: 1
+        notCompetition:
+          summary: Apps outside the competition
+          value: none
     status:
       name: status
       in: query
@@ -1096,6 +1115,11 @@ components:
           description: Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.
           items:
             $ref: '#/components/schemas/Asset'
+        competition_cycle:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry.
         status:
           $ref: '#/components/schemas/AppStatus'
         release_stage:
@@ -1175,6 +1199,11 @@ components:
           description: Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.
           items:
             $ref: '#/components/schemas/Asset'
+        competition_cycle:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry.
         release_stage:
           $ref: '#/components/schemas/ReleaseStage'
         website_url:
@@ -1252,6 +1281,11 @@ components:
           description: Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.
           items:
             $ref: '#/components/schemas/Asset'
+        competition_cycle:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Nimiq Mini Apps competition cycle. Null means this is not a competition entry.
         status:
           $ref: '#/components/schemas/AppStatus'
         release_stage:
@@ -1472,6 +1506,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Asset'
+        reward_assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Asset'
+        competition_cycle:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Proposed Nimiq Mini Apps competition cycle.
         release_stage:
           $ref: '#/components/schemas/ReleaseStage'
         website_url:

@@ -26,6 +26,7 @@ Source of truth in git: `docs/openapi.yaml`
 - **Category** — one of: `Games`, `Utilities`, `Finance`, `Maps`, `Social`, `Experiments`
 - **Assets** — subset of: `NIM`, `USDT`, `USDC`, `BTC`, `ETH`
 - **Reward assets** — optional subset of assets users can actually receive from the app, e.g. `["NIM"]` or `["USDT"]`. Use this only for rewards, payouts, prizes, tips, faucets, or similar receive-side flows. Omit or use `[]` when the app merely accepts, displays, swaps, or otherwise supports a token.
+- **Competition cycle** — optional positive integer for Nimiq Mini Apps competition entries, e.g. `1`. Omit or use `null` for apps outside the competition.
 - Assemble the **full payload once**; do not spam retries (rate limit below)
 
 ### 3. Submit
@@ -46,6 +47,7 @@ curl -X POST https://api.nimiqminiapps.com/api/apps/submit \
     "tags": ["games"],
     "assets": ["NIM"],
     "reward_assets": ["NIM"],
+    "competition_cycle": 1,
     "release_stage": "beta"
   }'
 ```

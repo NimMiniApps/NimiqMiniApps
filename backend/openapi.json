@@ -141,6 +141,9 @@
             "$ref": "#/components/parameters/rewards"
           },
           {
+            "$ref": "#/components/parameters/competitionCycle"
+          },
+          {
             "$ref": "#/components/parameters/status"
           },
           {
@@ -227,6 +230,7 @@
                 "reward_assets": [
                   "NIM"
                 ],
+                "competition_cycle": 1,
                 "release_stage": "beta"
               }
             }
@@ -1539,6 +1543,35 @@
           "type": "boolean"
         }
       },
+      "competitionCycle": {
+        "name": "competition_cycle",
+        "in": "query",
+        "description": "Filter by a positive competition cycle number, or use `none` for apps that are not competition entries.",
+        "schema": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "enum": [
+                "none"
+              ]
+            }
+          ]
+        },
+        "examples": {
+          "cycleOne": {
+            "summary": "Cycle 1 entries",
+            "value": 1
+          },
+          "notCompetition": {
+            "summary": "Apps outside the competition",
+            "value": "none"
+          }
+        }
+      },
       "status": {
         "name": "status",
         "in": "query",
@@ -1820,6 +1853,12 @@
               "$ref": "#/components/schemas/Asset"
             }
           },
+          "competition_cycle": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "description": "Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry."
+          },
           "status": {
             "$ref": "#/components/schemas/AppStatus"
           },
@@ -1926,6 +1965,12 @@
             "items": {
               "$ref": "#/components/schemas/Asset"
             }
+          },
+          "competition_cycle": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "description": "Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry."
           },
           "release_stage": {
             "$ref": "#/components/schemas/ReleaseStage"
@@ -2035,6 +2080,12 @@
             "items": {
               "$ref": "#/components/schemas/Asset"
             }
+          },
+          "competition_cycle": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "description": "Nimiq Mini Apps competition cycle. Null means this is not a competition entry."
           },
           "status": {
             "$ref": "#/components/schemas/AppStatus"
@@ -2352,6 +2403,18 @@
             "items": {
               "$ref": "#/components/schemas/Asset"
             }
+          },
+          "reward_assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "competition_cycle": {
+            "type": "integer",
+            "minimum": 1,
+            "nullable": true,
+            "description": "Proposed Nimiq Mini Apps competition cycle."
           },
           "release_stage": {
             "$ref": "#/components/schemas/ReleaseStage"

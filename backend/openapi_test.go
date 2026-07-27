@@ -23,6 +23,34 @@ func TestOpenAPIEmbeddedJSON(t *testing.T) {
 	if !ok || paths["/api/apps/submit"] == nil {
 		t.Fatal("expected /api/apps/submit in paths")
 	}
+
+	components := doc["components"].(map[string]any)
+	schemas := components["schemas"].(map[string]any)
+	for _, schemaName := range []string{"AppInput", "AppSubmitRequest", "AppPublic", "AppRevision"} {
+		schema := schemas[schemaName].(map[string]any)
+		properties := schema["properties"].(map[string]any)
+		if properties["competition_cycle"] == nil {
+			t.Errorf("expected competition_cycle in %s", schemaName)
+		}
+	}
+
+	parameters := components["parameters"].(map[string]any)
+	if parameters["competitionCycle"] == nil {
+		t.Error("expected competitionCycle query parameter")
+	}
+	listApps := paths["/api/apps"].(map[string]any)["get"].(map[string]any)
+	listParameters := listApps["parameters"].([]any)
+	foundCycleFilter := false
+	for _, item := range listParameters {
+		parameter := item.(map[string]any)
+		if parameter["$ref"] == "#/components/parameters/competitionCycle" {
+			foundCycleFilter = true
+			break
+		}
+	}
+	if !foundCycleFilter {
+		t.Error("expected listApps to reference competitionCycle")
+	}
 }
 
 func TestOpenAPIHandlers(t *testing.T) {
