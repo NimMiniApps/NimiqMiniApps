@@ -15,8 +15,13 @@ cycles such as Cycle 1. Reject zero and negative values.
 Expose the field in public and admin app responses, developer submissions,
 update requests, and admin create/update operations. Add
 `competition_cycle=<positive integer>` to `GET /api/apps` for server-side
-filtering. Keep the API open to future positive cycle numbers so new cycles do
-not require a schema migration.
+filtering and accept `competition_cycle=none` for non-competition apps. Keep the
+API open to future positive cycle numbers so new cycles do not require a schema
+migration.
+
+Backfill Cycle 1 for catalog records that match the verified Cycle 1 submission
+repository. Entries that are not yet in the catalog can select Cycle 1 when
+they are submitted later.
 
 Update the OpenAPI source and regenerate both backend copies. Add the field to
 the MCP create/update tools and document its meaning.
