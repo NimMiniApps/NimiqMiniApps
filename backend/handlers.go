@@ -39,6 +39,7 @@ type App struct {
 	Tags                 []string     `json:"tags"`
 	Assets               []string     `json:"assets"`
 	RewardAssets         []string     `json:"reward_assets"`
+	CompetitionCycle     *int         `json:"competition_cycle"`
 	Status               string       `json:"status"`
 	ReleaseStage         string       `json:"release_stage"`
 	Featured             bool         `json:"featured"`
@@ -63,7 +64,7 @@ type App struct {
 }
 
 const appColumns = `id, slug, name, domain, category, developer_slug, developer_name, tagline,
-	description, long_description, tags, assets, reward_assets, status, release_stage, featured, featured_order,
+	description, long_description, tags, assets, reward_assets, competition_cycle, status, release_stage, featured, featured_order,
 	website_url, github_url, icon_url, discovered_icon_url, banner_url, media, socials, domain_reachable, domain_checked_at,
 	submitter_contact, created_at, updated_at,
 	(ARRAY(SELECT wallet_address FROM app_owners WHERE app_owners.app_slug = apps.slug ORDER BY added_at)) AS owner_wallet_addresses,
@@ -79,8 +80,8 @@ func scanApp(row pgx.Row) (App, error) {
 	var a App
 	var mediaJSON, socialsJSON []byte
 	err := row.Scan(&a.ID, &a.Slug, &a.Name, &a.Domain, &a.Category, &a.DeveloperSlug,
-		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.RewardAssets, &a.Status,
-		&a.ReleaseStage, &a.Featured, &a.FeaturedOrder, &a.WebsiteURL, &a.GithubURL, &a.IconURL, &a.DiscoveredIconURL, &a.BannerURL,
+		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.RewardAssets, &a.CompetitionCycle,
+		&a.Status, &a.ReleaseStage, &a.Featured, &a.FeaturedOrder, &a.WebsiteURL, &a.GithubURL, &a.IconURL, &a.DiscoveredIconURL, &a.BannerURL,
 		&mediaJSON, &socialsJSON, &a.DomainReachable, &a.DomainCheckedAt, &a.SubmitterContact, &a.CreatedAt, &a.UpdatedAt,
 		&a.OwnerWalletAddresses, &a.AvgRating, &a.ReviewCount)
 	if err != nil {
@@ -156,6 +157,16 @@ func (s *server) listApps(w http.ResponseWriter, r *http.Request) {
 	arg := func(v any) string {
 		args = append(args, v)
 		return "$" + strconv.Itoa(len(args))
+	}
+	competitionCycle, withoutCompetitionCycle, err := parseCompetitionCycleFilter(q.Get("competition_cycle"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if withoutCompetitionCycle {
+		where = append(where, "competition_cycle IS NULL")
+	} else if competitionCycle != nil {
+		where = append(where, "competition_cycle = "+arg(*competitionCycle))
 	}
 	if v := q.Get("q"); v != "" {
 		p := arg("%" + v + "%")
@@ -281,6 +292,20 @@ func (s *server) listApps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, apps)
+}
+
+func parseCompetitionCycleFilter(raw string) (cycle *int, withoutCycle bool, err error) {
+	if raw == "" {
+		return nil, false, nil
+	}
+	if raw == "none" {
+		return nil, true, nil
+	}
+	value, parseErr := strconv.Atoi(raw)
+	if parseErr != nil || value < 1 {
+		return nil, false, errors.New("competition_cycle must be a positive integer or none")
+	}
+	return &value, false, nil
 }
 
 func (s *server) fetchApp(r *http.Request, slug string) (App, error) {
@@ -542,13 +567,13 @@ func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force f
 	}
 	insertSQL := `
 		INSERT INTO apps (slug, name, domain, category, developer_slug, developer_name, tagline,
-			description, long_description, tags, assets, reward_assets, status, release_stage, featured, featured_order,
+			description, long_description, tags, assets, reward_assets, competition_cycle, status, release_stage, featured, featured_order,
 			website_url, github_url, icon_url, banner_url, media, socials, submitter_contact)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
 		RETURNING ` + appColumns
 	insertArgs := []any{
 		a.Slug, a.Name, a.Domain, a.Category, a.DeveloperSlug, a.DeveloperName, a.Tagline,
-		a.Description, a.LongDescription, a.Tags, a.Assets, a.RewardAssets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
+		a.Description, a.LongDescription, a.Tags, a.Assets, a.RewardAssets, a.CompetitionCycle, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
 		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact,
 	}
 
@@ -648,12 +673,12 @@ func (s *server) updateApp(w http.ResponseWriter, r *http.Request) {
 	a, err = scanApp(s.pool.QueryRow(r.Context(), `
 		UPDATE apps SET slug=$1, name=$2, domain=$3, category=$4, developer_slug=$5,
 			developer_name=$6, tagline=$7, description=$8, long_description=$9, tags=$10, assets=$11, reward_assets=$12,
-			status=$13, release_stage=$14, featured=$15, featured_order=$16, website_url=$17, github_url=$18,
-			icon_url=$19, banner_url=$20, media=$21, socials=$22, submitter_contact=$23, updated_at=now()
-		WHERE id=$24
+			competition_cycle=$13, status=$14, release_stage=$15, featured=$16, featured_order=$17, website_url=$18, github_url=$19,
+			icon_url=$20, banner_url=$21, media=$22, socials=$23, submitter_contact=$24, updated_at=now()
+		WHERE id=$25
 		RETURNING `+appColumns,
 		a.Slug, a.Name, a.Domain, a.Category, a.DeveloperSlug, a.DeveloperName, a.Tagline,
-		a.Description, a.LongDescription, a.Tags, a.Assets, a.RewardAssets, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
+		a.Description, a.LongDescription, a.Tags, a.Assets, a.RewardAssets, a.CompetitionCycle, a.Status, a.ReleaseStage, a.Featured, a.FeaturedOrder,
 		a.WebsiteURL, a.GithubURL, a.IconURL, a.BannerURL, mediaJSON, socialsJSON, a.SubmitterContact, a.ID))
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -679,4 +704,3 @@ func (s *server) deleteApp(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
-

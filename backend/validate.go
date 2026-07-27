@@ -141,6 +141,9 @@ func validateApp(a *App) error {
 			problems = append(problems, "reward asset "+asset+" is not one of: "+strings.Join(validAssets, ", "))
 		}
 	}
+	if a.CompetitionCycle != nil && *a.CompetitionCycle < 1 {
+		problems = append(problems, "competition_cycle must be a positive integer")
+	}
 	if a.Description == "" {
 		a.Description = a.Tagline // description NOT NULL; fall back to tagline
 	}

@@ -11,34 +11,35 @@ import (
 )
 
 type AppRevision struct {
-	ID              string       `json:"id"`
-	AppSlug         string       `json:"app_slug"`
-	Status          string       `json:"status"`
-	Name            string       `json:"name"`
-	Domain          string       `json:"domain"`
-	Category        string       `json:"category"`
-	DeveloperSlug   string       `json:"developer_slug"`
-	DeveloperName   string       `json:"developer_name"`
-	Tagline         string       `json:"tagline"`
-	Description     string       `json:"description"`
-	LongDescription string       `json:"long_description"`
-	Tags            []string     `json:"tags"`
-	Assets          []string     `json:"assets"`
-	RewardAssets    []string     `json:"reward_assets"`
-	ReleaseStage    string       `json:"release_stage"`
-	WebsiteURL      *string      `json:"website_url"`
-	GithubURL       *string      `json:"github_url"`
-	IconURL         *string      `json:"icon_url"`
-	BannerURL       *string      `json:"banner_url"`
-	Media           []MediaItem  `json:"media"`
-	Socials         []SocialLink `json:"socials"`
-	AuthorNote      string       `json:"author_note"`
-	CreatedAt       time.Time    `json:"created_at"`
-	ReviewedAt      *time.Time   `json:"reviewed_at"`
+	ID               string       `json:"id"`
+	AppSlug          string       `json:"app_slug"`
+	Status           string       `json:"status"`
+	Name             string       `json:"name"`
+	Domain           string       `json:"domain"`
+	Category         string       `json:"category"`
+	DeveloperSlug    string       `json:"developer_slug"`
+	DeveloperName    string       `json:"developer_name"`
+	Tagline          string       `json:"tagline"`
+	Description      string       `json:"description"`
+	LongDescription  string       `json:"long_description"`
+	Tags             []string     `json:"tags"`
+	Assets           []string     `json:"assets"`
+	RewardAssets     []string     `json:"reward_assets"`
+	CompetitionCycle *int         `json:"competition_cycle"`
+	ReleaseStage     string       `json:"release_stage"`
+	WebsiteURL       *string      `json:"website_url"`
+	GithubURL        *string      `json:"github_url"`
+	IconURL          *string      `json:"icon_url"`
+	BannerURL        *string      `json:"banner_url"`
+	Media            []MediaItem  `json:"media"`
+	Socials          []SocialLink `json:"socials"`
+	AuthorNote       string       `json:"author_note"`
+	CreatedAt        time.Time    `json:"created_at"`
+	ReviewedAt       *time.Time   `json:"reviewed_at"`
 }
 
 const revisionColumns = `id, app_slug, status, name, domain, category, developer_slug, developer_name,
-	tagline, description, long_description, tags, assets, reward_assets, release_stage,
+	tagline, description, long_description, tags, assets, reward_assets, competition_cycle, release_stage,
 	website_url, github_url, icon_url, banner_url, media, socials, author_note, created_at, reviewed_at`
 
 func scanRevision(row pgx.Row) (AppRevision, error) {
@@ -46,7 +47,7 @@ func scanRevision(row pgx.Row) (AppRevision, error) {
 	var mediaJSON, socialsJSON []byte
 	err := row.Scan(&rev.ID, &rev.AppSlug, &rev.Status, &rev.Name, &rev.Domain, &rev.Category,
 		&rev.DeveloperSlug, &rev.DeveloperName, &rev.Tagline, &rev.Description, &rev.LongDescription,
-		&rev.Tags, &rev.Assets, &rev.RewardAssets, &rev.ReleaseStage, &rev.WebsiteURL, &rev.GithubURL, &rev.IconURL,
+		&rev.Tags, &rev.Assets, &rev.RewardAssets, &rev.CompetitionCycle, &rev.ReleaseStage, &rev.WebsiteURL, &rev.GithubURL, &rev.IconURL,
 		&rev.BannerURL, &mediaJSON, &socialsJSON, &rev.AuthorNote, &rev.CreatedAt, &rev.ReviewedAt)
 	if err != nil {
 		return rev, err
@@ -83,6 +84,7 @@ func revisionToApp(rev AppRevision, keep App) App {
 	a.Tags = rev.Tags
 	a.Assets = rev.Assets
 	a.RewardAssets = rev.RewardAssets
+	a.CompetitionCycle = rev.CompetitionCycle
 	a.ReleaseStage = rev.ReleaseStage
 	a.WebsiteURL = rev.WebsiteURL
 	a.GithubURL = rev.GithubURL
@@ -185,12 +187,12 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, addres
 	rev, err := scanRevision(s.pool.QueryRow(r.Context(), `
 		INSERT INTO app_revisions (
 			app_slug, name, domain, category, developer_slug, developer_name, tagline,
-			description, long_description, tags, assets, reward_assets, release_stage,
+			description, long_description, tags, assets, reward_assets, competition_cycle, release_stage,
 			website_url, github_url, icon_url, banner_url, media, socials, author_note)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
 		RETURNING `+revisionColumns,
 		slug, body.Name, body.Domain, body.Category, current.DeveloperSlug, current.DeveloperName,
-		body.Tagline, body.Description, body.LongDescription, body.Tags, body.Assets, body.RewardAssets, body.ReleaseStage,
+		body.Tagline, body.Description, body.LongDescription, body.Tags, body.Assets, body.RewardAssets, body.CompetitionCycle, body.ReleaseStage,
 		body.WebsiteURL, body.GithubURL, body.IconURL, body.BannerURL, mediaJSON, socialsJSON, body.AuthorNote))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -295,14 +297,14 @@ func (s *server) approveRevision(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	app, err := scanApp(tx.QueryRow(ctx, `
 		UPDATE apps SET name=$1, domain=$2, category=$3, developer_slug=$4, developer_name=$5,
-			tagline=$6, description=$7, long_description=$8, tags=$9, assets=$10, reward_assets=$11, release_stage=$12,
-			website_url=$13, github_url=$14, icon_url=$15, banner_url=$16, media=$17, socials=$18,
-			domain_reachable=$19, domain_checked_at=$20, updated_at=now()
-		WHERE id=$21
+			tagline=$6, description=$7, long_description=$8, tags=$9, assets=$10, reward_assets=$11, competition_cycle=$12,
+			release_stage=$13, website_url=$14, github_url=$15, icon_url=$16, banner_url=$17, media=$18, socials=$19,
+			domain_reachable=$20, domain_checked_at=$21, updated_at=now()
+		WHERE id=$22
 		RETURNING `+appColumns,
 		updated.Name, updated.Domain, updated.Category, updated.DeveloperSlug, updated.DeveloperName,
 		updated.Tagline, updated.Description, updated.LongDescription, updated.Tags, updated.Assets,
-		updated.RewardAssets, updated.ReleaseStage, updated.WebsiteURL, updated.GithubURL, updated.IconURL, updated.BannerURL,
+		updated.RewardAssets, updated.CompetitionCycle, updated.ReleaseStage, updated.WebsiteURL, updated.GithubURL, updated.IconURL, updated.BannerURL,
 		mediaJSON, socialsJSON, updated.DomainReachable, updated.DomainCheckedAt, updated.ID))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

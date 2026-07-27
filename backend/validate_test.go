@@ -28,6 +28,13 @@ func TestValidateApp(t *testing.T) {
 		t.Fatalf("valid reward assets rejected: %v", err)
 	}
 
+	cycleOne := 1
+	a = valid()
+	a.CompetitionCycle = &cycleOne
+	if err := validateApp(&a); err != nil {
+		t.Fatalf("valid competition cycle rejected: %v", err)
+	}
+
 	a = valid()
 	a.Domain = "  HTTPS://my.app/path/  "
 	if err := validateApp(&a); err != nil {
@@ -38,14 +45,22 @@ func TestValidateApp(t *testing.T) {
 	}
 
 	bad := map[string]func(*App){
-		"uppercase slug":      func(a *App) { a.Slug = "MyApp" },
-		"empty slug":          func(a *App) { a.Slug = "" },
-		"empty name":          func(a *App) { a.Name = "" },
-		"bad category":        func(a *App) { a.Category = "Whatever" },
-		"bad status":          func(a *App) { a.Status = "published" },
-		"bad release stage":   func(a *App) { a.ReleaseStage = "preview" },
-		"bad asset":           func(a *App) { a.Assets = []string{"DOGE"} },
-		"bad reward asset":    func(a *App) { a.RewardAssets = []string{"DOGE"} },
+		"uppercase slug":    func(a *App) { a.Slug = "MyApp" },
+		"empty slug":        func(a *App) { a.Slug = "" },
+		"empty name":        func(a *App) { a.Name = "" },
+		"bad category":      func(a *App) { a.Category = "Whatever" },
+		"bad status":        func(a *App) { a.Status = "published" },
+		"bad release stage": func(a *App) { a.ReleaseStage = "preview" },
+		"bad asset":         func(a *App) { a.Assets = []string{"DOGE"} },
+		"bad reward asset":  func(a *App) { a.RewardAssets = []string{"DOGE"} },
+		"zero competition cycle": func(a *App) {
+			cycle := 0
+			a.CompetitionCycle = &cycle
+		},
+		"negative competition cycle": func(a *App) {
+			cycle := -1
+			a.CompetitionCycle = &cycle
+		},
 		"bad website url":     func(a *App) { u := "not-a-url"; a.WebsiteURL = &u },
 		"bad icon url":        func(a *App) { u := "ftp://bad"; a.IconURL = &u },
 		"bad social":          func(a *App) { a.Socials = []SocialLink{{Platform: "twitter", URL: "not-a-url"}} },
