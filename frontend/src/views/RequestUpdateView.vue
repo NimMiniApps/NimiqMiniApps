@@ -9,6 +9,7 @@ import SocialLinksEditor from '../components/SocialLinksEditor.vue'
 import MediaEditor from '../components/MediaEditor.vue'
 import TokenMultiSelect from '../components/TokenMultiSelect.vue'
 import { normalizeDomain } from '../utils/domain'
+import { normalizeCompetitionCycle } from '../utils/competition'
 
 const route = useRoute()
 const socialEditor = ref<InstanceType<typeof SocialLinksEditor>>()
@@ -27,6 +28,7 @@ const updatePending = ref(false)
 const form = reactive({
   name: '', domain: '', category: '',
   tagline: '', description: '', long_description: '', release_stage: 'released', tags: '', assets: 'NIM', reward_assets: '',
+  competition_cycle: '' as number | '',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
   author_note: '',
 })
@@ -55,6 +57,7 @@ async function load(slugParam: string) {
       tags: app.tags.join(', '),
       assets: app.assets.join(', '),
       reward_assets: app.reward_assets.join(', '),
+      competition_cycle: app.competition_cycle ?? '',
       icon_url: app.icon_url || '',
       banner_url: app.banner_url || '',
       website_url: app.website_url || '',
@@ -86,6 +89,7 @@ async function submit() {
       tags: csv(form.tags),
       assets: csv(form.assets),
       reward_assets: csv(form.reward_assets),
+      competition_cycle: normalizeCompetitionCycle(form.competition_cycle),
       media: mediaEditor.value?.validate() ?? [],
       socials: socialEditor.value?.validate() ?? [],
       icon_url: form.icon_url || null,
@@ -190,6 +194,18 @@ const fields: [keyof typeof form, string, boolean, string?][] = [
             <select v-model="form.release_stage" class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2">
               <option v-for="stage in APP_RELEASE_STAGES" :key="stage" :value="stage">{{ stage }}</option>
             </select>
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block font-semibold text-muted">Competition cycle</span>
+            <input
+              v-model.number="form.competition_cycle"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="Not a competition entry"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none placeholder:text-muted/60 focus:border-accent"
+            />
+            <span class="mt-1 block text-xs leading-snug text-muted">Leave empty if this app is not a competition entry.</span>
           </label>
         </div>
         <label class="block text-sm">

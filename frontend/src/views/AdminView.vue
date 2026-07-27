@@ -14,6 +14,7 @@ import { formatMediaLines, parseMediaLines } from '../utils/media'
 import { formatSocialLines, parseSocialLines } from '../utils/socials'
 import { diffRevision } from '../utils/revisionDiff'
 import { normalizeDomain } from '../utils/domain'
+import { normalizeCompetitionCycle } from '../utils/competition'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,6 +59,7 @@ const sortedApps = computed(() => {
 const emptyForm = {
   slug: '', name: '', domain: '', category: '', developer_slug: '', developer_name: '',
   tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', reward_assets: '', status: 'submitted',
+  competition_cycle: '' as number | '',
   release_stage: 'released', featured: false, featured_order: 0,
   website_url: '', github_url: '', icon_url: '', banner_url: '', media: '', socials: '',
   submitter_contact: '',
@@ -175,6 +177,7 @@ function startEdit(app: App) {
     developer_slug: app.developer_slug, developer_name: app.developer_name,
     tagline: app.tagline, description: app.description, long_description: app.long_description || '',
     tags: app.tags.join(', '), assets: app.assets.join(', '), reward_assets: app.reward_assets.join(', '),
+    competition_cycle: app.competition_cycle ?? '',
     status: app.status, release_stage: app.release_stage, featured: app.featured,
     featured_order: app.featured_order ?? 0,
     website_url: app.website_url || '', github_url: app.github_url || '',
@@ -201,6 +204,7 @@ async function submit() {
     tags: csv(form.tags),
     assets: csv(form.assets),
     reward_assets: csv(form.reward_assets),
+    competition_cycle: normalizeCompetitionCycle(form.competition_cycle),
     media: parseMediaLines(form.media),
     socials: parseSocialLines(form.socials),
     website_url: form.website_url || null,
@@ -523,6 +527,18 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
           <select v-model="form.release_stage" class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2">
             <option v-for="stage in APP_RELEASE_STAGES" :key="stage" :value="stage">{{ stage }}</option>
           </select>
+        </label>
+        <label class="text-sm">
+          <span class="mb-1 block text-muted">Competition cycle</span>
+          <input
+            v-model.number="form.competition_cycle"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Not a competition entry"
+            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none placeholder:text-muted/60 focus:border-accent"
+          />
+          <span class="mt-1 block text-xs text-muted">Positive cycle number; leave empty for regular catalog apps.</span>
         </label>
         <label class="flex items-end gap-2 pb-2 text-sm">
           <input v-model="form.featured" type="checkbox" class="h-4 w-4 accent-[#1F74FF]" />

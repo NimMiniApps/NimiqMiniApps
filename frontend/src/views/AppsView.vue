@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { listAppsPaginated, listCategories, listDevelopers, type App, type Category, type DeveloperSummary } from '../api'
+import { listApps, listAppsPaginated, listCategories, listDevelopers, type App, type Category, type DeveloperSummary } from '../api'
 import AppCard from '../components/AppCard.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { useI18n } from '../composables/useI18n'
@@ -9,6 +9,7 @@ import { useWalletAuth } from '../composables/useWalletAuth'
 import { walletOwnsApp } from '../utils/wallet'
 import { setPageMeta, resetPageMeta } from '../utils/meta'
 import { nimConnectPublicUrl, resolveNimConnectHandle } from '../utils/nimconnect'
+import { competitionCycleLabel, competitionCycleValues, normalizeCompetitionCycle, normalizeCompetitionCycleFilter } from '../utils/competition'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,12 +24,14 @@ const developer = ref((route.query.developer as string) || '')
 const collection = ref((route.query.collection as string) || '')
 const tag = ref((route.query.tag as string) || '')
 const asset = ref((route.query.asset as string) || '')
+const competitionCycle = ref(normalizeCompetitionCycleFilter(route.query.competition_cycle))
 const sort = ref((route.query.sort as string) || 'featured')
 const error = ref('')
 const loading = ref(true)
 const loadingMore = ref(false)
 const total = ref(0)
 const nimConnectHandle = ref<string | null>(null)
+const representedCompetitionCycles = ref<number[]>([])
 const PAGE_SIZE = 20
 
 const nimConnectUrl = computed(() =>
@@ -36,6 +39,12 @@ const nimConnectUrl = computed(() =>
 )
 
 const hasMore = computed(() => apps.value.length < total.value)
+const competitionCycleOptions = computed(() => {
+  const options = [...representedCompetitionCycles.value]
+  const selected = normalizeCompetitionCycle(competitionCycle.value)
+  if (selected !== null && !options.includes(selected)) options.push(selected)
+  return options.sort((left, right) => left - right)
+})
 
 const collectionLabels = computed<Record<string, string>>(() => ({
   'new-week': t('collections.newWeek'),
@@ -53,6 +62,14 @@ const activeFilter = computed(() => {
   if (collection.value) return { type: t('apps.filterCollection'), value: collectionLabels.value[collection.value] || collection.value }
   if (tag.value) return { type: t('apps.filterTag'), value: tag.value }
   if (asset.value) return { type: t('apps.filterAsset'), value: asset.value }
+  if (competitionCycle.value) {
+    return {
+      type: t('apps.filterCompetitionCycle'),
+      value: competitionCycle.value === 'none'
+        ? t('apps.notCompetitionEntry')
+        : competitionCycleLabel(Number(competitionCycle.value)),
+    }
+  }
   return null
 })
 
@@ -69,7 +86,7 @@ const pageTitle = computed(() =>
 )
 
 const hasFilters = computed(() =>
-  !!(q.value.trim() || category.value || developer.value || collection.value || tag.value || asset.value),
+  !!(q.value.trim() || category.value || developer.value || collection.value || tag.value || asset.value || competitionCycle.value),
 )
 
 const emptyDescription = computed(() => {
@@ -86,6 +103,7 @@ function listParams(offset: number) {
     collection: collection.value,
     tag: tag.value,
     asset: asset.value,
+    competition_cycle: competitionCycle.value,
     sort: sort.value,
     limit: String(PAGE_SIZE),
     offset: String(offset),
@@ -125,6 +143,7 @@ function clearFilter() {
   collection.value = ''
   tag.value = ''
   asset.value = ''
+  competitionCycle.value = ''
   developer.value = ''
 }
 
@@ -144,6 +163,7 @@ function syncQuery() {
       ...(collection.value ? { collection: collection.value } : {}),
       ...(tag.value ? { tag: tag.value } : {}),
       ...(asset.value ? { asset: asset.value } : {}),
+      ...(competitionCycle.value ? { competition_cycle: competitionCycle.value } : {}),
       ...(sort.value !== 'featured' ? { sort: sort.value } : {}),
     },
   })
@@ -151,7 +171,7 @@ function syncQuery() {
 
 let timer: ReturnType<typeof setTimeout>
 watch(q, () => { clearTimeout(timer); timer = setTimeout(() => { syncQuery(); load(true) }, 250) })
-watch([category, sort, tag, asset, collection, developer], () => { syncQuery(); load(true) })
+watch([category, sort, tag, asset, competitionCycle, collection, developer], () => { syncQuery(); load(true) })
 
 watch(() => route.query, (query) => {
   const nextQ = (query.q as string) || ''
@@ -160,6 +180,7 @@ watch(() => route.query, (query) => {
   const nextCollection = (query.collection as string) || ''
   const nextTag = (query.tag as string) || ''
   const nextAsset = (query.asset as string) || ''
+  const nextCompetitionCycle = normalizeCompetitionCycleFilter(query.competition_cycle)
   const nextSort = (query.sort as string) || 'featured'
   const changed =
     q.value !== nextQ ||
@@ -168,6 +189,7 @@ watch(() => route.query, (query) => {
     collection.value !== nextCollection ||
     tag.value !== nextTag ||
     asset.value !== nextAsset ||
+    competitionCycle.value !== nextCompetitionCycle ||
     sort.value !== nextSort
   q.value = nextQ
   category.value = nextCategory
@@ -175,6 +197,7 @@ watch(() => route.query, (query) => {
   collection.value = nextCollection
   tag.value = nextTag
   asset.value = nextAsset
+  competitionCycle.value = nextCompetitionCycle
   sort.value = nextSort
   if (changed) load(true)
 })
@@ -206,10 +229,14 @@ watch(
 onMounted(async () => {
   load(true)
   try {
-    ;[categories.value, developers.value] = await Promise.all([
+    const [loadedCategories, loadedDevelopers, catalogApps] = await Promise.all([
       listCategories(),
       listDevelopers(),
+      listApps(),
     ])
+    categories.value = loadedCategories
+    developers.value = loadedDevelopers
+    representedCompetitionCycles.value = competitionCycleValues(catalogApps)
   } catch { /* filters stay empty */ }
 })
 </script>
@@ -252,6 +279,11 @@ onMounted(async () => {
         <select v-model="developer" class="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-3 py-2.5">
           <option value="">{{ t('apps.allDevelopers') }}</option>
           <option v-for="d in developers" :key="d.slug" :value="d.slug">{{ d.name }} ({{ d.app_count }})</option>
+        </select>
+        <select v-model="competitionCycle" class="flex-1 cursor-pointer rounded-xl border border-line bg-surface px-3 py-2.5">
+          <option value="">{{ t('apps.allCompetitionCycles') }}</option>
+          <option value="none">{{ t('apps.notCompetitionEntry') }}</option>
+          <option v-for="cycle in competitionCycleOptions" :key="cycle" :value="String(cycle)">{{ competitionCycleLabel(cycle) }}</option>
         </select>
         <select v-model="sort" class="cursor-pointer rounded-xl border border-line bg-surface px-3 py-2.5">
           <option value="featured">{{ t('apps.sortFeatured') }}</option>

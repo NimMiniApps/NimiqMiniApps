@@ -47,7 +47,10 @@ export type MessageTree = {
     filterTag: string
     filterAsset: string
     filterDeveloper: string
+    filterCompetitionCycle: string
     allDevelopers: string
+    allCompetitionCycles: string
+    notCompetitionEntry: string
     developerTitle: string
     developerMeta: string
     emptyTitle: string
@@ -206,7 +209,10 @@ const en: MessageTree = {
     filterTag: 'tag',
     filterAsset: 'asset',
     filterDeveloper: 'developer',
+    filterCompetitionCycle: 'competition cycle',
     allDevelopers: 'All developers',
+    allCompetitionCycles: 'All competition cycles',
+    notCompetitionEntry: 'Not a competition entry',
     developerTitle: 'Apps by {name}',
     developerMeta: '{count} app(s) by {name}',
     emptyTitle: 'No apps here yet',
@@ -343,7 +349,10 @@ const de: MessageTree = {
     filterTag: 'Tag',
     filterAsset: 'Asset',
     filterDeveloper: 'Entwickler',
+    filterCompetitionCycle: 'Wettbewerbszyklus',
     allDevelopers: 'Alle Entwickler',
+    allCompetitionCycles: 'Alle Wettbewerbszyklen',
+    notCompetitionEntry: 'Kein Wettbewerbseintrag',
     developerTitle: 'Apps von {name}',
     developerMeta: '{count} App(s) von {name}',
     emptyTitle: 'Noch keine Apps',
@@ -427,7 +436,10 @@ const es: MessageTree = {
     filterTag: 'etiqueta',
     filterAsset: 'activo',
     filterDeveloper: 'desarrollador',
+    filterCompetitionCycle: 'ciclo de competición',
     allDevelopers: 'Todos los desarrolladores',
+    allCompetitionCycles: 'Todos los ciclos',
+    notCompetitionEntry: 'No participa en la competición',
     developerTitle: 'Apps de {name}',
     developerMeta: '{count} app(s) de {name}',
     emptyTitle: 'Aún no hay apps',
@@ -511,7 +523,10 @@ const fr: MessageTree = {
     filterTag: 'tag',
     filterAsset: 'actif',
     filterDeveloper: 'développeur',
+    filterCompetitionCycle: 'cycle du concours',
     allDevelopers: 'Tous les développeurs',
+    allCompetitionCycles: 'Tous les cycles',
+    notCompetitionEntry: 'Hors concours',
     developerTitle: 'Apps de {name}',
     developerMeta: '{count} app(s) par {name}',
     emptyTitle: 'Aucune app ici',
@@ -595,7 +610,10 @@ const pt: MessageTree = {
     filterTag: 'tag',
     filterAsset: 'ativo',
     filterDeveloper: 'desenvolvedor',
+    filterCompetitionCycle: 'ciclo da competição',
     allDevelopers: 'Todos os desenvolvedores',
+    allCompetitionCycles: 'Todos os ciclos',
+    notCompetitionEntry: 'Fora da competição',
     developerTitle: 'Apps de {name}',
     developerMeta: '{count} app(s) de {name}',
     emptyTitle: 'Nenhum app aqui ainda',

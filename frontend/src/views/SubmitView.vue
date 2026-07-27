@@ -8,6 +8,7 @@ import TokenMultiSelect from '../components/TokenMultiSelect.vue'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { CATALOG_ISSUES_URL } from '../utils/catalogLinks'
 import { normalizeDomain } from '../utils/domain'
+import { normalizeCompetitionCycle } from '../utils/competition'
 
 const { walletAddress, displayName, checking } = useWalletAuth()
 
@@ -19,6 +20,7 @@ const media = ref<MediaItem[]>([])
 const form = reactive({
   name: '', slug: '', domain: '', category: '',
   tagline: '', description: '', long_description: '', release_stage: 'beta', tags: '', assets: 'NIM', reward_assets: '',
+  competition_cycle: '' as number | '',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
   submitter_contact: '',
 })
@@ -48,6 +50,7 @@ async function submit() {
       tags: csv(form.tags),
       assets: csv(form.assets),
       reward_assets: csv(form.reward_assets),
+      competition_cycle: normalizeCompetitionCycle(form.competition_cycle),
       media: mediaEditor.value?.validate() ?? [],
       socials: socialEditor.value?.validate() ?? [],
       icon_url: form.icon_url || null,
@@ -143,6 +146,18 @@ const fields: [keyof typeof form, string, boolean, string, string?][] = [
                 class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 focus:border-accent">
                 <option v-for="stage in APP_RELEASE_STAGES" :key="stage" :value="stage">{{ stage }}</option>
               </select>
+            </label>
+            <label class="text-sm">
+              <span class="mb-1 block font-semibold text-muted">Competition cycle</span>
+              <input
+                v-model.number="form.competition_cycle"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Not a competition entry"
+                class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"
+              />
+              <span class="mt-1 block text-xs leading-snug text-muted">Enter the Nimiq Mini Apps competition cycle, such as 1. Leave empty for regular catalog apps.</span>
             </label>
           </div>
           <label class="block text-sm">
