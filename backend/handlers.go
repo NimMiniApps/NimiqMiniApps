@@ -487,8 +487,8 @@ func scanAdminApp(row pgx.Row) (App, error) {
 	var a App
 	var mediaJSON, socialsJSON []byte
 	err := row.Scan(&a.ID, &a.Slug, &a.Name, &a.Domain, &a.Category, &a.DeveloperSlug,
-		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.RewardAssets, &a.Status,
-		&a.ReleaseStage, &a.Featured, &a.FeaturedOrder, &a.WebsiteURL, &a.GithubURL, &a.IconURL, &a.DiscoveredIconURL, &a.BannerURL,
+		&a.DeveloperName, &a.Tagline, &a.Description, &a.LongDescription, &a.Tags, &a.Assets, &a.RewardAssets, &a.CompetitionCycle,
+		&a.Status, &a.ReleaseStage, &a.Featured, &a.FeaturedOrder, &a.WebsiteURL, &a.GithubURL, &a.IconURL, &a.DiscoveredIconURL, &a.BannerURL,
 		&mediaJSON, &socialsJSON, &a.DomainReachable, &a.DomainCheckedAt, &a.SubmitterContact, &a.CreatedAt, &a.UpdatedAt,
 		&a.OwnerWalletAddresses, &a.AvgRating, &a.ReviewCount, &a.TotalOpens, &a.TotalViews)
 	if err != nil {
