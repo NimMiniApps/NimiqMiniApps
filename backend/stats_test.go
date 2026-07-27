@@ -150,6 +150,14 @@ func TestOwnerOrAdminAuth(t *testing.T) {
 	slug := "stats-auth-" + time.Now().Format("150405")
 
 	ctx := context.Background()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO users (wallet_address, display_name) VALUES ($1, 'Stats Owner')`, ownerWallet); err != nil {
+		t.Fatalf("insert owner user: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE wallet_address=$1`, ownerWallet)
+	})
+
 	var appID string
 	err := pool.QueryRow(ctx, `
 		INSERT INTO apps (slug, name, domain, category, developer_slug, developer_name, tagline, description, status)
