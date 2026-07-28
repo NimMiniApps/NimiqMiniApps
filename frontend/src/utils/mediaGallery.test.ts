@@ -34,4 +34,8 @@ describe('MediaGallery controls', () => {
   it('keeps navigation controls out of the featured media viewport', () => {
     expect(mediaGallery).not.toMatch(/<div class="relative overflow-hidden[^>]*>[\s\S]*?absolute left-3/)
   })
+
+  it('insets thumbnail previews inside their selected frame', () => {
+    expect(mediaGallery).toMatch(/class="[^"]*h-16[^"]*p-1/)
+  })
 })

@@ -72,7 +72,7 @@ function moveSelection(direction: 'previous' | 'next') {
           v-for="(item, index) in props.items"
           :key="`${item.type}-${item.url}-${index}`"
           type="button"
-          class="relative h-16 w-24 shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-slate-950 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          class="relative h-16 w-24 shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-slate-950 p-1 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           :class="index === selectedIndex ? 'ring-2 ring-accent ring-offset-2 ring-offset-base' : 'hover:border-ink/40'"
           :aria-label="item.type === 'youtube' ? `Show video ${index + 1}` : `Show screenshot ${index + 1}`"
           :aria-current="index === selectedIndex ? 'true' : undefined"
@@ -84,9 +84,9 @@ function moveSelection(direction: 'previous' | 'next') {
             :src="item.url"
             :alt="`Screenshot ${index + 1} preview`"
             loading="lazy"
-            class="h-full w-full object-cover"
+            class="h-full w-full rounded-lg object-cover"
           />
-          <span v-else class="flex h-full w-full flex-col items-center justify-center gap-1 bg-slate-900 px-2 text-center text-xs font-semibold text-white">
+          <span v-else class="flex h-full w-full flex-col items-center justify-center gap-1 rounded-lg bg-slate-900 px-2 text-center text-xs font-semibold text-white">
             <svg viewBox="0 0 24 24" class="h-5 w-5 fill-current" aria-hidden="true">
               <path d="M8 5v14l11-7z" />
             </svg>
