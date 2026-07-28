@@ -39,6 +39,11 @@ describe('MediaGallery controls', () => {
     expect(mediaGallery).toMatch(/class="[^"]*h-16[^"]*p-1/)
   })
 
+  it('keeps the selected thumbnail highlight inside its frame', () => {
+    expect(mediaGallery).toContain("'ring-2 ring-inset ring-accent'")
+    expect(mediaGallery).not.toContain('ring-offset-2 ring-offset-base')
+  })
+
   it('keeps navigation controls adjacent to the thumbnail strip', () => {
     expect(mediaGallery).not.toContain('min-w-0 flex-1 snap-x')
   })

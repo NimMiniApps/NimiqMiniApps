@@ -73,7 +73,7 @@ function moveSelection(direction: 'previous' | 'next') {
           :key="`${item.type}-${item.url}-${index}`"
           type="button"
           class="relative h-16 w-24 shrink-0 snap-start overflow-hidden rounded-xl border border-line bg-slate-950 p-1 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          :class="index === selectedIndex ? 'ring-2 ring-accent ring-offset-2 ring-offset-base' : 'hover:border-ink/40'"
+          :class="index === selectedIndex ? 'ring-2 ring-inset ring-accent' : 'hover:border-ink/40'"
           :aria-label="item.type === 'youtube' ? `Show video ${index + 1}` : `Show screenshot ${index + 1}`"
           :aria-current="index === selectedIndex ? 'true' : undefined"
           :aria-pressed="index === selectedIndex"
