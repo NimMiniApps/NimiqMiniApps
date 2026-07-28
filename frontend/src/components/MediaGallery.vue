@@ -76,7 +76,7 @@ function moveSelection(direction: 'previous' | 'next') {
       </template>
     </div>
 
-    <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1" aria-label="Media thumbnails">
+    <div class="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1" role="group" aria-label="Media thumbnails">
       <button
         v-for="(item, index) in props.items"
         :key="`${item.type}-${item.url}-${index}`"

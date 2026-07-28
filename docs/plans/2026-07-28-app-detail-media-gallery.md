@@ -138,3 +138,5 @@ Expected: no whitespace errors, all tests pass, and production build succeeds.
 git add README.md docs/plans/2026-07-28-app-detail-media-gallery.md
 git commit -m "docs: describe app media gallery"
 ```
+
+**Completed (2026-07-28):** Documented the interactive submitted-media gallery in the README and refined thumbnail semantics with a labelled `group` role so its accessible name is exposed to assistive technology.
