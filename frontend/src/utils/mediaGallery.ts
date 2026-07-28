@@ -1,5 +1,14 @@
 export type GalleryDirection = 'previous' | 'next'
 
+export function orderMediaItems<T extends { type: 'youtube' | 'image' }>(
+  items: readonly T[],
+): T[] {
+  return [
+    ...items.filter((item) => item.type === 'youtube'),
+    ...items.filter((item) => item.type === 'image'),
+  ]
+}
+
 export function clampMediaIndex(index: number, itemCount: number): number {
   if (itemCount <= 0) return 0
   return Math.min(Math.max(index, 0), itemCount - 1)

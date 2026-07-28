@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { clampMediaIndex, moveMediaIndex } from './mediaGallery'
+import { clampMediaIndex, moveMediaIndex, orderMediaItems } from './mediaGallery'
 
 const mediaGallery = readFileSync(new URL('../components/MediaGallery.vue', import.meta.url), 'utf8')
 
@@ -30,7 +30,37 @@ describe('moveMediaIndex', () => {
   })
 })
 
+describe('orderMediaItems', () => {
+  it('puts videos first without changing order within each media type', () => {
+    const items = [
+      { type: 'image' as const, url: 'first-image' },
+      { type: 'youtube' as const, url: 'first-video' },
+      { type: 'image' as const, url: 'second-image' },
+      { type: 'youtube' as const, url: 'second-video' },
+    ]
+
+    expect(orderMediaItems(items).map((item) => item.url)).toEqual([
+      'first-video',
+      'second-video',
+      'first-image',
+      'second-image',
+    ])
+    expect(items.map((item) => item.url)).toEqual([
+      'first-image',
+      'first-video',
+      'second-image',
+      'second-video',
+    ])
+  })
+})
+
 describe('MediaGallery controls', () => {
+  it('renders and navigates the video-first media list', () => {
+    expect(mediaGallery).toContain('const orderedItems = computed(() => orderMediaItems(props.items))')
+    expect(mediaGallery).toContain('v-for="(item, index) in orderedItems"')
+    expect(mediaGallery).not.toContain('v-for="(item, index) in props.items"')
+  })
+
   it('keeps navigation controls out of the featured media viewport', () => {
     expect(mediaGallery).not.toMatch(/<div class="relative overflow-hidden[^>]*>[\s\S]*?absolute left-3/)
   })
@@ -46,5 +76,13 @@ describe('MediaGallery controls', () => {
 
   it('keeps navigation controls adjacent to the thumbnail strip', () => {
     expect(mediaGallery).not.toContain('min-w-0 flex-1 snap-x')
+  })
+
+  it('opens featured images in an accessible native dialog', () => {
+    expect(mediaGallery).toContain('ref="imageDialog"')
+    expect(mediaGallery).toContain('<dialog')
+    expect(mediaGallery).toContain('@click.self="closeImageDialog"')
+    expect(mediaGallery).toContain(':aria-label="`View screenshot ${selectedIndex + 1} full screen`"')
+    expect(mediaGallery).toContain('aria-label="Close full-screen image"')
   })
 })

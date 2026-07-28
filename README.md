@@ -46,7 +46,7 @@ LAN, and API examples.
 
 ## How it works
 
-- **Browse** — search, filter by category, rewards, or competition cycle, and view app details with submitted screenshots and videos in an interactive gallery. Competition entries carry a public `Cycle N` badge. Home highlights featured picks, trending (most viewed in the last 7 days), and curated collections. Every
+- **Browse** — search, filter by category, rewards, or competition cycle, and view app details in a video-first media gallery with full-screen screenshots. Competition entries carry a public `Cycle N` badge. Home highlights featured picks, trending (most viewed in the last 7 days), and curated collections. Every
   app gets an `Open in Nimiq Pay` link of the form `https://nimpay.app/miniapps/open/<domain>`.
   When an app’s first owner has a claimed NimConnect `@handle`, app detail and developer
   filter pages link to their public page at `https://nimconnect.nimiqminiapps.com/@handle`.
