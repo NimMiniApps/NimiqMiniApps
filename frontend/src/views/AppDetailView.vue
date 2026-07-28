@@ -169,7 +169,12 @@ onUnmounted(resetPageMeta)
 
     <DomainStatus :reachable="app.domain_reachable" variant="banner" />
 
-    <img v-if="app.banner_url" :src="app.banner_url" :alt="app.name" class="h-auto w-full rounded-2xl" />
+    <div
+      v-if="app.banner_url"
+      class="flex h-[clamp(12rem,35vw,28rem)] items-center justify-center overflow-hidden rounded-2xl border border-line bg-surface-2 p-3 sm:p-4"
+    >
+      <img :src="app.banner_url" :alt="app.name" class="h-full w-full object-contain" />
+    </div>
 
     <div class="flex items-start gap-4">
       <AppIcon :app="app" size="md" />
