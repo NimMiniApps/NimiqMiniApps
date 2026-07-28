@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { clampMediaIndex, moveMediaIndex } from './mediaGallery'
+
+const mediaGallery = readFileSync(new URL('../components/MediaGallery.vue', import.meta.url), 'utf8')
 
 describe('clampMediaIndex', () => {
   it('returns zero for an empty media list', () => {
@@ -24,5 +27,11 @@ describe('moveMediaIndex', () => {
 
   it('wraps to the first item when moving next from the final item', () => {
     expect(moveMediaIndex(2, 3, 'next')).toBe(0)
+  })
+})
+
+describe('MediaGallery controls', () => {
+  it('keeps navigation controls out of the featured media viewport', () => {
+    expect(mediaGallery).not.toMatch(/<div class="relative overflow-hidden[^>]*>[\s\S]*?absolute left-3/)
   })
 })
