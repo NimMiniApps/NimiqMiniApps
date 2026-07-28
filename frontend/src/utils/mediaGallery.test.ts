@@ -38,4 +38,8 @@ describe('MediaGallery controls', () => {
   it('insets thumbnail previews inside their selected frame', () => {
     expect(mediaGallery).toMatch(/class="[^"]*h-16[^"]*p-1/)
   })
+
+  it('keeps navigation controls adjacent to the thumbnail strip', () => {
+    expect(mediaGallery).not.toContain('min-w-0 flex-1 snap-x')
+  })
 })

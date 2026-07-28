@@ -54,7 +54,7 @@ function moveSelection(direction: 'previous' | 'next') {
 
     </div>
 
-    <div class="flex items-center gap-2">
+    <div class="flex items-center justify-center gap-2">
       <button
         v-if="props.items.length > 1"
         type="button"
@@ -67,7 +67,7 @@ function moveSelection(direction: 'previous' | 'next') {
         </svg>
       </button>
 
-      <div class="flex min-w-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto pb-1" role="group" aria-label="Media thumbnails">
+      <div class="flex max-w-[calc(100vw-8rem)] snap-x snap-mandatory gap-3 overflow-x-auto pb-1" role="group" aria-label="Media thumbnails">
         <button
           v-for="(item, index) in props.items"
           :key="`${item.type}-${item.url}-${index}`"
