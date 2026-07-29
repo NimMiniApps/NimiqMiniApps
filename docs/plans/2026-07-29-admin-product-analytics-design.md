@@ -51,13 +51,13 @@ The API transforms these values with a dedicated, stable `ANALYTICS_HASH_SECRET`
 
 Analytics stores no IP addresses, names, user-agent strings, referrers, raw wallet addresses, or arbitrary event metadata. Admin responses contain aggregate numbers only.
 
-Detailed pseudonymous events are retained for 90 days so the fixed 7-, 30-, and 90-day ranges can calculate exact funnels and unique counts. Daily aggregate totals are retained permanently. Compact first-seen and last-seen uniqueness records are retained so all-time unique visitor, wallet, and per-app numbers remain available without retaining detailed browsing history indefinitely.
+Detailed pseudonymous events are retained for 180 days so the fixed 7-, 30-, and 90-day ranges and their immediately preceding comparison windows can calculate exact funnels and unique counts. Daily aggregate totals are retained permanently. Compact first-seen and last-seen uniqueness records are retained so all-time unique visitor, wallet, and per-app numbers remain available without retaining detailed browsing history indefinitely.
 
 ## Data Model
 
 Introduce three related analytics stores:
 
-1. A short-lived event table containing the event time, strict event type, hashed visitor and session identifiers, optional server-generated wallet hash, and optional app ID.
+1. A 180-day event table containing the event time, strict event type, hashed visitor and session identifiers, optional server-generated wallet hash, and optional app ID.
 2. A permanent daily aggregate table keyed by day, event type, and optional app ID.
 3. A permanent compact uniqueness table keyed by subject kind, event type, optional app ID, and hash, with first-seen and last-seen timestamps.
 
