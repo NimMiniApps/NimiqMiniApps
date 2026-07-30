@@ -60,7 +60,13 @@ Agents submitting on a developer's behalf cannot complete wallet login themselve
 
 **After success:** track review at `GET /api/apps/{slug}/status` or `https://nimiqminiapps.com/status/{slug}`
 
-**App stats:** the frontend fires `POST /api/apps/{slug}/track` beacons (`open` / `view`). Owners read `GET /api/apps/{slug}/stats`; admins also see `total_opens` / `total_views` on `GET /api/admin/apps`.
+**App stats:** the frontend records privacy-minimal funnel events via `POST /api/analytics/events`
+(`catalog_visit`, `app_view`, `app_open`, `app_link_copy`). `app_view` is once per app per browser session;
+`app_open` / `app_link_copy` count every deliberate action (copy only after clipboard success).
+`wallet_login` is written only by successful `POST /api/auth/verify`. The legacy
+`POST /api/apps/{slug}/track` beacon remains for compatibility. Owners read `GET /api/apps/{slug}/stats`;
+admins also see `total_opens` / `total_views` on `GET /api/admin/apps` and aggregates on
+`GET /api/admin/analytics` / `/admin/analytics`.
 
 ### 4. Building the mini app itself
 
@@ -152,4 +158,5 @@ Keep edits short: one or two bullets or lines per change. Link to deeper docs (`
 | Public submit endpoint | `POST /api/apps/submit` |
 | Web submit form | `/submit` on the frontend |
 | Admin moderation | `/admin` + `Authorization: Bearer $ADMIN_TOKEN` |
+| Admin product analytics | `/admin/analytics` · `GET /api/admin/analytics` · `POST /api/analytics/events` |
 | README | Update when user/dev-facing behavior changes — see **Keep README.md up to date** |
