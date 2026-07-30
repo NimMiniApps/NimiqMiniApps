@@ -19,6 +19,33 @@ func newTestIdentifier(t *testing.T) string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
 
+func TestRecordAnalyticsEventRequiresHashSecret(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	t.Setenv("ANALYTICS_HASH_SECRET", "")
+
+	s := &server{pool: pool}
+	sessionID := newTestIdentifier(t)
+
+	_, err := s.recordAnalyticsEvent(ctx, analyticsEventInput{
+		EventType: analyticsCatalogVisit,
+		VisitorID: newTestIdentifier(t),
+		SessionID: sessionID,
+	})
+	if err == nil {
+		t.Fatal("want error when ANALYTICS_HASH_SECRET is unset")
+	}
+
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM analytics_events WHERE session_hash = $1`,
+		sessionID).Scan(&count); err != nil {
+		t.Fatalf("count query: %v", err)
+	}
+	if count != 0 {
+		t.Fatal("expected no rows inserted when the hash secret is unset")
+	}
+}
+
 func TestRecordAnalyticsEventHashesIdentifiers(t *testing.T) {
 	pool := testPool(t)
 	ctx := context.Background()

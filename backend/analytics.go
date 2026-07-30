@@ -32,6 +32,7 @@ type analyticsEventInput struct {
 var (
 	errInvalidAnalyticsIdentifier = errors.New("invalid analytics identifier")
 	errInvalidAnalyticsEvent      = errors.New("invalid analytics event")
+	errAnalyticsHashSecretUnset   = errors.New("ANALYTICS_HASH_SECRET is empty; analytics recording is disabled")
 )
 
 const maxAnalyticsIdentifierLen = 64
@@ -63,8 +64,16 @@ func hashAnalyticsIdentifier(secret, kind, value string) string {
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
-func analyticsHashSecret() string {
-	return env("ANALYTICS_HASH_SECRET", "dev-insecure-analytics-secret")
+// analyticsHashSecret returns the configured ANALYTICS_HASH_SECRET, or an
+// error if it is unset. There is no insecure default: like
+// WALLET_AUTH_SECRET, an empty secret means the feature is unavailable
+// rather than silently hashing with a known value.
+func analyticsHashSecret() (string, error) {
+	secret := env("ANALYTICS_HASH_SECRET", "")
+	if secret == "" {
+		return "", errAnalyticsHashSecretUnset
+	}
+	return secret, nil
 }
 
 // recordAnalyticsEvent validates and persists one analytics event, updating
@@ -99,12 +108,16 @@ func (s *server) recordAnalyticsEvent(ctx context.Context, input analyticsEventI
 		return false, errInvalidAnalyticsEvent
 	}
 
+	secret, err := analyticsHashSecret()
+	if err != nil {
+		return false, err
+	}
+
 	occurredAt := input.OccurredAt
 	if occurredAt.IsZero() {
 		occurredAt = time.Now().UTC()
 	}
 
-	secret := analyticsHashSecret()
 	visitorHash := hashAnalyticsIdentifier(secret, "visitor", input.VisitorID)
 	sessionHash := hashAnalyticsIdentifier(secret, "session", input.SessionID)
 
@@ -136,7 +149,7 @@ func (s *server) recordAnalyticsEvent(ctx context.Context, input analyticsEventI
 		return false, tx.Commit(ctx)
 	}
 
-	day := occurredAt.Format("2006-01-02")
+	day := occurredAt.UTC().Format("2006-01-02")
 
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO analytics_daily (day, event_type, app_id, total_events)
