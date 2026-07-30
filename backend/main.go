@@ -162,6 +162,7 @@ func main() {
 	}
 	s.startDomainHealthWorker(ctx)
 	s.startIconDiscoveryBackfill(ctx)
+	s.startAnalyticsRetentionWorker(ctx)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", s.health)
@@ -199,6 +200,7 @@ func main() {
 	mux.HandleFunc("POST /api/apps/{slug}/owners", walletAuthMiddleware(walletAuthSecret, s.addAppOwnerSelf))
 	mux.HandleFunc("DELETE /api/apps/{slug}/owners/{wallet}", walletAuthMiddleware(walletAuthSecret, s.removeAppOwnerSelf))
 	mux.HandleFunc("GET /api/admin/stats", s.adminAuth(s.adminStats))
+	mux.HandleFunc("GET /api/admin/analytics", s.adminAuth(s.adminAnalytics))
 	mux.HandleFunc("GET /api/admin/revisions", s.adminAuth(s.adminListRevisions))
 	mux.HandleFunc("POST /api/admin/revisions/{id}/approve", s.adminAuth(s.approveRevision))
 	mux.HandleFunc("POST /api/admin/revisions/{id}/reject", s.adminAuth(s.rejectRevision))
