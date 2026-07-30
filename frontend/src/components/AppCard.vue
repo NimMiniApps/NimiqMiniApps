@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { App } from '../api'
-import { trackAppEvent } from '../api'
+import { trackProductEvent } from '../utils/analytics'
 import { useIsMobileDevice } from '../utils/device'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { useFavorites } from '../composables/useFavorites'
@@ -35,7 +35,7 @@ const previewTags = computed(() => props.app.tags.slice(0, 3))
 const extraTagCount = computed(() => Math.max(0, props.app.tags.length - previewTags.value.length))
 
 function trackOpen() {
-  trackAppEvent(props.app.slug, 'open')
+  trackProductEvent('app_open', props.app.slug)
 }
 
 function onFavoriteClick() {

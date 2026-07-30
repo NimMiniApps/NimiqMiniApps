@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import App from './App.vue'
 import './style.css'
+import { trackCatalogVisit } from './utils/analytics'
 import { setPageMeta, resetPageMeta } from './utils/meta'
 
 const router = createRouter({
@@ -17,6 +18,7 @@ const router = createRouter({
     { path: '/build', component: () => import('./views/BuildView.vue'), meta: { title: 'Build a Mini App' } },
     { path: '/submit', component: () => import('./views/SubmitView.vue'), meta: { title: 'Submit Your App' } },
     { path: '/status/:slug', component: () => import('./views/StatusView.vue'), meta: { title: 'Submission Status' } },
+    { path: '/admin/analytics', component: () => import('./views/AdminAnalyticsView.vue'), meta: { title: 'Admin Analytics' } },
     { path: '/admin', component: () => import('./views/AdminView.vue'), meta: { title: 'Admin' } },
     { path: '/profile', component: () => import('./views/ProfileView.vue'), meta: { title: 'Profile' } },
     { path: '/my-apps', component: () => import('./views/MyAppsView.vue'), meta: { title: 'My Apps' } },
@@ -29,6 +31,9 @@ const router = createRouter({
 })
 
 router.afterEach((to) => {
+  if (!to.path.startsWith('/admin')) {
+    trackCatalogVisit()
+  }
   if (/^\/apps\/[^/]+$/.test(to.path) && !to.path.endsWith('/update')) return
   if (to.path === '/apps' && to.query.developer) return
   const title = typeof to.meta.title === 'string' ? to.meta.title : undefined

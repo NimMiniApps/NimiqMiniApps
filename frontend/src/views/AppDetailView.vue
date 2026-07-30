@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getApp, getRelatedApps, getSubmissionStatus, listAppReviews, trackAppEvent, type App, type AppReviewsResponse } from '../api'
+import { getApp, getRelatedApps, getSubmissionStatus, listAppReviews, type App, type AppReviewsResponse } from '../api'
+import { trackProductEvent } from '../utils/analytics'
 import AppCard from '../components/AppCard.vue'
 import AppBreadcrumb from '../components/AppBreadcrumb.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -81,7 +82,7 @@ async function loadApp(slug: string) {
       listAppReviews(slug).catch(() => ({ items: [], average: 0, count: 0 }) as AppReviewsResponse),
     ])
     app.value = loaded
-    trackAppEvent(slug, 'view')
+    trackProductEvent('app_view', slug)
     related.value = relatedApps
     reviewsData.value = reviews
   } catch (e) {
@@ -210,10 +211,10 @@ onUnmounted(resetPageMeta)
       <div class="flex flex-wrap items-center gap-2">
         <a v-if="isMobile" :href="openUrl" target="_blank" rel="noopener"
           class="inline-flex h-10 cursor-pointer items-center board-plate board-plate-primary px-5 text-sm"
-          @click="trackAppEvent(app.slug, 'open')">
+          @click="trackProductEvent('app_open', app.slug)">
           {{ t('appDetail.openInWallet') }}
         </a>
-        <ShareButton :title="app.name" />
+        <ShareButton :title="app.name" :app-slug="app.slug" />
         <LinkIconButton
           v-if="app.website_url"
           :href="app.website_url"
