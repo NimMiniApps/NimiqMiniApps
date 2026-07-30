@@ -648,9 +648,9 @@ func TestAdminAnalyticsReturnsRangeAndPreviousPeriod(t *testing.T) {
 	t.Setenv("ANALYTICS_HASH_SECRET", secret)
 	s := &server{pool: pool}
 
-	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
-	currentDay := time.Date(2026, 7, 29, 10, 0, 0, 0, time.UTC)
-	previousDay := time.Date(2026, 7, 22, 10, 0, 0, 0, time.UTC)
+	now := time.Date(2099, 1, 15, 12, 0, 0, 0, time.UTC)
+	currentDay := time.Date(2099, 1, 14, 10, 0, 0, 0, time.UTC)
+	previousDay := time.Date(2099, 1, 7, 10, 0, 0, 0, time.UTC)
 
 	visitors := []string{newTestIdentifier(t), newTestIdentifier(t), newTestIdentifier(t)}
 	for i, v := range visitors {
@@ -716,9 +716,17 @@ func TestAdminAnalyticsCalculatesUniqueVisitorFunnel(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM apps WHERE id=$1`, appID)
 	})
 
-	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
-	at := time.Date(2026, 7, 28, 10, 0, 0, 0, time.UTC)
+	now := time.Date(2099, 2, 15, 12, 0, 0, 0, time.UTC)
+	at := time.Date(2099, 2, 13, 10, 0, 0, 0, time.UTC)
 	v1, v2, v3 := newTestIdentifier(t), newTestIdentifier(t), newTestIdentifier(t)
+	t.Cleanup(func() {
+		for _, v := range []string{v1, v2, v3} {
+			h := hashAnalyticsIdentifier(secret, "visitor", v)
+			_, _ = pool.Exec(context.Background(), `DELETE FROM analytics_events WHERE visitor_hash=$1`, h)
+			_, _ = pool.Exec(context.Background(), `DELETE FROM analytics_uniques WHERE subject_hash=$1`, h)
+		}
+		_, _ = pool.Exec(context.Background(), `DELETE FROM analytics_daily WHERE day=$1::date`, at.Format("2006-01-02"))
+	})
 
 	must := func(in analyticsEventInput) {
 		t.Helper()
@@ -767,8 +775,8 @@ func TestAdminAnalyticsCalculatesPerAppConversion(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM apps WHERE id=$1`, appID)
 	})
 
-	now := time.Date(2026, 7, 30, 12, 0, 0, 0, time.UTC)
-	at := time.Date(2026, 7, 28, 10, 0, 0, 0, time.UTC)
+	now := time.Date(2099, 3, 15, 12, 0, 0, 0, time.UTC)
+	at := time.Date(2099, 3, 13, 10, 0, 0, 0, time.UTC)
 	v1, v2 := newTestIdentifier(t), newTestIdentifier(t)
 	for _, v := range []string{v1, v2} {
 		if _, err := s.recordAnalyticsEvent(ctx, analyticsEventInput{
@@ -831,7 +839,22 @@ func TestAdminAnalyticsAllTimeUsesRollupsAndUniqueness(t *testing.T) {
 	if err != nil {
 		t.Fatalf("build: %v", err)
 	}
-	if resp.Current.Visits < 1 || resp.Current.UniqueVisitors < 1 {
+	var uniqueCount int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM analytics_uniques WHERE subject_hash=$1 AND event_type='catalog_visit'`,
+		hashAnalyticsIdentifier(secret, "visitor", v)).Scan(&uniqueCount); err != nil {
+		t.Fatalf("unique check: %v", err)
+	}
+	if uniqueCount != 1 {
+		t.Fatalf("expected uniqueness row for visitor, got %d", uniqueCount)
+	}
+	var dailyTotal int64
+	if err := pool.QueryRow(ctx, `SELECT coalesce(sum(total_events),0) FROM analytics_daily WHERE day='2026-01-15' AND event_type='catalog_visit' AND app_id IS NULL`).Scan(&dailyTotal); err != nil {
+		t.Fatalf("daily: %v", err)
+	}
+	if dailyTotal < 1 {
+		t.Fatalf("expected daily rollup for visitor day, got %d", dailyTotal)
+	}
+	if resp.Current.Visits < dailyTotal || resp.Current.UniqueVisitors < 1 {
 		t.Fatalf("all-time metrics %+v", resp.Current)
 	}
 	if resp.CollectionStarted == nil {
