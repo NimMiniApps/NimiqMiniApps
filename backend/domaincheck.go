@@ -91,8 +91,16 @@ func checkDomainReachable(domain string) (bool, string) {
 	req.Header.Set("User-Agent", "NimiqMiniApps-DomainCheck/1.0")
 
 	resp, err := domainCheckClient.Do(req)
-	if err != nil {
-		// Some hosts reject HEAD; try GET once.
+	if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 400 {
+		resp.Body.Close()
+		return true, ""
+	}
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	// Some hosts reject HEAD; try GET once.
+	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		req, err = http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
 			return false, err.Error()

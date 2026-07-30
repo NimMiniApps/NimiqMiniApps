@@ -1,6 +1,9 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -35,5 +38,39 @@ func TestDomainCheckCustomIntervals(t *testing.T) {
 	}
 	if got := domainCheckTick(); got != 2*time.Minute {
 		t.Fatalf("tick = %v, want 2m", got)
+	}
+}
+
+func TestCheckDomainReachableFallsBackToGetWhenHeadRejected(t *testing.T) {
+	var headRequests, getRequests int
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodHead:
+			headRequests++
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		case http.MethodGet:
+			getRequests++
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Fatalf("unexpected request method %q", r.Method)
+		}
+	}))
+	defer server.Close()
+
+	previousClient := domainCheckClient
+	domainCheckClient = server.Client()
+	defer func() {
+		domainCheckClient = previousClient
+	}()
+
+	reachable, errMessage := checkDomainReachable(strings.TrimPrefix(server.URL, "https://"))
+	if !reachable {
+		t.Fatalf("expected domain to be reachable, got error %q", errMessage)
+	}
+	if headRequests != 1 {
+		t.Fatalf("HEAD requests = %d, want 1", headRequests)
+	}
+	if getRequests != 1 {
+		t.Fatalf("GET requests = %d, want 1", getRequests)
 	}
 }
