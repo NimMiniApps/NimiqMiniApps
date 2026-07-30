@@ -100,13 +100,33 @@ async function refreshReviews() {
   reviewsData.value = await listAppReviews(app.value.slug).catch(() => reviewsData.value)
 }
 
-watch(app, (value) => {
+watch([app, reviewsData], ([value, reviews]) => {
   if (!value) return
   setPageMeta({
     title: value.name,
     description: value.tagline || value.description,
     image: value.banner_url || displayIconUrl(value) || undefined,
     url: window.location.href,
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'SoftwareApplication',
+      name: value.name,
+      description: value.tagline || value.description,
+      applicationCategory: value.category,
+      operatingSystem: 'Nimiq Pay Wallet',
+      image: value.banner_url || displayIconUrl(value) || undefined,
+      url: window.location.href,
+      author: { '@type': 'Organization', name: value.developer_name },
+      ...(reviews.count
+        ? {
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: reviews.average,
+              reviewCount: reviews.count,
+            },
+          }
+        : {}),
+    },
   })
 })
 
