@@ -404,6 +404,108 @@
         }
       }
     },
+    "/api/analytics/events": {
+      "post": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Record a privacy-minimal product analytics event",
+        "description": "Fire-and-forget catalog funnel tracking. Accepts only a strict event enum,\nopaque browser/session identifiers (UUID-shaped, max 64 chars), and an\n`app_slug` for app-scoped events. Identifiers are HMAC'd server-side before\npersistence; raw values, IPs, user-agents, referrers, and wallet addresses\nare never stored from this endpoint.\n\n`wallet_login` is rejected here — it is recorded only by successful\n`POST /api/auth/verify`. Rate limited (~120/minute per IP+visitor).\nRequires `ANALYTICS_HASH_SECRET` on the server.\n",
+        "operationId": "trackAnalyticsEvent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalyticsEventRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Event recorded or deduplicated"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "description": "Analytics is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify": {
+      "post": {
+        "tags": [
+          "Submit"
+        ],
+        "summary": "Verify a signed wallet login challenge",
+        "description": "Verifies the signed challenge and sets the wallet session cookie.\nOptional `analytics_visitor_id` / `analytics_session_id` let the server\nrecord a `wallet_login` analytics event after successful verification\nwithout accepting a client-supplied wallet hash.\n",
+        "operationId": "authVerify",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address",
+                  "nonce",
+                  "public_key",
+                  "signature"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string"
+                  },
+                  "nonce": {
+                    "type": "string"
+                  },
+                  "public_key": {
+                    "type": "string"
+                  },
+                  "signature": {
+                    "type": "string"
+                  },
+                  "analytics_visitor_id": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "description": "Opaque browser visitor id (UUID-shaped)"
+                  },
+                  "analytics_session_id": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "description": "Opaque session id (UUID-shaped)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session established"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/apps/{slug}/stats": {
       "get": {
         "tags": [
@@ -1296,6 +1398,56 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/admin/analytics": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Product analytics aggregates for fixed ranges",
+        "description": "Returns summary metrics, optional previous-period comparison (omitted for\n`all`), daily series, unique-visitor funnel, and per-app rows. Values are\naggregates only — no raw visitor, session, or wallet identifiers.\nUnique/funnel history begins when collection started (`collection_started_at`).\n",
+        "operationId": "adminAnalytics",
+        "security": [
+          {
+            "adminBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "description": "Fixed window; defaults to 30d",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "7d",
+                "30d",
+                "90d",
+                "all"
+              ],
+              "default": "30d"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregate analytics for the selected range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAnalytics"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -2352,6 +2504,215 @@
           },
           "pending_updates": {
             "type": "integer"
+          }
+        }
+      },
+      "AnalyticsEventRequest": {
+        "type": "object",
+        "required": [
+          "event",
+          "visitor_id",
+          "session_id"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "catalog_visit",
+              "app_view",
+              "app_open",
+              "app_link_copy"
+            ]
+          },
+          "visitor_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Opaque browser visitor id (UUID-shaped)"
+          },
+          "session_id": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "Opaque session id (UUID-shaped)"
+          },
+          "app_slug": {
+            "type": "string",
+            "description": "Required for app_view, app_open, and app_link_copy"
+          }
+        }
+      },
+      "AnalyticsMetrics": {
+        "type": "object",
+        "properties": {
+          "visits": {
+            "type": "integer"
+          },
+          "unique_visitors": {
+            "type": "integer"
+          },
+          "wallet_logins": {
+            "type": "integer"
+          },
+          "unique_wallets": {
+            "type": "integer"
+          },
+          "app_views": {
+            "type": "integer"
+          },
+          "unique_app_viewers": {
+            "type": "integer"
+          },
+          "app_opens": {
+            "type": "integer"
+          },
+          "link_copies": {
+            "type": "integer"
+          },
+          "activations": {
+            "type": "integer"
+          },
+          "unique_activators": {
+            "type": "integer"
+          }
+        }
+      },
+      "AnalyticsDailyPoint": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "visits": {
+            "type": "integer"
+          },
+          "wallet_logins": {
+            "type": "integer"
+          },
+          "app_views": {
+            "type": "integer"
+          },
+          "app_opens": {
+            "type": "integer"
+          },
+          "link_copies": {
+            "type": "integer"
+          },
+          "activations": {
+            "type": "integer"
+          },
+          "unique_visitors": {
+            "type": "integer"
+          },
+          "unique_app_viewers": {
+            "type": "integer"
+          },
+          "unique_activators": {
+            "type": "integer"
+          }
+        }
+      },
+      "AnalyticsFunnelStage": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "rate_from_prior": {
+            "type": "number",
+            "nullable": true,
+            "description": "Percentage conversion from the previous funnel stage; null when denominator is zero"
+          }
+        }
+      },
+      "AnalyticsAppRow": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "views": {
+            "type": "integer"
+          },
+          "unique_viewers": {
+            "type": "integer"
+          },
+          "opens": {
+            "type": "integer"
+          },
+          "link_copies": {
+            "type": "integer"
+          },
+          "activations": {
+            "type": "integer"
+          },
+          "unique_activators": {
+            "type": "integer"
+          },
+          "conversion": {
+            "type": "number",
+            "nullable": true,
+            "description": "Unique activators / unique viewers as a percentage; null when no viewers"
+          }
+        }
+      },
+      "AdminAnalytics": {
+        "type": "object",
+        "properties": {
+          "range": {
+            "type": "string",
+            "enum": [
+              "7d",
+              "30d",
+              "90d",
+              "all"
+            ]
+          },
+          "collection_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "current": {
+            "$ref": "#/components/schemas/AnalyticsMetrics"
+          },
+          "previous": {
+            "$ref": "#/components/schemas/AnalyticsMetrics"
+          },
+          "changes": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "nullable": true
+            },
+            "description": "Percent change vs previous period; omitted for all-time; null when previous is zero"
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsDailyPoint"
+            }
+          },
+          "funnel": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsFunnelStage"
+            }
+          },
+          "apps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsAppRow"
+            }
           }
         }
       },
