@@ -460,13 +460,13 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "address",
+                  "wallet_address",
                   "nonce",
                   "public_key",
                   "signature"
                 ],
                 "properties": {
-                  "address": {
+                  "wallet_address": {
                     "type": "string"
                   },
                   "nonce": {

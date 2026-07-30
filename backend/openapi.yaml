@@ -297,9 +297,9 @@ paths:
           application/json:
             schema:
               type: object
-              required: [address, nonce, public_key, signature]
+              required: [wallet_address, nonce, public_key, signature]
               properties:
-                address:
+                wallet_address:
                   type: string
                 nonce:
                   type: string
