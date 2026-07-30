@@ -118,6 +118,15 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick))
             {{ pendingCount }}
           </span>
         </RouterLink>
+        <RouterLink
+          v-if="isAdmin"
+          to="/admin/analytics"
+          role="menuitem"
+          class="block px-4 py-3 text-sm font-semibold text-board-flap-ink transition-colors hover:bg-board-flap-hover"
+          @click="closeMenu"
+        >
+          Analytics
+        </RouterLink>
         <button
           type="button"
           role="menuitem"
