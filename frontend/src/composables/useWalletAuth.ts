@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { authChallenge, authVerify, authMe, authLogout } from '../api'
+import { analyticsIdentity } from '../utils/analytics'
 import { chooseWalletAddress, signLoginChallenge } from '../utils/nimiqWallet'
 
 const walletAddress = ref<string | null>(null)
@@ -44,6 +45,7 @@ export function useWalletAuth() {
         nonce: challenge.nonce,
         signature: signed.signature,
         public_key: signed.publicKey,
+        ...analyticsIdentity(),
       })
       await applySession()
     } catch (err) {

@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -278,10 +279,12 @@ func (s *server) authChallenge(w http.ResponseWriter, r *http.Request) {
 
 func (s *server) authVerify(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Address   string `json:"wallet_address"`
-		Nonce     string `json:"nonce"`
-		Signature string `json:"signature"`
-		PublicKey string `json:"public_key"`
+		Address            string `json:"wallet_address"`
+		Nonce              string `json:"nonce"`
+		Signature          string `json:"signature"`
+		PublicKey          string `json:"public_key"`
+		AnalyticsVisitorID string `json:"analytics_visitor_id"`
+		AnalyticsSessionID string `json:"analytics_session_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
@@ -308,6 +311,20 @@ func (s *server) authVerify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setWalletCookie(w, r, s.walletAuthSecret, address)
+
+	// Analytics is best-effort: a successful login must never be undone by a
+	// hashing/storage hiccup downstream. Skip when the client omitted IDs.
+	if req.AnalyticsVisitorID != "" && req.AnalyticsSessionID != "" {
+		if _, err := s.recordAnalyticsEvent(r.Context(), analyticsEventInput{
+			EventType:     analyticsWalletLogin,
+			VisitorID:     req.AnalyticsVisitorID,
+			SessionID:     req.AnalyticsSessionID,
+			WalletAddress: address,
+		}); err != nil {
+			slog.Warn("failed to record wallet_login analytics event", "error", err.Error())
+		}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{"wallet_address": address})
 }
 

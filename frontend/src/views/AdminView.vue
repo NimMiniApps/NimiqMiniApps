@@ -376,7 +376,12 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
 
 <template>
   <div class="space-y-5">
-    <h1 class="text-2xl font-extrabold">Admin</h1>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <h1 class="text-2xl font-extrabold">Admin</h1>
+      <RouterLink to="/admin/analytics" class="text-sm font-semibold text-accent-ink hover:underline">
+        Analytics
+      </RouterLink>
+    </div>
 
     <p v-if="walletIsAdmin" class="text-sm text-muted">
       Signed in with an admin wallet. Catalog actions use your wallet session.

@@ -56,21 +56,24 @@ LAN, and API examples.
   can optionally select their positive cycle number.
   Submissions are hidden until reviewed.
 - **Moderate** — connect an allowlisted admin wallet (see `ADMIN_WALLET_ADDRESSES`) or use a bearer token at `/admin`.
+- **Analytics** — admins can inspect catalog funnel metrics at `/admin/analytics` (visits, logins, app views, activations).
 
 ## API
 
 Public: `GET /api/apps` (with `q`, `category`, `status`, `featured`, `sort`, `rewards`, `collection`, `competition_cycle`),
-`GET /api/apps/{slug}`, `POST /api/apps/{slug}/track` (open/view beacons), `GET /api/categories`, `GET /api/developers/{slug}`,
+`GET /api/apps/{slug}`, `POST /api/apps/{slug}/track` (legacy open/view beacons), `POST /api/analytics/events` (privacy-minimal funnel events),
+`GET /api/categories`, `GET /api/developers/{slug}`,
 `POST /api/apps/submit`, `GET /health`, `GET /openapi.json`.
 
 Owners and admins can read per-app stats at `GET /api/apps/{slug}/stats` (wallet session or admin token).
+Admins can read aggregate product analytics at `GET /api/admin/analytics`.
 
 **OpenAPI** — full spec at [`docs/openapi.yaml`](docs/openapi.yaml), served live at
 `/openapi.json` and `/openapi.yaml`. Regenerate embedded copies with `./scripts/gen-openapi.sh`.
 
 **Agents** — see [`AGENTS.md`](AGENTS.md) for submit workflow, MCP usage, and OpenAPI maintenance.
 
-Admin: allowlisted wallet session (`ADMIN_WALLET_ADDRESSES`) or `Authorization: Bearer <ADMIN_TOKEN>` — CRUD under `/api/admin/apps` plus `/verify`, `/approve`, `/reject` actions.
+Admin: allowlisted wallet session (`ADMIN_WALLET_ADDRESSES`) or `Authorization: Bearer <ADMIN_TOKEN>` — CRUD under `/api/admin/apps` plus `/verify`, `/approve`, `/reject` actions, and `/admin/analytics`.
 
 **MCP** — see [`mcp/README.md`](mcp/README.md) for a Cursor MCP server that wraps this API.
 

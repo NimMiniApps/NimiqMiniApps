@@ -249,10 +249,69 @@ export interface AppStats {
 export const getAppStats = (slug: string) =>
   request<AppStats>(`/api/apps/${encodeURIComponent(slug)}/stats`, { credentials: 'include' })
 
+/** @deprecated Prefer trackProductEvent from utils/analytics — kept for compatibility. */
 export function trackAppEvent(slug: string, event: 'open' | 'view'): void {
   const url = BASE + `/api/apps/${encodeURIComponent(slug)}/track`
   const body = JSON.stringify({ event })
   navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }))
+}
+
+export type AnalyticsRange = '7d' | '30d' | '90d' | 'all'
+
+export interface AnalyticsMetrics {
+  visits: number
+  unique_visitors: number
+  wallet_logins: number
+  unique_wallets: number
+  app_views: number
+  unique_app_viewers: number
+  app_opens: number
+  link_copies: number
+  activations: number
+  unique_activators: number
+}
+
+export interface AnalyticsDailyPoint {
+  day: string
+  visits: number
+  wallet_logins: number
+  app_views: number
+  app_opens: number
+  link_copies: number
+  activations: number
+  unique_visitors: number
+  unique_app_viewers: number
+  unique_activators: number
+}
+
+export interface AnalyticsFunnelStage {
+  key: string
+  label: string
+  count: number
+  rate_from_prior?: number | null
+}
+
+export interface AnalyticsAppRow {
+  slug: string
+  name: string
+  views: number
+  unique_viewers: number
+  opens: number
+  link_copies: number
+  activations: number
+  unique_activators: number
+  conversion: number | null
+}
+
+export interface AdminAnalyticsResponse {
+  range: AnalyticsRange
+  collection_started_at: string | null
+  current: AnalyticsMetrics
+  previous?: AnalyticsMetrics
+  changes?: Record<string, number | null>
+  daily: AnalyticsDailyPoint[]
+  funnel: AnalyticsFunnelStage[]
+  apps: AnalyticsAppRow[]
 }
 
 // --- admin ---
@@ -273,6 +332,10 @@ function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { ...adminHeaders(), ...(init?.headers as Record<string, string> | undefined) },
   })
 }
+
+export const adminAnalytics = (range: AnalyticsRange) =>
+  adminRequest<AdminAnalyticsResponse>(`/api/admin/analytics?range=${range}`)
+
 
 export const adminListApps = () =>
   adminRequest<RawApp[]>('/api/admin/apps').then(normalizeApps)
@@ -362,6 +425,8 @@ export const authVerify = (payload: {
   nonce: string
   signature: string
   public_key: string
+  analytics_visitor_id?: string
+  analytics_session_id?: string
 }) =>
   request<{ wallet_address: string }>('/api/auth/verify', {
     method: 'POST',

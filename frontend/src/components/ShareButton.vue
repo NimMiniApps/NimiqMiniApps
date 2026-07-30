@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from '../composables/useI18n'
+import { trackProductEvent } from '../utils/analytics'
 
 const props = defineProps<{
   title: string
   url?: string
+  appSlug?: string
 }>()
 
 const { t } = useI18n()
@@ -34,6 +36,7 @@ async function share() {
 async function copyUrl() {
   try {
     await navigator.clipboard.writeText(shareUrl.value)
+    if (props.appSlug) trackProductEvent('app_link_copy', props.appSlug)
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
   } catch {

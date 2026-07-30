@@ -49,6 +49,7 @@ cd backend
 export DATABASE_URL="postgres://nimiq:nimiq@localhost:5432/nimiq_miniapps?sslmode=disable"
 export ADMIN_TOKEN="dev-admin-token-change-me"
 export WALLET_AUTH_SECRET="dev-wallet-auth-secret-change-me"
+export ANALYTICS_HASH_SECRET="dev-analytics-hash-secret-change-me"
 export HTTP_ADDR=":8080"   # binds 0.0.0.0:8080
 go run .
 ```
@@ -192,7 +193,18 @@ curl $API/api/admin/apps -H "Authorization: Bearer $TOKEN"
 | `DOMAIN_CHECK_TICK` | `5m` | How often the worker looks for domains due for a check |
 | `DOMAIN_CHECK_TIMEOUT` | `10s` | Per-domain HTTP timeout |
 | `WALLET_AUTH_SECRET` | _(empty)_ | HMAC secret for wallet login session cookies; rotating it logs everyone out |
+| `ANALYTICS_HASH_SECRET` | _(empty)_ | Stable HMAC secret for product analytics identifiers; empty disables recording. Changing it breaks continuity of unique visitor/wallet counts |
 | `ADMIN_WALLET_ADDRESSES` | _(empty)_ | Comma-separated Nimiq addresses allowed to moderate via wallet session (also accepts `ADMIN_TOKEN` bearer) |
+
+### Product analytics
+
+Privacy-minimal catalog funnel tracking (`catalog_visit`, `wallet_login`, `app_view`, `app_open`, `app_link_copy`):
+
+- Public ingestion: `POST /api/analytics/events` (no wallet fields; rate-limited)
+- Admin aggregates: `GET /api/admin/analytics?range=7d|30d|90d|all` and the `/admin/analytics` UI
+- Browser sends random visitor (`localStorage`) and session (`sessionStorage`) IDs; the API HMACs them before persistence
+- Detailed events are retained 180 days (covers fixed ranges + comparison windows); daily totals and uniqueness rows are permanent
+- Local Compose may use the development fallback secret above; Swarm requires `ANALYTICS_HASH_SECRET` and must not rotate it casually
 
 Pagination: `GET /api/apps?paginate=1&limit=20&offset=0` returns `{ items, total, limit, offset }`. Without `paginate` or `offset`, the response stays a plain JSON array (legacy).
 

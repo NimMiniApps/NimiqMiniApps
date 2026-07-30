@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from 'vue'
 import QRCode from 'qrcode'
-import { trackAppEvent } from '../api'
+import { trackProductEvent } from '../utils/analytics'
 import { useI18n } from '../composables/useI18n'
 
 const props = defineProps<{ openUrl: string; slug: string }>()
@@ -24,9 +24,9 @@ async function renderQr() {
 }
 
 async function copyLink() {
-  trackAppEvent(props.slug, 'open')
   try {
     await navigator.clipboard.writeText(props.openUrl)
+    trackProductEvent('app_link_copy', props.slug)
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
   } catch {
