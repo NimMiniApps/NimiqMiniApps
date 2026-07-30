@@ -313,14 +313,16 @@ func (s *server) authVerify(w http.ResponseWriter, r *http.Request) {
 	setWalletCookie(w, r, s.walletAuthSecret, address)
 
 	// Analytics is best-effort: a successful login must never be undone by a
-	// hashing/storage hiccup downstream.
-	if _, err := s.recordAnalyticsEvent(r.Context(), analyticsEventInput{
-		EventType:     analyticsWalletLogin,
-		VisitorID:     req.AnalyticsVisitorID,
-		SessionID:     req.AnalyticsSessionID,
-		WalletAddress: address,
-	}); err != nil {
-		slog.Warn("failed to record wallet_login analytics event", "error", err.Error())
+	// hashing/storage hiccup downstream. Skip when the client omitted IDs.
+	if req.AnalyticsVisitorID != "" && req.AnalyticsSessionID != "" {
+		if _, err := s.recordAnalyticsEvent(r.Context(), analyticsEventInput{
+			EventType:     analyticsWalletLogin,
+			VisitorID:     req.AnalyticsVisitorID,
+			SessionID:     req.AnalyticsSessionID,
+			WalletAddress: address,
+		}); err != nil {
+			slog.Warn("failed to record wallet_login analytics event", "error", err.Error())
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"wallet_address": address})
