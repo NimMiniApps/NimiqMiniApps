@@ -104,6 +104,7 @@ func main() {
 	adminToken := env("ADMIN_TOKEN", "")
 	adminWallets := parseAdminWallets(env("ADMIN_WALLET_ADDRESSES", ""))
 	walletAuthSecret := env("WALLET_AUTH_SECRET", "")
+	analyticsSecret := env("ANALYTICS_HASH_SECRET", "")
 	addr := env("HTTP_ADDR", ":8080")
 	corsOrigins := strings.Split(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"), ",")
 	for i := range corsOrigins {
@@ -116,6 +117,9 @@ func main() {
 	}
 	if walletAuthSecret == "" {
 		slog.Warn("WALLET_AUTH_SECRET is empty; wallet login endpoints are disabled")
+	}
+	if analyticsSecret == "" {
+		slog.Warn("ANALYTICS_HASH_SECRET is empty; analytics recording is disabled")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -146,13 +150,15 @@ func main() {
 	}
 
 	s := &server{
-		pool:             pool,
-		nonces:           newNonceStore(),
-		walletAuthSecret: walletAuthSecret,
-		adminToken:       adminToken,
-		adminWallets:     adminWallets,
-		reviewLimiter:    newRateLimiter(5, time.Hour),
-		statsLimiter:     newRateLimiter(20, time.Minute),
+		pool:                pool,
+		nonces:              newNonceStore(),
+		walletAuthSecret:    walletAuthSecret,
+		adminToken:          adminToken,
+		adminWallets:        adminWallets,
+		reviewLimiter:       newRateLimiter(5, time.Hour),
+		statsLimiter:        newRateLimiter(20, time.Minute),
+		analyticsHashSecret: analyticsSecret,
+		analyticsLimiter:    newRateLimiter(120, time.Minute),
 	}
 	s.startDomainHealthWorker(ctx)
 	s.startIconDiscoveryBackfill(ctx)
@@ -181,6 +187,7 @@ func main() {
 	mux.HandleFunc("PUT /api/profile", walletAuthMiddleware(walletAuthSecret, s.updateProfile))
 	mux.HandleFunc("POST /api/auth/logout", s.authLogout)
 	mux.HandleFunc("POST /api/apps/{slug}/track", s.trackApp)
+	mux.HandleFunc("POST /api/analytics/events", s.trackAnalyticsEvent)
 	mux.HandleFunc("GET /api/apps/{slug}/stats", s.ownerOrAdminAuth(s.appStats))
 	mux.HandleFunc("GET /api/apps/{slug}/reviews", s.listReviews)
 	mux.HandleFunc("POST /api/apps/{slug}/reviews", walletAuthMiddleware(walletAuthSecret, s.upsertReview))

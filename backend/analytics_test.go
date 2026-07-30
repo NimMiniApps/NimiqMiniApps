@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -358,5 +362,228 @@ func TestRecordAnalyticsEventUpdatesLegacyAppStats(t *testing.T) {
 	}
 	if opens != 2 {
 		t.Fatalf("opens = %d, want 2 (not deduplicated)", opens)
+	}
+}
+
+func TestTrackAnalyticsEventAcceptsStrictPublicEvents(t *testing.T) {
+	pool := testPool(t)
+	ctx := context.Background()
+	secret := "test-secret-track-strict"
+	t.Setenv("ANALYTICS_HASH_SECRET", secret)
+	s := &server{pool: pool, analyticsHashSecret: secret, analyticsLimiter: newRateLimiter(120, time.Minute)}
+
+	t.Run("catalog_visit", func(t *testing.T) {
+		visitorID := newTestIdentifier(t)
+		sessionID := newTestIdentifier(t)
+		t.Cleanup(func() {
+			_, _ = pool.Exec(context.Background(), `DELETE FROM analytics_events WHERE session_hash = $1`,
+				hashAnalyticsIdentifier(secret, "session", sessionID))
+		})
+		body, _ := json.Marshal(map[string]string{
+			"event": "catalog_visit", "visitor_id": visitorID, "session_id": sessionID,
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.1:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("status %d, want 204: %s", rec.Code, rec.Body.String())
+		}
+		var count int
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM analytics_events WHERE event_type='catalog_visit' AND session_hash=$1`,
+			hashAnalyticsIdentifier(secret, "session", sessionID)).Scan(&count); err != nil {
+			t.Fatalf("count: %v", err)
+		}
+		if count != 1 {
+			t.Fatalf("count = %d, want 1", count)
+		}
+	})
+
+	t.Run("app_view", func(t *testing.T) {
+		slug := "analytics-track-appview-" + time.Now().Format("150405.000000")
+		var appID string
+		err := pool.QueryRow(ctx, `
+			INSERT INTO apps (slug, name, domain, category, developer_slug, developer_name, tagline, description, status)
+			VALUES ($1, 'Track App View', 'trackappview.example.com', 'Utilities', 'analytics-dev', 'Analytics Dev', 'tag', 'desc', 'approved')
+			RETURNING id`, slug).Scan(&appID)
+		if err != nil {
+			t.Fatalf("insert app: %v", err)
+		}
+		t.Cleanup(func() {
+			_, _ = pool.Exec(context.Background(), `DELETE FROM apps WHERE id=$1`, appID)
+		})
+
+		visitorID := newTestIdentifier(t)
+		sessionID := newTestIdentifier(t)
+		body, _ := json.Marshal(map[string]string{
+			"event": "app_view", "visitor_id": visitorID, "session_id": sessionID, "app_slug": slug,
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.2:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("status %d, want 204: %s", rec.Code, rec.Body.String())
+		}
+		var count int
+		if err := pool.QueryRow(ctx, `SELECT count(*) FROM analytics_events WHERE event_type='app_view' AND app_id=$1`, appID).Scan(&count); err != nil {
+			t.Fatalf("count: %v", err)
+		}
+		if count != 1 {
+			t.Fatalf("count = %d, want 1", count)
+		}
+	})
+}
+
+func TestTrackAnalyticsEventRequiresAppForAppEvents(t *testing.T) {
+	pool := testPool(t)
+	s := &server{pool: pool, analyticsHashSecret: "test-secret-track-requires-app", analyticsLimiter: newRateLimiter(120, time.Minute)}
+
+	body, _ := json.Marshal(map[string]string{
+		"event": "app_open", "visitor_id": newTestIdentifier(t), "session_id": newTestIdentifier(t),
+	})
+	req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+	req.RemoteAddr = "9.9.9.3:1234"
+	rec := httptest.NewRecorder()
+	s.trackAnalyticsEvent(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status %d, want 400", rec.Code)
+	}
+}
+
+func TestTrackAnalyticsEventRejectsWalletLoginFromPublicPayload(t *testing.T) {
+	pool := testPool(t)
+	secret := "test-secret-track-wallet"
+	s := &server{pool: pool, analyticsHashSecret: secret, analyticsLimiter: newRateLimiter(120, time.Minute)}
+
+	t.Run("wallet_login event type rejected", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{
+			"event": "wallet_login", "visitor_id": newTestIdentifier(t), "session_id": newTestIdentifier(t),
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.4:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("wallet field on payload rejected", func(t *testing.T) {
+		sessionID := newTestIdentifier(t)
+		body, _ := json.Marshal(map[string]string{
+			"event": "catalog_visit", "visitor_id": newTestIdentifier(t), "session_id": sessionID,
+			"wallet_address": "NQ07 0000 0000 0000 0000 0000 0000 0000 0000",
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.5:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status %d, want 400", rec.Code)
+		}
+		var count int
+		if err := pool.QueryRow(context.Background(), `SELECT count(*) FROM analytics_events WHERE session_hash=$1`,
+			hashAnalyticsIdentifier(secret, "session", sessionID)).Scan(&count); err != nil {
+			t.Fatalf("count: %v", err)
+		}
+		if count != 0 {
+			t.Fatal("payload carrying a wallet field must not be recorded")
+		}
+	})
+}
+
+func TestTrackAnalyticsEventRejectsUnknownEventAndIdentifier(t *testing.T) {
+	pool := testPool(t)
+	s := &server{pool: pool, analyticsHashSecret: "test-secret-track-unknown", analyticsLimiter: newRateLimiter(120, time.Minute)}
+
+	t.Run("unknown event", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{
+			"event": "bogus_event", "visitor_id": newTestIdentifier(t), "session_id": newTestIdentifier(t),
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.6:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("malformed identifier", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{
+			"event": "catalog_visit", "visitor_id": "not-a-uuid", "session_id": newTestIdentifier(t),
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.7:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusBadRequest {
+			t.Fatalf("status %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("unconfigured analytics returns 503", func(t *testing.T) {
+		s := &server{pool: pool, analyticsLimiter: newRateLimiter(120, time.Minute)}
+		body, _ := json.Marshal(map[string]string{
+			"event": "catalog_visit", "visitor_id": newTestIdentifier(t), "session_id": newTestIdentifier(t),
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.10:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusServiceUnavailable {
+			t.Fatalf("status %d, want 503", rec.Code)
+		}
+	})
+}
+
+func TestTrackAnalyticsEventRateLimitsByClientAndVisitor(t *testing.T) {
+	pool := testPool(t)
+	secret := "test-secret-track-ratelimit"
+	t.Setenv("ANALYTICS_HASH_SECRET", secret)
+	s := &server{pool: pool, analyticsHashSecret: secret, analyticsLimiter: newRateLimiter(2, time.Minute)}
+	visitorID := newTestIdentifier(t)
+	otherVisitor := newTestIdentifier(t)
+	t.Cleanup(func() {
+		ctx := context.Background()
+		_, _ = pool.Exec(ctx, `DELETE FROM analytics_events WHERE visitor_hash = $1 OR visitor_hash = $2`,
+			hashAnalyticsIdentifier(secret, "visitor", visitorID), hashAnalyticsIdentifier(secret, "visitor", otherVisitor))
+	})
+
+	for i := 0; i < 2; i++ {
+		body, _ := json.Marshal(map[string]string{
+			"event": "catalog_visit", "visitor_id": visitorID, "session_id": newTestIdentifier(t),
+		})
+		req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+		req.RemoteAddr = "9.9.9.9:1234"
+		rec := httptest.NewRecorder()
+		s.trackAnalyticsEvent(rec, req)
+		if rec.Code != http.StatusNoContent {
+			t.Fatalf("request %d: status %d, want 204: %s", i+1, rec.Code, rec.Body.String())
+		}
+	}
+
+	body, _ := json.Marshal(map[string]string{
+		"event": "catalog_visit", "visitor_id": visitorID, "session_id": newTestIdentifier(t),
+	})
+	req := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body))
+	req.RemoteAddr = "9.9.9.9:1234"
+	rec := httptest.NewRecorder()
+	s.trackAnalyticsEvent(rec, req)
+	if rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("status %d, want 429", rec.Code)
+	}
+
+	// A different visitor from the same client IP must not share the bucket.
+	body2, _ := json.Marshal(map[string]string{
+		"event": "catalog_visit", "visitor_id": otherVisitor, "session_id": newTestIdentifier(t),
+	})
+	req2 := httptest.NewRequest(http.MethodPost, "http://example.com/api/analytics/events", bytes.NewReader(body2))
+	req2.RemoteAddr = "9.9.9.9:1234"
+	rec2 := httptest.NewRecorder()
+	s.trackAnalyticsEvent(rec2, req2)
+	if rec2.Code != http.StatusNoContent {
+		t.Fatalf("different visitor should not be rate limited: status %d, %s", rec2.Code, rec2.Body.String())
 	}
 }

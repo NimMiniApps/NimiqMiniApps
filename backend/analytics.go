@@ -5,7 +5,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"net/http"
 	"regexp"
 	"time"
 )
@@ -201,4 +203,89 @@ func (s *server) recordAnalyticsEvent(ctx context.Context, input analyticsEventI
 		return false, err
 	}
 	return true, nil
+}
+
+// analyticsTrackRequest is the strict public shape accepted by
+// POST /api/analytics/events. Unknown fields (including any wallet_*
+// field) are rejected outright by trackAnalyticsEvent rather than ignored,
+// so the public endpoint can never smuggle in wallet data.
+type analyticsTrackRequest struct {
+	Event     string `json:"event"`
+	VisitorID string `json:"visitor_id"`
+	SessionID string `json:"session_id"`
+	AppSlug   string `json:"app_slug"`
+}
+
+// publicAnalyticsEventTypes are the only events a client may report directly;
+// wallet_login is server-recorded only, from a verified auth session.
+var publicAnalyticsEventTypes = map[analyticsEventType]bool{
+	analyticsCatalogVisit: true,
+	analyticsAppView:      true,
+	analyticsAppOpen:      true,
+	analyticsAppLinkCopy:  true,
+}
+
+// trackAnalyticsEvent ingests one anonymous, client-reported product event.
+// It never accepts or persists a wallet identifier or the caller's IP; the IP
+// is used only as part of the in-memory rate-limit key.
+func (s *server) trackAnalyticsEvent(w http.ResponseWriter, r *http.Request) {
+	if s.analyticsHashSecret == "" {
+		writeError(w, http.StatusServiceUnavailable, "analytics is not configured")
+		return
+	}
+
+	var req analyticsTrackRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
+		return
+	}
+
+	eventType := analyticsEventType(req.Event)
+	if !publicAnalyticsEventTypes[eventType] {
+		writeError(w, http.StatusBadRequest, "unknown or unsupported event")
+		return
+	}
+	if err := validateAnalyticsIdentifier(req.VisitorID); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := validateAnalyticsIdentifier(req.SessionID); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	limiterKey := clientIP(r) + ":" + req.VisitorID
+	if s.analyticsLimiter != nil && !s.analyticsLimiter.allow(limiterKey) {
+		writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
+		return
+	}
+
+	input := analyticsEventInput{
+		EventType: eventType,
+		VisitorID: req.VisitorID,
+		SessionID: req.SessionID,
+	}
+	if appAssociatedEventTypes[eventType] {
+		if req.AppSlug == "" {
+			writeError(w, http.StatusBadRequest, "app_slug is required for this event")
+			return
+		}
+		appID, err := s.appIDForSlug(r.Context(), req.AppSlug)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "unknown app_slug")
+			return
+		}
+		input.AppID = appID
+	} else if req.AppSlug != "" {
+		writeError(w, http.StatusBadRequest, "app_slug is not valid for this event")
+		return
+	}
+
+	if _, err := s.recordAnalyticsEvent(r.Context(), input); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
