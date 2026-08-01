@@ -116,6 +116,8 @@ export type MessageTree = {
     scanTitle: string
     scanBody: string
     copyTitle: string
+    openBrowser: string
+    walletOnlyHint: string
   }
   myApps: {
     stats: {
@@ -278,6 +280,8 @@ const en: MessageTree = {
     scanTitle: 'Scan to open',
     scanBody: 'on mobile',
     copyTitle: 'Copy Nimiq Pay open link',
+    openBrowser: 'Open in browser',
+    walletOnlyHint: 'Some features need Nimiq Pay and may not work here',
   },
   myApps: {
     stats: {
@@ -408,7 +412,7 @@ const de: MessageTree = {
     errorTitle: 'Startseite konnte nicht geladen werden',
     errorBody: 'Highlights und Kategorien konnten nicht geladen werden. Aktualisiere die Seite oder versuche es später erneut.',
   },
-  openWallet: { scanTitle: 'Scannen zum Öffnen', scanBody: 'auf dem Handy', copyTitle: 'Nimiq-Pay-Link kopieren' },
+  openWallet: { scanTitle: 'Scannen zum Öffnen', scanBody: 'auf dem Handy', copyTitle: 'Nimiq-Pay-Link kopieren', openBrowser: 'Im Browser öffnen', walletOnlyHint: 'Manche Funktionen benötigen Nimiq Pay und funktionieren hier eventuell nicht' },
 }
 
 const es: MessageTree = {
@@ -495,7 +499,7 @@ const es: MessageTree = {
     errorTitle: 'No se pudo cargar la página de inicio',
     errorBody: 'No se pudieron cargar los destacados ni las categorías. Actualiza la página o inténtalo en un momento.',
   },
-  openWallet: { scanTitle: 'Escanea para abrir', scanBody: 'en móvil', copyTitle: 'Copiar enlace de Nimiq Pay' },
+  openWallet: { scanTitle: 'Escanea para abrir', scanBody: 'en móvil', copyTitle: 'Copiar enlace de Nimiq Pay', openBrowser: 'Abrir en el navegador', walletOnlyHint: 'Algunas funciones necesitan Nimiq Pay y podrían no funcionar aquí' },
 }
 
 const fr: MessageTree = {
@@ -582,7 +586,7 @@ const fr: MessageTree = {
     errorTitle: 'Impossible de charger l’accueil',
     errorBody: 'Les sélections et catégories n’ont pas pu être chargées. Actualisez la page ou réessayez dans un instant.',
   },
-  openWallet: { scanTitle: 'Scanner pour ouvrir', scanBody: 'sur mobile', copyTitle: 'Copier le lien Nimiq Pay' },
+  openWallet: { scanTitle: 'Scanner pour ouvrir', scanBody: 'sur mobile', copyTitle: 'Copier le lien Nimiq Pay', openBrowser: 'Ouvrir dans le navigateur', walletOnlyHint: 'Certaines fonctionnalités nécessitent Nimiq Pay et pourraient ne pas fonctionner ici' },
 }
 
 const pt: MessageTree = {
@@ -669,7 +673,7 @@ const pt: MessageTree = {
     errorTitle: 'Não foi possível carregar a página inicial',
     errorBody: 'Destaques e categorias não carregaram. Atualize a página ou tente novamente em instantes.',
   },
-  openWallet: { scanTitle: 'Escaneie para abrir', scanBody: 'no celular', copyTitle: 'Copiar link do Nimiq Pay' },
+  openWallet: { scanTitle: 'Escaneie para abrir', scanBody: 'no celular', copyTitle: 'Copiar link do Nimiq Pay', openBrowser: 'Abrir no navegador', walletOnlyHint: 'Alguns recursos precisam do Nimiq Pay e podem não funcionar aqui' },
 }
 
 export const messages: Record<Locale, MessageTree> = { en, de, es, fr, pt }

@@ -236,12 +236,6 @@ onUnmounted(resetPageMeta)
         </a>
         <ShareButton :title="app.name" :app-slug="app.slug" />
         <LinkIconButton
-          v-if="app.website_url"
-          :href="app.website_url"
-          platform="website"
-          :label="t('appDetail.website')"
-        />
-        <LinkIconButton
           v-if="app.github_url"
           :href="app.github_url"
           platform="github"
@@ -263,7 +257,7 @@ onUnmounted(resetPageMeta)
           {{ t('appDetail.edit') }}
         </RouterLink>
       </div>
-      <OpenInWalletPanel v-if="!isMobile" :open-url="app.open_url" :slug="app.slug" class="sm:ml-auto" />
+      <OpenInWalletPanel v-if="!isMobile" :open-url="app.open_url" :slug="app.slug" :domain="app.domain" class="sm:ml-auto" />
     </div>
 
     <div class="flex flex-wrap items-center gap-1.5 text-sm">
