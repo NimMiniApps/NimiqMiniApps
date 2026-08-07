@@ -45,6 +45,13 @@ const appFields = {
   reward_assets: z.array(assets).optional().describe(
     'Assets users can actually receive from this app: daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.',
   ),
+  declared_scopes: z
+    .array(z.string().regex(/^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$/))
+    .max(32)
+    .optional()
+    .describe(
+      'NimConnect scopes this app may request (name:action). Empty means no scopes. Listed apps should change scopes via revision review.',
+    ),
   competition_cycle: z.number().int().positive().nullable().optional().describe(
     'Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry.',
   ),

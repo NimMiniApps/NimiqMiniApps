@@ -91,6 +91,8 @@ export type MessageTree = {
     onlineHint: string
     offlineHint: string
     offlineBanner: string
+    declaredScopes: string
+    declaredScopesHint: string
   }
   home: {
     eyebrow: string
@@ -255,6 +257,8 @@ const en: MessageTree = {
     onlineHint: 'Domain responded on the last health check',
     offlineHint: 'Domain unreachable on the last health check',
     offlineBanner: 'We could not reach this app’s domain on the last check — it may be temporarily down.',
+    declaredScopes: 'Requested permissions',
+    declaredScopesHint: 'Scopes this app may ask for via NimConnect before you connect.',
   },
   home: {
     eyebrow: 'Community curated',
@@ -391,6 +395,8 @@ const de: MessageTree = {
     onlineHint: 'Domain hat beim letzten Health-Check geantwortet',
     offlineHint: 'Domain beim letzten Health-Check nicht erreichbar',
     offlineBanner: 'Die Domain dieser App war beim letzten Check nicht erreichbar — sie ist vielleicht vorübergehend offline.',
+    declaredScopes: 'Angeforderte Berechtigungen',
+    declaredScopesHint: 'Scopes, die diese App über NimConnect anfragen darf, bevor du dich verbindest.',
   },
   home: {
     eyebrow: 'Community-kuratiert',
@@ -478,6 +484,8 @@ const es: MessageTree = {
     onlineHint: 'El dominio respondió en la última comprobación',
     offlineHint: 'Dominio inalcanzable en la última comprobación',
     offlineBanner: 'No pudimos alcanzar el dominio de esta app en la última comprobación — puede estar temporalmente fuera de servicio.',
+    declaredScopes: 'Permisos solicitados',
+    declaredScopesHint: 'Scopes que esta app puede pedir vía NimConnect antes de que te conectes.',
   },
   home: {
     eyebrow: 'Curado por la comunidad',
@@ -565,6 +573,8 @@ const fr: MessageTree = {
     onlineHint: 'Le domaine a répondu lors du dernier contrôle',
     offlineHint: 'Domaine injoignable lors du dernier contrôle',
     offlineBanner: 'Le domaine de cette app n’a pas répondu lors du dernier contrôle — il est peut-être temporairement indisponible.',
+    declaredScopes: 'Permissions demandées',
+    declaredScopesHint: 'Scopes que cette app peut demander via NimConnect avant que vous vous connectiez.',
   },
   home: {
     eyebrow: 'Curaté par la communauté',
@@ -652,6 +662,8 @@ const pt: MessageTree = {
     onlineHint: 'O domínio respondeu na última verificação',
     offlineHint: 'Domínio inacessível na última verificação',
     offlineBanner: 'O domínio deste app não respondeu na última verificação — pode estar temporariamente fora do ar.',
+    declaredScopes: 'Permissões solicitadas',
+    declaredScopesHint: 'Scopes que este app pode pedir via NimConnect antes de você conectar.',
   },
   home: {
     eyebrow: 'Curado pela comunidade',

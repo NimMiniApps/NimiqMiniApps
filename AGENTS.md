@@ -26,6 +26,7 @@ Source of truth in git: `docs/openapi.yaml`
 - **Category** — one of: `Games`, `Utilities`, `Finance`, `Maps`, `Social`, `Experiments`
 - **Assets** — subset of: `NIM`, `USDT`, `USDC`, `BTC`, `ETH`
 - **Reward assets** — optional subset of assets users can actually receive from the app, e.g. `["NIM"]` or `["USDT"]`. Use this only for rewards, payouts, prizes, tips, faucets, or similar receive-side flows. Omit or use `[]` when the app merely accepts, displays, swaps, or otherwise supports a token.
+- **Declared scopes** — optional NimConnect scopes this app may request, e.g. `["friends:read"]` (`name:action`, lowercase). Empty/`[]` means no scopes. Listed apps change scopes only via revision review (or admin update).
 - **Competition cycle** — optional positive integer for Nimiq Mini Apps competition entries, e.g. `1`. Omit or use `null` for apps outside the competition.
 - Assemble the **full payload once**; do not spam retries (rate limit below)
 
@@ -46,10 +47,11 @@ curl -X POST https://api.nimiqminiapps.com/api/apps/submit \
     "long_description": "## Features\n\nMarkdown for the detail page",
     "tags": ["games"],
     "assets": ["NIM"],
-    "reward_assets": ["NIM"],
-    "competition_cycle": 1,
-    "release_stage": "beta"
-  }'
+ "reward_assets": ["NIM"],
+ "declared_scopes": ["friends:read"],
+ "competition_cycle": 1,
+ "release_stage": "beta"
+ }'
 ```
 
 Agents submitting on a developer's behalf cannot complete wallet login themselves — direct the developer to submit via `/submit` in the browser instead, or ask an admin to create the listing via the `admin_create_app` MCP tool (unaffected by this change — it's admin-token-authenticated, not wallet-authenticated).
@@ -159,4 +161,5 @@ Keep edits short: one or two bullets or lines per change. Link to deeper docs (`
 | Web submit form | `/submit` on the frontend |
 | Admin moderation | `/admin` + `Authorization: Bearer $ADMIN_TOKEN` |
 | Admin product analytics | `/admin/analytics` · `GET /api/admin/analytics` · `POST /api/analytics/events` |
+| NimConnect registry | `GET /api/apps/{slug}/client` · `GET /api/apps/changed?since=` · `NIMCONNECT_SERVICE_TOKEN` |
 | README | Update when user/dev-facing behavior changes — see **Keep README.md up to date** |

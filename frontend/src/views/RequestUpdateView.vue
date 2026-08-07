@@ -28,6 +28,7 @@ const updatePending = ref(false)
 const form = reactive({
   name: '', domain: '', category: '',
   tagline: '', description: '', long_description: '', release_stage: 'released', tags: '', assets: 'NIM', reward_assets: '',
+  declared_scopes: '',
   competition_cycle: '' as number | '',
   icon_url: '', banner_url: '', website_url: '', github_url: '',
   author_note: '',
@@ -57,6 +58,7 @@ async function load(slugParam: string) {
       tags: app.tags.join(', '),
       assets: app.assets.join(', '),
       reward_assets: app.reward_assets.join(', '),
+      declared_scopes: (app.declared_scopes || []).join(', '),
       competition_cycle: app.competition_cycle ?? '',
       icon_url: app.icon_url || '',
       banner_url: app.banner_url || '',
@@ -89,6 +91,7 @@ async function submit() {
       tags: csv(form.tags),
       assets: csv(form.assets),
       reward_assets: csv(form.reward_assets),
+      declared_scopes: csv(form.declared_scopes),
       competition_cycle: normalizeCompetitionCycle(form.competition_cycle),
       media: mediaEditor.value?.validate() ?? [],
       socials: socialEditor.value?.validate() ?? [],
@@ -183,6 +186,15 @@ const fields: [keyof typeof form, string, boolean, string?][] = [
             label="Reward assets"
             help="Only select tokens users can actually receive from your app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
           />
+          <label class="text-sm sm:col-span-2">
+            <span class="mb-1 block font-semibold text-muted">Declared scopes</span>
+            <input
+              v-model="form.declared_scopes"
+              placeholder="friends:read, achievements:read"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none placeholder:text-muted/60 focus:border-accent"
+            />
+            <span class="mt-1 block text-xs leading-snug text-muted">Comma-separated NimConnect scopes (name:action). Changes require review. Leave empty for none.</span>
+          </label>
           <label class="text-sm">
             <span class="mb-1 block font-semibold text-muted">Category *</span>
             <select v-model="form.category" required class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2">

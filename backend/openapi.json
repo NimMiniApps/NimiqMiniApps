@@ -32,6 +32,10 @@
       "description": "Public browse and discovery"
     },
     {
+      "name": "Registry",
+      "description": "NimConnect client registry (NIMCONNECT_SERVICE_TOKEN)"
+    },
+    {
       "name": "Submit",
       "description": "Developer submissions (wallet login required for submit and update requests)"
     },
@@ -269,6 +273,58 @@
         }
       }
     },
+    "/api/apps/changed": {
+      "get": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "Poll client-registry changes since a timestamp",
+        "description": "Server-to-server feed for NimConnect. Returns apps with ownership, scopes,\nstatus, or client-metadata changes after `since`. Poll is the convergence\nguarantee; do not rely on webhooks alone.\n",
+        "operationId": "listAppClientChanges",
+        "security": [
+          {
+            "registryBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "since",
+            "in": "query",
+            "required": true,
+            "description": "RFC3339 timestamp; only changes with occurred_at greater than this are returned",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated changes per app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppClientChangesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid since",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/api/apps/{slug}": {
       "get": {
         "tags": [
@@ -291,6 +347,44 @@
                 }
               }
             }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/apps/{slug}/client": {
+      "get": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "Minimal client record for NimConnect consent and scope checks",
+        "description": "Server-to-server. Resolves only for approved, verified, or experimental apps.\nUnknown, submitted, or rejected apps return 404. Empty declared_scopes means\nthe app may not request scopes.\n",
+        "operationId": "getAppClient",
+        "security": [
+          {
+            "registryBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client registry record",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppClientRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -1632,6 +1726,11 @@
         "scheme": "bearer",
         "description": "Set ADMIN_TOKEN on the server; send as Authorization Bearer token"
       },
+      "registryBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Set NIMCONNECT_SERVICE_TOKEN on the server; send as Authorization Bearer token for /client and /changed"
+      },
       "walletCookie": {
         "type": "apiKey",
         "in": "cookie",
@@ -1895,6 +1994,13 @@
           "ETH"
         ]
       },
+      "DeclaredScope": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$",
+        "maxLength": 64,
+        "description": "Scope this app may request from NimConnect (name:action, lowercase)",
+        "example": "friends:read"
+      },
       "MediaItem": {
         "type": "object",
         "required": [
@@ -2003,6 +2109,14 @@
             "description": "Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.",
             "items": {
               "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "declared_scopes": {
+            "type": "array",
+            "description": "Scopes this app may request via NimConnect. Changes for listed apps go through revision review. Empty means no scopes.",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/DeclaredScope"
             }
           },
           "competition_cycle": {
@@ -2118,6 +2232,14 @@
               "$ref": "#/components/schemas/Asset"
             }
           },
+          "declared_scopes": {
+            "type": "array",
+            "description": "Scopes this app may request via NimConnect. Empty means no scopes.",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/DeclaredScope"
+            }
+          },
           "competition_cycle": {
             "type": "integer",
             "minimum": 1,
@@ -2231,6 +2353,14 @@
             "description": "Assets users can actually receive from this app, such as daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token.",
             "items": {
               "$ref": "#/components/schemas/Asset"
+            }
+          },
+          "declared_scopes": {
+            "type": "array",
+            "description": "Scopes this app may request via NimConnect. Shown on the listing before install. Empty means no scopes.",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/DeclaredScope"
             }
           },
           "competition_cycle": {
@@ -2771,6 +2901,14 @@
               "$ref": "#/components/schemas/Asset"
             }
           },
+          "declared_scopes": {
+            "type": "array",
+            "description": "Proposed scopes for NimConnect; applied on revision approve.",
+            "maxItems": 32,
+            "items": {
+              "$ref": "#/components/schemas/DeclaredScope"
+            }
+          },
           "competition_cycle": {
             "type": "integer",
             "minimum": 1,
@@ -2819,6 +2957,109 @@
             "type": "string",
             "format": "date-time",
             "nullable": true
+          }
+        }
+      },
+      "AppClientRecord": {
+        "type": "object",
+        "required": [
+          "app_id",
+          "slug",
+          "name",
+          "verified",
+          "status",
+          "declared_scopes",
+          "launch_origins",
+          "updated_at"
+        ],
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Immutable ecosystem app id (apps.id)"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "icon_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "True when status is verified"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AppStatus"
+          },
+          "declared_scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeclaredScope"
+            }
+          },
+          "launch_origins": {
+            "type": "array",
+            "description": "Exact-match origins from https://{domain} and website_url origin",
+            "items": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AppClientChange": {
+        "type": "object",
+        "required": [
+          "app_id",
+          "slug",
+          "updated_at",
+          "reasons"
+        ],
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "owner_transfer",
+                "scopes_changed",
+                "status_changed",
+                "metadata_changed"
+              ]
+            }
+          }
+        }
+      },
+      "AppClientChangesResponse": {
+        "type": "object",
+        "required": [
+          "changes"
+        ],
+        "properties": {
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AppClientChange"
+            }
           }
         }
       },

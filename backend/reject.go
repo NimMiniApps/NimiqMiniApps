@@ -40,6 +40,7 @@ func (s *server) rejectApp(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	s.recordClientChange(r.Context(), a.ID, clientChangeStatusChanged)
 	notifyRejected(a, note)
 	writeJSON(w, http.StatusOK, a)
 }
@@ -65,6 +66,7 @@ func (s *server) setStatus(status string) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		s.recordClientChange(r.Context(), a.ID, clientChangeStatusChanged)
 		writeJSON(w, http.StatusOK, a)
 	}
 }

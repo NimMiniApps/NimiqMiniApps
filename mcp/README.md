@@ -78,6 +78,7 @@ When creating or updating apps via MCP (or the REST API):
 | `description` | Plain text | Short summary; listings / meta |
 | `long_description` | **Markdown** | Rendered on the app detail page (bold, lists, links, headings, code). HTML is stripped. |
 | `reward_assets` | array of `NIM`, `USDT`, `USDC`, `BTC`, `ETH` | Assets users can actually receive from the app: daily rewards, leaderboard prizes, payouts, tips, faucets, or similar receive-side flows. Leave empty when the app merely accepts, displays, swaps, or supports a token. |
+| `declared_scopes` | array of `name:action` strings | NimConnect scopes this app may request (e.g. `friends:read`). Empty means no scopes. |
 | `competition_cycle` | Positive integer or `null` | Nimiq Mini Apps competition cycle. Leave empty for apps outside the competition. `list_apps` accepts a cycle number or `none` as a filter. |
 | `domain` | Host/path | `https://` / `http://` stripped automatically if pasted |
 | `owner_wallet_addresses` | array of Nimiq addresses (read-only) | Wallets that can self-service manage this app (My apps, request-update). Manage via `admin_add_app_owner` / `admin_remove_app_owner`, not through create/update. |

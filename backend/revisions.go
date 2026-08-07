@@ -25,6 +25,7 @@ type AppRevision struct {
 	Tags             []string     `json:"tags"`
 	Assets           []string     `json:"assets"`
 	RewardAssets     []string     `json:"reward_assets"`
+	DeclaredScopes   []string     `json:"declared_scopes"`
 	CompetitionCycle *int         `json:"competition_cycle"`
 	ReleaseStage     string       `json:"release_stage"`
 	WebsiteURL       *string      `json:"website_url"`
@@ -39,7 +40,7 @@ type AppRevision struct {
 }
 
 const revisionColumns = `id, app_slug, status, name, domain, category, developer_slug, developer_name,
-	tagline, description, long_description, tags, assets, reward_assets, competition_cycle, release_stage,
+	tagline, description, long_description, tags, assets, reward_assets, declared_scopes, competition_cycle, release_stage,
 	website_url, github_url, icon_url, banner_url, media, socials, author_note, created_at, reviewed_at`
 
 func scanRevision(row pgx.Row) (AppRevision, error) {
@@ -47,7 +48,7 @@ func scanRevision(row pgx.Row) (AppRevision, error) {
 	var mediaJSON, socialsJSON []byte
 	err := row.Scan(&rev.ID, &rev.AppSlug, &rev.Status, &rev.Name, &rev.Domain, &rev.Category,
 		&rev.DeveloperSlug, &rev.DeveloperName, &rev.Tagline, &rev.Description, &rev.LongDescription,
-		&rev.Tags, &rev.Assets, &rev.RewardAssets, &rev.CompetitionCycle, &rev.ReleaseStage, &rev.WebsiteURL, &rev.GithubURL, &rev.IconURL,
+		&rev.Tags, &rev.Assets, &rev.RewardAssets, &rev.DeclaredScopes, &rev.CompetitionCycle, &rev.ReleaseStage, &rev.WebsiteURL, &rev.GithubURL, &rev.IconURL,
 		&rev.BannerURL, &mediaJSON, &socialsJSON, &rev.AuthorNote, &rev.CreatedAt, &rev.ReviewedAt)
 	if err != nil {
 		return rev, err
@@ -68,6 +69,9 @@ func scanRevision(row pgx.Row) (AppRevision, error) {
 	if rev.Socials == nil {
 		rev.Socials = []SocialLink{}
 	}
+	if rev.DeclaredScopes == nil {
+		rev.DeclaredScopes = []string{}
+	}
 	return rev, nil
 }
 
@@ -84,6 +88,7 @@ func revisionToApp(rev AppRevision, keep App) App {
 	a.Tags = rev.Tags
 	a.Assets = rev.Assets
 	a.RewardAssets = rev.RewardAssets
+	a.DeclaredScopes = rev.DeclaredScopes
 	a.CompetitionCycle = rev.CompetitionCycle
 	a.ReleaseStage = rev.ReleaseStage
 	a.WebsiteURL = rev.WebsiteURL
@@ -134,7 +139,7 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, addres
 	}
 
 	var body updateRequestBody
-	body.Tags, body.Assets, body.RewardAssets, body.Media = []string{}, []string{}, []string{}, []MediaItem{}
+	body.Tags, body.Assets, body.RewardAssets, body.DeclaredScopes, body.Media = []string{}, []string{}, []string{}, []string{}, []MediaItem{}
 	body.Socials = []SocialLink{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
@@ -155,6 +160,9 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, addres
 	}
 	if body.Socials == nil {
 		body.Socials = []SocialLink{}
+	}
+	if body.DeclaredScopes == nil {
+		body.DeclaredScopes = []string{}
 	}
 	if err := validateApp(&body.App); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
@@ -187,12 +195,12 @@ func (s *server) requestAppUpdate(w http.ResponseWriter, r *http.Request, addres
 	rev, err := scanRevision(s.pool.QueryRow(r.Context(), `
 		INSERT INTO app_revisions (
 			app_slug, name, domain, category, developer_slug, developer_name, tagline,
-			description, long_description, tags, assets, reward_assets, competition_cycle, release_stage,
+			description, long_description, tags, assets, reward_assets, declared_scopes, competition_cycle, release_stage,
 			website_url, github_url, icon_url, banner_url, media, socials, author_note)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
 		RETURNING `+revisionColumns,
 		slug, body.Name, body.Domain, body.Category, current.DeveloperSlug, current.DeveloperName,
-		body.Tagline, body.Description, body.LongDescription, body.Tags, body.Assets, body.RewardAssets, body.CompetitionCycle, body.ReleaseStage,
+		body.Tagline, body.Description, body.LongDescription, body.Tags, body.Assets, body.RewardAssets, body.DeclaredScopes, body.CompetitionCycle, body.ReleaseStage,
 		body.WebsiteURL, body.GithubURL, body.IconURL, body.BannerURL, mediaJSON, socialsJSON, body.AuthorNote))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -297,14 +305,14 @@ func (s *server) approveRevision(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	app, err := scanApp(tx.QueryRow(ctx, `
 		UPDATE apps SET name=$1, domain=$2, category=$3, developer_slug=$4, developer_name=$5,
-			tagline=$6, description=$7, long_description=$8, tags=$9, assets=$10, reward_assets=$11, competition_cycle=$12,
-			release_stage=$13, website_url=$14, github_url=$15, icon_url=$16, banner_url=$17, media=$18, socials=$19,
-			domain_reachable=$20, domain_checked_at=$21, updated_at=now()
-		WHERE id=$22
+			tagline=$6, description=$7, long_description=$8, tags=$9, assets=$10, reward_assets=$11, declared_scopes=$12, competition_cycle=$13,
+			release_stage=$14, website_url=$15, github_url=$16, icon_url=$17, banner_url=$18, media=$19, socials=$20,
+			domain_reachable=$21, domain_checked_at=$22, updated_at=now()
+		WHERE id=$23
 		RETURNING `+appColumns,
 		updated.Name, updated.Domain, updated.Category, updated.DeveloperSlug, updated.DeveloperName,
 		updated.Tagline, updated.Description, updated.LongDescription, updated.Tags, updated.Assets,
-		updated.RewardAssets, updated.CompetitionCycle, updated.ReleaseStage, updated.WebsiteURL, updated.GithubURL, updated.IconURL, updated.BannerURL,
+		updated.RewardAssets, updated.DeclaredScopes, updated.CompetitionCycle, updated.ReleaseStage, updated.WebsiteURL, updated.GithubURL, updated.IconURL, updated.BannerURL,
 		mediaJSON, socialsJSON, updated.DomainReachable, updated.DomainCheckedAt, updated.ID))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
@@ -315,6 +323,21 @@ func (s *server) approveRevision(w http.ResponseWriter, r *http.Request) {
 		`UPDATE app_revisions SET status='approved', reviewed_at=$1 WHERE id=$2`, now, id); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	if !sameStringSet(current.DeclaredScopes, updated.DeclaredScopes) {
+		if err := recordClientChangeTx(ctx, tx, updated.ID, clientChangeScopesChanged); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	if current.Name != updated.Name ||
+		!stringPtrEqual(current.IconURL, updated.IconURL) ||
+		current.Domain != updated.Domain ||
+		!stringPtrEqual(current.WebsiteURL, updated.WebsiteURL) {
+		if err := recordClientChangeTx(ctx, tx, updated.ID, clientChangeMetadataChanged); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())

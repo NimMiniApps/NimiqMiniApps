@@ -26,6 +26,7 @@ export interface App {
   tags: string[]
   assets: string[]
   reward_assets: string[]
+  declared_scopes: string[]
   competition_cycle: number | null
   status: string
   release_stage: string
@@ -98,6 +99,7 @@ export interface AppRevision {
   tags: string[]
   assets: string[]
   reward_assets: string[]
+  declared_scopes: string[]
   competition_cycle: number | null
   release_stage: string
   website_url: string | null

@@ -11,6 +11,7 @@ import (
 
 var (
 	slugRe            = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+	scopeRe           = regexp.MustCompile(`^[a-z][a-z0-9_-]*:[a-z][a-z0-9_-]*$`)
 	youtubeURLRe      = regexp.MustCompile(`(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)[a-zA-Z0-9_-]{11}`)
 	validCategories   = []string{"Games", "Utilities", "Finance", "Maps", "Social", "Experiments"}
 	validStatuses     = []string{"submitted", "approved", "verified", "experimental", "rejected"}
@@ -18,6 +19,7 @@ var (
 	validMediaTypes   = []string{"image", "youtube"}
 	validSocials      = []string{"twitter", "discord", "telegram", "bluesky", "instagram", "youtube", "linkedin", "mastodon", "reddit", "tiktok"}
 	validAssets       = []string{"NIM", "USDT", "USDC", "BTC", "ETH"}
+	maxDeclaredScopes = 32
 )
 
 func validateOptionalURL(field string, raw *string) string {
@@ -141,6 +143,35 @@ func validateApp(a *App) error {
 			problems = append(problems, "reward asset "+asset+" is not one of: "+strings.Join(validAssets, ", "))
 		}
 	}
+	if a.DeclaredScopes == nil {
+		a.DeclaredScopes = []string{}
+	}
+	if len(a.DeclaredScopes) > maxDeclaredScopes {
+		problems = append(problems, "declared_scopes must have at most "+strconv.Itoa(maxDeclaredScopes)+" entries")
+	}
+	seenScopes := map[string]struct{}{}
+	normalizedScopes := make([]string, 0, len(a.DeclaredScopes))
+	for _, scope := range a.DeclaredScopes {
+		scope = strings.TrimSpace(scope)
+		if scope == "" {
+			problems = append(problems, "declared_scopes entries must not be empty")
+			continue
+		}
+		if len(scope) > 64 {
+			problems = append(problems, "declared_scopes entry "+scope+" must be at most 64 characters")
+			continue
+		}
+		if !scopeRe.MatchString(scope) {
+			problems = append(problems, "declared_scopes entry "+scope+" must match name:action (lowercase)")
+			continue
+		}
+		if _, ok := seenScopes[scope]; ok {
+			continue
+		}
+		seenScopes[scope] = struct{}{}
+		normalizedScopes = append(normalizedScopes, scope)
+	}
+	a.DeclaredScopes = normalizedScopes
 	if a.CompetitionCycle != nil && *a.CompetitionCycle < 1 {
 		problems = append(problems, "competition_cycle must be a positive integer")
 	}

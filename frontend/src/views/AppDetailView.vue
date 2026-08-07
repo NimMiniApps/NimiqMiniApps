@@ -276,6 +276,18 @@ onUnmounted(resetPageMeta)
       </RouterLink>
     </div>
 
+    <div v-if="app.declared_scopes?.length" class="space-y-1.5">
+      <h2 class="text-sm font-bold">{{ t('appDetail.declaredScopes') }}</h2>
+      <p class="text-xs text-muted">{{ t('appDetail.declaredScopesHint') }}</p>
+      <div class="flex flex-wrap gap-1.5 text-sm">
+        <span
+          v-for="scope in app.declared_scopes"
+          :key="scope"
+          class="rounded-md bg-surface-2 px-2.5 py-1 font-mono text-xs font-semibold"
+        >{{ scope }}</span>
+      </div>
+    </div>
+
     <MediaGallery v-if="app.media?.length" :items="app.media" :title="t('appDetail.media')" />
 
     <section class="rounded-2xl border border-line bg-surface p-5 shadow-sm md:p-6">

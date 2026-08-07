@@ -62,10 +62,18 @@ func (s *server) addOwner(ctx context.Context, slug, wallet string) error {
 	if displayName == nil || strings.TrimSpace(*displayName) == "" {
 		return errors.New("wallet must set a display name on their profile first")
 	}
-	_, err = s.pool.Exec(ctx,
+	tag, err := s.pool.Exec(ctx,
 		`INSERT INTO app_owners (app_slug, wallet_address) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
 		slug, wallet)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() > 0 {
+		if appID, idErr := s.appIDBySlug(ctx, slug); idErr == nil {
+			s.recordClientChange(ctx, appID, clientChangeOwnerTransfer)
+		}
+	}
+	return nil
 }
 
 // removeOwner unlinks wallet from slug's ownership set. When allowEmpty is false
@@ -81,9 +89,17 @@ func (s *server) removeOwner(ctx context.Context, slug, wallet string, allowEmpt
 			return errLastOwner
 		}
 	}
-	_, err := s.pool.Exec(ctx,
+	tag, err := s.pool.Exec(ctx,
 		`DELETE FROM app_owners WHERE app_slug=$1 AND wallet_address=$2`, slug, wallet)
-	return err
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() > 0 {
+		if appID, idErr := s.appIDBySlug(ctx, slug); idErr == nil {
+			s.recordClientChange(ctx, appID, clientChangeOwnerTransfer)
+		}
+	}
+	return nil
 }
 
 // resolveDeveloperSlug returns the developer_slug a wallet should submit under.

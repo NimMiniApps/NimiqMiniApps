@@ -32,6 +32,19 @@ func TestOpenAPIEmbeddedJSON(t *testing.T) {
 		if properties["competition_cycle"] == nil {
 			t.Errorf("expected competition_cycle in %s", schemaName)
 		}
+		if properties["declared_scopes"] == nil {
+			t.Errorf("expected declared_scopes in %s", schemaName)
+		}
+	}
+	if paths["/api/apps/{slug}/client"] == nil {
+		t.Fatal("expected /api/apps/{slug}/client in paths")
+	}
+	if paths["/api/apps/changed"] == nil {
+		t.Fatal("expected /api/apps/changed in paths")
+	}
+	securitySchemes := components["securitySchemes"].(map[string]any)
+	if securitySchemes["registryBearer"] == nil {
+		t.Fatal("expected registryBearer security scheme")
 	}
 
 	parameters := components["parameters"].(map[string]any)

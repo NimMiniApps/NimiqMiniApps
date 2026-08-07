@@ -58,7 +58,7 @@ const sortedApps = computed(() => {
 
 const emptyForm = {
   slug: '', name: '', domain: '', category: '', developer_slug: '', developer_name: '',
-  tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', reward_assets: '', status: 'submitted',
+  tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', reward_assets: '', declared_scopes: '', status: 'submitted',
   competition_cycle: '' as number | '',
   release_stage: 'released', featured: false, featured_order: 0,
   website_url: '', github_url: '', icon_url: '', banner_url: '', media: '', socials: '',
@@ -177,6 +177,7 @@ function startEdit(app: App) {
     developer_slug: app.developer_slug, developer_name: app.developer_name,
     tagline: app.tagline, description: app.description, long_description: app.long_description || '',
     tags: app.tags.join(', '), assets: app.assets.join(', '), reward_assets: app.reward_assets.join(', '),
+    declared_scopes: (app.declared_scopes || []).join(', '),
     competition_cycle: app.competition_cycle ?? '',
     status: app.status, release_stage: app.release_stage, featured: app.featured,
     featured_order: app.featured_order ?? 0,
@@ -204,6 +205,7 @@ async function submit() {
     tags: csv(form.tags),
     assets: csv(form.assets),
     reward_assets: csv(form.reward_assets),
+    declared_scopes: csv(form.declared_scopes),
     competition_cycle: normalizeCompetitionCycle(form.competition_cycle),
     media: parseMediaLines(form.media),
     socials: parseSocialLines(form.socials),
@@ -454,6 +456,15 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
           label="Reward assets"
           help="Moderator-reviewed claim: only select tokens users can actually receive from the app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
         />
+        <label class="text-sm sm:col-span-2">
+          <span class="mb-1 block text-muted">Declared scopes</span>
+          <input
+            v-model="form.declared_scopes"
+            placeholder="friends:read, achievements:read"
+            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"
+          />
+          <span class="mt-1 block text-xs leading-snug text-muted">Comma-separated NimConnect scopes (name:action). Empty means no scopes.</span>
+        </label>
 
         <div class="space-y-3 rounded-xl border border-line bg-surface-2/50 p-4 sm:col-span-2">
           <div>

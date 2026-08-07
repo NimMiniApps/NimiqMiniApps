@@ -105,6 +105,7 @@ func main() {
 	adminWallets := parseAdminWallets(env("ADMIN_WALLET_ADDRESSES", ""))
 	walletAuthSecret := env("WALLET_AUTH_SECRET", "")
 	analyticsSecret := env("ANALYTICS_HASH_SECRET", "")
+	nimconnectServiceToken := env("NIMCONNECT_SERVICE_TOKEN", "")
 	addr := env("HTTP_ADDR", ":8080")
 	corsOrigins := strings.Split(env("CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"), ",")
 	for i := range corsOrigins {
@@ -120,6 +121,9 @@ func main() {
 	}
 	if analyticsSecret == "" {
 		slog.Warn("ANALYTICS_HASH_SECRET is empty; analytics recording is disabled")
+	}
+	if nimconnectServiceToken == "" {
+		slog.Warn("NIMCONNECT_SERVICE_TOKEN is empty; registry client endpoints are disabled")
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -150,15 +154,16 @@ func main() {
 	}
 
 	s := &server{
-		pool:                pool,
-		nonces:              newNonceStore(),
-		walletAuthSecret:    walletAuthSecret,
-		adminToken:          adminToken,
-		adminWallets:        adminWallets,
-		reviewLimiter:       newRateLimiter(5, time.Hour),
-		statsLimiter:        newRateLimiter(20, time.Minute),
-		analyticsHashSecret: analyticsSecret,
-		analyticsLimiter:    newRateLimiter(120, time.Minute),
+		pool:                   pool,
+		nonces:                 newNonceStore(),
+		walletAuthSecret:       walletAuthSecret,
+		adminToken:             adminToken,
+		adminWallets:           adminWallets,
+		nimconnectServiceToken: nimconnectServiceToken,
+		reviewLimiter:          newRateLimiter(5, time.Hour),
+		statsLimiter:           newRateLimiter(20, time.Minute),
+		analyticsHashSecret:    analyticsSecret,
+		analyticsLimiter:       newRateLimiter(120, time.Minute),
 	}
 	s.startDomainHealthWorker(ctx)
 	s.startIconDiscoveryBackfill(ctx)
@@ -172,6 +177,8 @@ func main() {
 	mux.HandleFunc("GET /sitemap.xml", s.sitemapXML)
 	mux.HandleFunc("GET /og/apps/{slug}", s.ogAppHTML)
 	mux.HandleFunc("GET /api/apps", s.listApps)
+	mux.HandleFunc("GET /api/apps/changed", s.registryServiceAuth(s.listAppClientChanges))
+	mux.HandleFunc("GET /api/apps/{slug}/client", s.registryServiceAuth(s.getAppClient))
 	mux.HandleFunc("GET /api/apps/{slug}/status", s.getSubmissionStatus)
 	mux.HandleFunc("GET /api/apps/{slug}/related", s.getRelatedApps)
 	mux.HandleFunc("GET /api/apps/{slug}", s.getApp)

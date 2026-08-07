@@ -69,6 +69,9 @@ Public: `GET /api/apps` (with `q`, `category`, `status`, `featured`, `sort`, `re
 Owners and admins can read per-app stats at `GET /api/apps/{slug}/stats` (wallet session or admin token).
 Admins can read aggregate product analytics at `GET /api/admin/analytics`.
 
+**NimConnect registry** (service token `NIMCONNECT_SERVICE_TOKEN`): `GET /api/apps/{slug}/client` and
+`GET /api/apps/changed?since=<RFC3339>` — minimal client records and a pollable change feed for consent/scope mirroring.
+
 **OpenAPI** — full spec at [`docs/openapi.yaml`](docs/openapi.yaml), served live at
 `/openapi.json` and `/openapi.yaml`. Regenerate embedded copies with `./scripts/gen-openapi.sh`.
 
