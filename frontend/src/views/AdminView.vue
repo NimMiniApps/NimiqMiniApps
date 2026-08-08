@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   APP_CATEGORIES, APP_RELEASE_STAGES, adminListApps, adminCreateApp, adminUpdateApp, adminDeleteApp, adminSetStatus, adminCheckDomains,
@@ -15,6 +15,12 @@ import { formatSocialLines, parseSocialLines } from '../utils/socials'
 import { diffRevision } from '../utils/revisionDiff'
 import { normalizeDomain } from '../utils/domain'
 import { normalizeCompetitionCycle } from '../utils/competition'
+import {
+  ADMIN_APP_STATUSES,
+  filterAdminApps,
+  normalizeAdminCategoryFilter,
+  normalizeAdminStatusFilter,
+} from '../utils/adminAppFilters'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +37,9 @@ const rejectNote = ref('')
 type AppSortKey = 'name' | 'total_opens' | 'total_views'
 const sortKey = ref<AppSortKey>('name')
 const sortAsc = ref(true)
+const filterQ = ref(typeof route.query.q === 'string' ? route.query.q : '')
+const filterCategory = ref(normalizeAdminCategoryFilter(route.query.category))
+const filterStatus = ref(normalizeAdminStatusFilter(route.query.status))
 
 function toggleSort(key: AppSortKey) {
   if (sortKey.value === key) {
@@ -41,8 +50,20 @@ function toggleSort(key: AppSortKey) {
   }
 }
 
+const hasListFilters = computed(() =>
+  !!(filterQ.value.trim() || filterCategory.value || filterStatus.value),
+)
+
+const filteredApps = computed(() =>
+  filterAdminApps(apps.value, {
+    q: filterQ.value,
+    category: filterCategory.value,
+    status: filterStatus.value,
+  }),
+)
+
 const sortedApps = computed(() => {
-  const list = [...apps.value]
+  const list = [...filteredApps.value]
   const dir = sortAsc.value ? 1 : -1
   list.sort((a, b) => {
     if (sortKey.value === 'name') {
@@ -54,6 +75,43 @@ const sortedApps = computed(() => {
     return a.name.localeCompare(b.name)
   })
   return list
+})
+
+function syncFilterQuery() {
+  const nextQ = filterQ.value.trim()
+  const curQ = typeof route.query.q === 'string' ? route.query.q : ''
+  const curCat = normalizeAdminCategoryFilter(route.query.category)
+  const curStatus = normalizeAdminStatusFilter(route.query.status)
+  if (
+    nextQ === curQ &&
+    filterCategory.value === curCat &&
+    filterStatus.value === curStatus
+  ) return
+
+  const query: Record<string, string | string[] | undefined | null> = { ...route.query }
+  if (nextQ) query.q = nextQ
+  else delete query.q
+  if (filterCategory.value) query.category = filterCategory.value
+  else delete query.category
+  if (filterStatus.value) query.status = filterStatus.value
+  else delete query.status
+  router.replace({ query })
+}
+
+let filterQTimer: ReturnType<typeof setTimeout> | undefined
+watch(filterQ, () => {
+  clearTimeout(filterQTimer)
+  filterQTimer = setTimeout(() => syncFilterQuery(), 200)
+})
+watch([filterCategory, filterStatus], () => syncFilterQuery())
+
+watch(() => route.query, (query) => {
+  const nextQ = typeof query.q === 'string' ? query.q : ''
+  const nextCategory = normalizeAdminCategoryFilter(query.category)
+  const nextStatus = normalizeAdminStatusFilter(query.status)
+  if (filterQ.value !== nextQ) filterQ.value = nextQ
+  if (filterCategory.value !== nextCategory) filterCategory.value = nextCategory
+  if (filterStatus.value !== nextStatus) filterStatus.value = nextStatus
 })
 
 const emptyForm = {
@@ -716,20 +774,48 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
     </section>
 
     <!-- app list -->
-    <div v-if="!showForm && apps.length" class="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
-      <span>Sort:</span>
-      <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
-        :class="sortKey === 'name' ? 'text-accent-ink' : ''" @click="toggleSort('name')">
-        Name {{ sortKey === 'name' ? (sortAsc ? '↑' : '↓') : '' }}
-      </button>
-      <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
-        :class="sortKey === 'total_opens' ? 'text-accent-ink' : ''" @click="toggleSort('total_opens')">
-        Opens {{ sortKey === 'total_opens' ? (sortAsc ? '↑' : '↓') : '' }}
-      </button>
-      <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
-        :class="sortKey === 'total_views' ? 'text-accent-ink' : ''" @click="toggleSort('total_views')">
-        Views {{ sortKey === 'total_views' ? (sortAsc ? '↑' : '↓') : '' }}
-      </button>
+    <div v-if="!showForm && apps.length" class="space-y-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+        <label class="min-w-[12rem] flex-1 text-xs">
+          <span class="mb-1 block font-semibold text-muted">Search</span>
+          <input v-model="filterQ" type="search" placeholder="Name, slug, or domain"
+            class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent" />
+        </label>
+        <label class="text-xs">
+          <span class="mb-1 block font-semibold text-muted">Category</span>
+          <select v-model="filterCategory"
+            class="w-full cursor-pointer rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent sm:w-40">
+            <option value="">All</option>
+            <option v-for="category in APP_CATEGORIES" :key="category" :value="category">{{ category }}</option>
+          </select>
+        </label>
+        <label class="text-xs">
+          <span class="mb-1 block font-semibold text-muted">Status</span>
+          <select v-model="filterStatus"
+            class="w-full cursor-pointer rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent sm:w-40">
+            <option value="">All</option>
+            <option v-for="s in ADMIN_APP_STATUSES" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs font-semibold text-muted">
+        <span>Sort:</span>
+        <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
+          :class="sortKey === 'name' ? 'text-accent-ink' : ''" @click="toggleSort('name')">
+          Name {{ sortKey === 'name' ? (sortAsc ? '↑' : '↓') : '' }}
+        </button>
+        <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
+          :class="sortKey === 'total_opens' ? 'text-accent-ink' : ''" @click="toggleSort('total_opens')">
+          Opens {{ sortKey === 'total_opens' ? (sortAsc ? '↑' : '↓') : '' }}
+        </button>
+        <button type="button" class="rounded-lg px-2 py-1 hover:bg-surface-2"
+          :class="sortKey === 'total_views' ? 'text-accent-ink' : ''" @click="toggleSort('total_views')">
+          Views {{ sortKey === 'total_views' ? (sortAsc ? '↑' : '↓') : '' }}
+        </button>
+        <span v-if="hasListFilters" class="ml-auto font-medium">
+          {{ sortedApps.length }} of {{ apps.length }} apps
+        </span>
+      </div>
     </div>
     <div class="space-y-2">
       <div v-for="app in sortedApps" :key="app.id"
@@ -743,7 +829,7 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
             <span v-else-if="app.domain_reachable === true" class="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-700 dark:text-emerald-300" title="Domain reachable">online</span>
             <span v-if="app.featured" class="text-accent-ink" title="Featured">★</span>
           </div>
-          <p class="truncate text-sm text-muted">{{ app.slug }} · {{ app.domain }}</p>
+          <p class="truncate text-sm text-muted">{{ app.slug }} · {{ app.category }} · {{ app.domain }}</p>
           <p class="mt-1 text-xs text-muted">
             Opens: {{ (app.total_opens ?? 0).toLocaleString() }} · Views: {{ (app.total_views ?? 0).toLocaleString() }}
           </p>
@@ -756,6 +842,9 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
           <button @click="remove(app)" class="rounded-lg bg-red-500/20 px-2.5 py-1.5 text-red-600 dark:text-red-300 hover:bg-red-500/30">Delete</button>
         </div>
       </div>
+      <p v-if="!showForm && apps.length && !sortedApps.length" class="text-sm text-muted">
+        No apps match these filters
+      </p>
     </div>
   </div>
 </template>
