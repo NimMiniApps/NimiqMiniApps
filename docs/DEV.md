@@ -140,6 +140,11 @@ curl -s "$API/api/apps/nimbomber/client" -H "Authorization: Bearer $REGISTRY_TOK
 # Poll changes since a timestamp (one request for the whole catalog)
 curl -s "$API/api/apps/changed?since=$(date -u -d '1 hour ago' +%Y-%m-%dT%H:%M:%SZ)" \
   -H "Authorization: Bearer $REGISTRY_TOKEN"
+
+# Verify an app-issued API credential (returns AppClientRecord or 401)
+curl -s -X POST "$API/registry/credentials/verify" \
+  -H "Authorization: Bearer $REGISTRY_TOKEN" -H "Content-Type: application/json" \
+  -d '{"key":"nma_nimbomber_…"}'
 ```
 
 ### Admin API examples
@@ -209,7 +214,7 @@ curl $API/api/admin/apps -H "Authorization: Bearer $TOKEN"
 | `WALLET_AUTH_SECRET` | _(empty)_ | HMAC secret for wallet login session cookies; rotating it logs everyone out |
 | `ANALYTICS_HASH_SECRET` | _(empty)_ | Stable HMAC secret for product analytics identifiers; empty disables recording. Changing it breaks continuity of unique visitor/wallet counts |
 | `ADMIN_WALLET_ADDRESSES` | _(empty)_ | Comma-separated Nimiq addresses allowed to moderate via wallet session (also accepts `ADMIN_TOKEN` bearer) |
-| `NIMCONNECT_SERVICE_TOKEN` | _(empty)_ | Bearer token for NimConnect registry endpoints (`GET /api/apps/{slug}/client`, `GET /api/apps/changed`); empty disables them |
+| `NIMCONNECT_SERVICE_TOKEN` | _(empty)_ | Bearer token for NimConnect registry endpoints (`GET /api/apps/{slug}/client`, `GET /api/apps/changed`, `POST /registry/credentials/verify`); empty disables them |
 
 ### Product analytics
 

@@ -230,6 +230,40 @@ export const removeAppOwner = (slug: string, walletAddress: string) =>
     { method: 'DELETE', credentials: 'include' },
   )
 
+export interface AppCredential {
+  id: number
+  key_prefix: string
+  label: string
+  created_at: string
+  created_by: string
+  last_used_at: string | null
+  revoked_at: string | null
+}
+
+export interface AppCredentialCreated extends AppCredential {
+  key: string
+}
+
+export const listAppCredentials = (slug: string) =>
+  request<{ credentials: AppCredential[] }>(
+    `/api/apps/${encodeURIComponent(slug)}/credentials`,
+    { credentials: 'include' },
+  )
+
+export const createAppCredential = (slug: string, label = '') =>
+  request<AppCredentialCreated>(`/api/apps/${encodeURIComponent(slug)}/credentials`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ label }),
+  })
+
+export const revokeAppCredential = (slug: string, id: number) =>
+  request<{ status: string }>(
+    `/api/apps/${encodeURIComponent(slug)}/credentials/${id}`,
+    { method: 'DELETE', credentials: 'include' },
+  )
+
 export const getMyApps = () =>
   request<(RawApp & { has_pending_revision: boolean })[]>('/api/my/apps', { credentials: 'include' })
     .then((items) => items.map((item) => ({ ...normalizeApp(item), has_pending_revision: item.has_pending_revision })))

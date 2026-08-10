@@ -42,6 +42,15 @@ func TestOpenAPIEmbeddedJSON(t *testing.T) {
 	if paths["/api/apps/changed"] == nil {
 		t.Fatal("expected /api/apps/changed in paths")
 	}
+	if paths["/registry/credentials/verify"] == nil {
+		t.Fatal("expected /registry/credentials/verify in paths")
+	}
+	if paths["/api/apps/{slug}/credentials"] == nil {
+		t.Fatal("expected /api/apps/{slug}/credentials in paths")
+	}
+	if schemas["AppCredentialCreated"] == nil || schemas["VerifyCredentialRequest"] == nil {
+		t.Fatal("expected AppCredentialCreated and VerifyCredentialRequest schemas")
+	}
 	securitySchemes := components["securitySchemes"].(map[string]any)
 	if securitySchemes["registryBearer"] == nil {
 		t.Fatal("expected registryBearer security scheme")

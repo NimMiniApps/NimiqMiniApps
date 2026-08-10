@@ -174,8 +174,8 @@ paths:
       summary: Poll client-registry changes since a timestamp
       description: |
         Server-to-server feed for NimConnect. Returns apps with ownership, scopes,
-        status, or client-metadata changes after `since`. Poll is the convergence
-        guarantee; do not rely on webhooks alone.
+        status, client-metadata, or credential-revocation changes after `since`.
+        Poll is the convergence guarantee; do not rely on webhooks alone.
       operationId: listAppClientChanges
       security:
         - registryBearer: []
@@ -244,6 +244,38 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /registry/credentials/verify:
+    post:
+      tags: [Registry]
+      summary: Verify an app API credential
+      description: |
+        Server-to-server. Consumers present an app-issued key and receive the app
+        client record (including `declared_scopes`) when the key is valid, not revoked,
+        and the app is still listed. Updates `last_used_at` at most once per minute.
+        Rate limited per service token.
+      operationId: verifyAppCredential
+      security:
+        - registryBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyCredentialRequest'
+      responses:
+        '200':
+          description: Credential valid; app client identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppClientRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /api/apps/{slug}/status:
     get:
@@ -527,6 +559,128 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /api/apps/{slug}/credentials:
+    get:
+      tags: [Submit]
+      summary: List API credentials for an owned app (metadata only)
+      description: |
+        Returns credential metadata for the caller's app. Never includes the plaintext
+        secret. Only current owners may list credentials.
+      operationId: listAppCredentials
+      security:
+        - walletCookie: []
+      parameters:
+        - $ref: '#/components/parameters/slug'
+      responses:
+        '200':
+          description: Credential metadata list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCredentialList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The wallet session is not a current owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Submit]
+      summary: Issue an API credential for an owned listed app
+      description: |
+        Creates a new credential. The plaintext `key` is returned **once** in this
+        response and cannot be recovered later. Only apps with public catalog status
+        (`approved`, `verified`, or `experimental`) may issue. Rate limited per wallet.
+      operationId: createAppCredential
+      security:
+        - walletCookie: []
+      parameters:
+        - $ref: '#/components/parameters/slug'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                  maxLength: 80
+                  description: Optional human label (e.g. production, staging)
+      responses:
+        '201':
+          description: Credential created; plaintext key included once
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppCredentialCreated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The wallet session is not a current owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: App is not listed (submitted/rejected/etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/apps/{slug}/credentials/{id}:
+    delete:
+      tags: [Submit]
+      summary: Revoke an API credential
+      description: |
+        Soft-revokes the credential (sets `revoked_at`). Idempotent if already revoked.
+        Emits a `credential_revoked` entry on the client-change feed.
+      operationId: revokeAppCredential
+      security:
+        - walletCookie: []
+      parameters:
+        - $ref: '#/components/parameters/slug'
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Credential revoked (or already revoked)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: revoked
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The wallet session is not a current owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '409':
           description: Would remove the last remaining owner
           content:
@@ -1055,7 +1209,7 @@ components:
     registryBearer:
       type: http
       scheme: bearer
-      description: "Set NIMCONNECT_SERVICE_TOKEN on the server; send as Authorization Bearer token for /client and /changed"
+      description: "Set NIMCONNECT_SERVICE_TOKEN on the server; send as Authorization Bearer token for /client, /changed, and /registry/credentials/verify"
     walletCookie:
       type: apiKey
       in: cookie
@@ -1943,7 +2097,61 @@ components:
           type: array
           items:
             type: string
-            enum: [owner_transfer, scopes_changed, status_changed, metadata_changed]
+            enum: [owner_transfer, scopes_changed, status_changed, metadata_changed, credential_revoked]
+
+    AppCredential:
+      type: object
+      required: [id, key_prefix, label, created_at, created_by]
+      properties:
+        id:
+          type: integer
+          format: int64
+        key_prefix:
+          type: string
+          description: Log-safe prefix (not sufficient to authenticate)
+        label:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        created_by:
+          type: string
+          description: Wallet address of the owner who issued the credential
+        last_used_at:
+          type: string
+          format: date-time
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    AppCredentialCreated:
+      allOf:
+        - $ref: '#/components/schemas/AppCredential'
+        - type: object
+          required: [key]
+          properties:
+            key:
+              type: string
+              description: Full plaintext secret; returned only on create
+
+    AppCredentialList:
+      type: object
+      required: [credentials]
+      properties:
+        credentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppCredential'
+
+    VerifyCredentialRequest:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+          description: Full plaintext app credential (nma_<slug>_<secret>)
 
     AppClientChangesResponse:
       type: object

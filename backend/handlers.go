@@ -123,11 +123,13 @@ type server struct {
 	walletAuthSecret       string
 	adminToken             string
 	adminWallets           map[string]struct{}
-	nimconnectServiceToken string
-	reviewLimiter          *rateLimiter
-	statsLimiter           *rateLimiter
-	analyticsHashSecret    string
-	analyticsLimiter       *rateLimiter
+	nimconnectServiceToken   string
+	reviewLimiter            *rateLimiter
+	statsLimiter             *rateLimiter
+	analyticsHashSecret      string
+	analyticsLimiter         *rateLimiter
+	credentialIssueLimiter   *rateLimiter
+	credentialVerifyLimiter  *rateLimiter
 }
 
 // visibility filter for public endpoints

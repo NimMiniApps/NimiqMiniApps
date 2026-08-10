@@ -160,10 +160,12 @@ func main() {
 		adminToken:             adminToken,
 		adminWallets:           adminWallets,
 		nimconnectServiceToken: nimconnectServiceToken,
-		reviewLimiter:          newRateLimiter(5, time.Hour),
-		statsLimiter:           newRateLimiter(20, time.Minute),
-		analyticsHashSecret:    analyticsSecret,
-		analyticsLimiter:       newRateLimiter(120, time.Minute),
+		reviewLimiter:           newRateLimiter(5, time.Hour),
+		statsLimiter:            newRateLimiter(20, time.Minute),
+		analyticsHashSecret:     analyticsSecret,
+		analyticsLimiter:        newRateLimiter(120, time.Minute),
+		credentialIssueLimiter:  newRateLimiter(10, time.Hour),
+		credentialVerifyLimiter: newRateLimiter(120, time.Minute),
 	}
 	s.startDomainHealthWorker(ctx)
 	s.startIconDiscoveryBackfill(ctx)
@@ -179,6 +181,7 @@ func main() {
 	mux.HandleFunc("GET /api/apps", s.listApps)
 	mux.HandleFunc("GET /api/apps/changed", s.registryServiceAuth(s.listAppClientChanges))
 	mux.HandleFunc("GET /api/apps/{slug}/client", s.registryServiceAuth(s.getAppClient))
+	mux.HandleFunc("POST /registry/credentials/verify", s.registryServiceAuth(s.verifyAppCredential))
 	mux.HandleFunc("GET /api/apps/{slug}/status", s.getSubmissionStatus)
 	mux.HandleFunc("GET /api/apps/{slug}/related", s.getRelatedApps)
 	mux.HandleFunc("GET /api/apps/{slug}", s.getApp)
@@ -206,6 +209,9 @@ func main() {
 	mux.HandleFunc("DELETE /api/apps/{slug}/favorite", walletAuthMiddleware(walletAuthSecret, s.removeFavorite))
 	mux.HandleFunc("POST /api/apps/{slug}/owners", walletAuthMiddleware(walletAuthSecret, s.addAppOwnerSelf))
 	mux.HandleFunc("DELETE /api/apps/{slug}/owners/{wallet}", walletAuthMiddleware(walletAuthSecret, s.removeAppOwnerSelf))
+	mux.HandleFunc("POST /api/apps/{slug}/credentials", walletAuthMiddleware(walletAuthSecret, s.createAppCredential))
+	mux.HandleFunc("GET /api/apps/{slug}/credentials", walletAuthMiddleware(walletAuthSecret, s.listAppCredentials))
+	mux.HandleFunc("DELETE /api/apps/{slug}/credentials/{id}", walletAuthMiddleware(walletAuthSecret, s.revokeAppCredential))
 	mux.HandleFunc("GET /api/admin/stats", s.adminAuth(s.adminStats))
 	mux.HandleFunc("GET /api/admin/analytics", s.adminAuth(s.adminAnalytics))
 	mux.HandleFunc("GET /api/admin/revisions", s.adminAuth(s.adminListRevisions))
