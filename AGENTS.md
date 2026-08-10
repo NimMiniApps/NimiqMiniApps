@@ -162,5 +162,5 @@ Keep edits short: one or two bullets or lines per change. Link to deeper docs (`
 | Admin moderation | `/admin` + `Authorization: Bearer $ADMIN_TOKEN` |
 | Admin product analytics | `/admin/analytics` · `GET /api/admin/analytics` · `POST /api/analytics/events` |
 | NimConnect registry | `GET /api/apps/{slug}/client` · `GET /api/apps/changed?since=` · `POST /registry/credentials/verify` · `NIMCONNECT_SERVICE_TOKEN` |
-| App credentials | `POST|GET /api/apps/{slug}/credentials` · `DELETE /api/apps/{slug}/credentials/{id}` (owner wallet) |
+| App credentials | `POST|GET /api/apps/{slug}/credentials` · `DELETE /api/apps/{slug}/credentials/{id}` (owner wallet) · UI: `/my-apps` API keys · how-to: `/build#api-credentials` |
 | README | Update when user/dev-facing behavior changes — see **Keep README.md up to date** |

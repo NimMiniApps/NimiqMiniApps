@@ -17,6 +17,7 @@ import {
 import AppCard from '../components/AppCard.vue'
 import EmptyState from '../components/EmptyState.vue'
 import StatsSparkline from '../components/StatsSparkline.vue'
+import AddressIdenticon from '../components/AddressIdenticon.vue'
 
 const { walletAddress, checking } = useWalletAuth()
 const { t } = useI18n()
@@ -30,20 +31,27 @@ const statsBySlug = reactive<Record<string, StatsState>>({})
 const loading = ref(true)
 const error = ref('')
 
-const expandedSlug = ref('')
+type ManageTab = 'owners' | 'keys'
+const manageSlug = ref('')
+const manageTab = ref<ManageTab>('owners')
+
 const newOwnerInput = reactive<Record<string, string>>({})
 const ownerError = reactive<Record<string, string>>({})
 const ownerBusy = reactive<Record<string, boolean>>({})
 
-const credExpandedSlug = ref('')
 const credentialsBySlug = reactive<Record<string, AppCredential[]>>({})
 const credLabelInput = reactive<Record<string, string>>({})
 const credError = reactive<Record<string, string>>({})
 const credBusy = reactive<Record<string, boolean>>({})
 const issuedKeyBySlug = reactive<Record<string, string>>({})
 const copiedSlug = ref('')
+const credLoaded = reactive<Record<string, boolean>>({})
 
 const listedStatuses = new Set(['approved', 'verified', 'experimental'])
+
+function truncateAddress(address: string): string {
+  return address.length > 16 ? `${address.slice(0, 7)}…${address.slice(-5)}` : address
+}
 
 function last7DaysSum(daily: AppStats['daily'], metric: 'opens' | 'views'): number {
   const cutoff = new Date()
@@ -87,8 +95,20 @@ async function load() {
   }
 }
 
-function toggleManageOwners(slug: string) {
-  expandedSlug.value = expandedSlug.value === slug ? '' : slug
+async function ensureCredentials(slug: string, status: string) {
+  if (!listedStatuses.has(status) || credLoaded[slug]) return
+  await loadCredentials(slug)
+  credLoaded[slug] = true
+}
+
+async function openManage(slug: string, tab: ManageTab, status: string) {
+  if (manageSlug.value === slug && manageTab.value === tab) {
+    manageSlug.value = ''
+    return
+  }
+  manageSlug.value = slug
+  manageTab.value = tab
+  if (tab === 'keys') await ensureCredentials(slug, status)
 }
 
 async function handleAddOwner(slug: string) {
@@ -133,16 +153,6 @@ async function loadCredentials(slug: string) {
   }
 }
 
-async function toggleCredentials(slug: string, status: string) {
-  if (credExpandedSlug.value === slug) {
-    credExpandedSlug.value = ''
-    return
-  }
-  credExpandedSlug.value = slug
-  if (!listedStatuses.has(status)) return
-  await loadCredentials(slug)
-}
-
 async function handleIssueCredential(slug: string) {
   credBusy[slug] = true
   credError[slug] = ''
@@ -151,6 +161,7 @@ async function handleIssueCredential(slug: string) {
     const created = await createAppCredential(slug, (credLabelInput[slug] || '').trim())
     issuedKeyBySlug[slug] = created.key
     credLabelInput[slug] = ''
+    credLoaded[slug] = true
     await loadCredentials(slug)
   } catch (err) {
     credError[slug] = err instanceof Error ? err.message : 'Failed to issue credential'
@@ -190,6 +201,10 @@ function formatUsed(cred: AppCredential): string {
   if (cred.revoked_at) return t('myApps.credentials.revoked')
   if (!cred.last_used_at) return t('myApps.credentials.neverUsed')
   return `${t('myApps.credentials.lastUsed')}: ${new Date(cred.last_used_at).toLocaleString()}`
+}
+
+function activeCredentialCount(slug: string): number {
+  return (credentialsBySlug[slug] || []).filter((c) => !c.revoked_at).length
 }
 
 watch([checking, walletAddress], () => {
@@ -259,13 +274,14 @@ watch([checking, walletAddress], () => {
           :pending-update="app.has_pending_revision"
           show-manage-actions
         />
-        <div class="shrink-0 rounded-xl border border-line bg-surface-2/50 p-3 text-sm">
+
+        <div class="board shrink-0 space-y-3 p-3">
           <div v-if="statsBySlug[app.slug]?.status === 'loading'" class="grid min-h-[5.5rem] grid-cols-2 gap-3">
             <div v-for="n in 2" :key="n" class="space-y-1">
-              <div class="h-3 w-12 animate-pulse rounded bg-line/60" />
-              <div class="h-6 w-10 animate-pulse rounded bg-line/60" />
-              <div class="h-3 w-20 animate-pulse rounded bg-line/60" />
-              <div class="mt-1 h-8 w-full animate-pulse rounded bg-line/40" />
+              <div class="h-3 w-12 animate-pulse rounded bg-board-hairline/60" />
+              <div class="h-6 w-10 animate-pulse rounded bg-board-hairline/60" />
+              <div class="h-3 w-20 animate-pulse rounded bg-board-hairline/60" />
+              <div class="mt-1 h-8 w-full animate-pulse rounded bg-board-hairline/40" />
             </div>
           </div>
           <div
@@ -273,9 +289,9 @@ watch([checking, walletAddress], () => {
             class="grid min-h-[5.5rem] grid-cols-2 gap-3"
           >
             <div class="flex flex-col">
-              <p class="text-xs font-semibold text-muted">{{ t('myApps.stats.opens') }}</p>
-              <p class="text-lg font-bold">{{ statsBySlug[app.slug].data.totals.opens.toLocaleString() }}</p>
-              <p class="text-xs text-muted">
+              <p class="font-mono text-[10px] font-bold uppercase tracking-wide text-board-flap-muted">{{ t('myApps.stats.opens') }}</p>
+              <p class="text-lg font-bold text-board-flap-ink">{{ statsBySlug[app.slug].data.totals.opens.toLocaleString() }}</p>
+              <p class="text-xs text-board-flap-muted">
                 {{ t('myApps.stats.last7Days') }}: {{ last7DaysSum(statsBySlug[app.slug].data.daily, 'opens').toLocaleString() }}
               </p>
               <div class="mt-auto pt-1">
@@ -283,9 +299,9 @@ watch([checking, walletAddress], () => {
               </div>
             </div>
             <div class="flex flex-col">
-              <p class="text-xs font-semibold text-muted">{{ t('myApps.stats.views') }}</p>
-              <p class="text-lg font-bold">{{ statsBySlug[app.slug].data.totals.views.toLocaleString() }}</p>
-              <p class="text-xs text-muted">
+              <p class="font-mono text-[10px] font-bold uppercase tracking-wide text-board-flap-muted">{{ t('myApps.stats.views') }}</p>
+              <p class="text-lg font-bold text-board-flap-ink">{{ statsBySlug[app.slug].data.totals.views.toLocaleString() }}</p>
+              <p class="text-xs text-board-flap-muted">
                 {{ t('myApps.stats.last7Days') }}: {{ last7DaysSum(statsBySlug[app.slug].data.daily, 'views').toLocaleString() }}
               </p>
               <div class="mt-auto pt-1">
@@ -293,88 +309,148 @@ watch([checking, walletAddress], () => {
               </div>
             </div>
           </div>
-          <p v-else class="min-h-[5.5rem] text-xs text-muted">Stats unavailable</p>
-        </div>
-        <button type="button" class="shrink-0 text-left text-xs font-semibold text-accent-ink hover:underline"
-          @click="toggleManageOwners(app.slug)">
-          {{ expandedSlug === app.slug ? 'Hide owners' : `Manage owners (${app.owner_wallet_addresses.length})` }}
-        </button>
-        <div v-if="expandedSlug === app.slug" class="space-y-2 rounded-xl border border-line bg-surface-2/50 p-3 text-sm">
-          <ul class="space-y-1">
-            <li v-for="wallet in app.owner_wallet_addresses" :key="wallet" class="flex items-center justify-between gap-2">
-              <span class="truncate font-mono text-xs">{{ wallet }}</span>
-              <button type="button" :disabled="ownerBusy[app.slug] || app.owner_wallet_addresses.length <= 1"
-                class="shrink-0 text-xs font-semibold text-red-600 hover:underline disabled:cursor-default disabled:opacity-40 dark:text-red-400"
-                @click="handleRemoveOwner(app.slug, wallet)">
-                Remove
-              </button>
-            </li>
-          </ul>
-          <div class="flex gap-2">
-            <input v-model="newOwnerInput[app.slug]" placeholder="Wallet address (e.g. your other device)"
-              class="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1.5 text-xs outline-none focus:border-accent" />
-            <button type="button" :disabled="ownerBusy[app.slug]"
-              class="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-              @click="handleAddOwner(app.slug)">
-              Add
+          <p v-else class="min-h-[5.5rem] text-xs text-board-flap-muted">Stats unavailable</p>
+
+          <div class="flex gap-1 border-t border-board-hairline pt-2">
+            <button
+              type="button"
+              class="flex-1 rounded-[3px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors"
+              :class="manageSlug === app.slug && manageTab === 'owners'
+                ? 'bg-board-flap text-board-flap-ink'
+                : 'text-board-flap-muted hover:bg-board-flap-hover hover:text-board-flap-ink'"
+              @click="openManage(app.slug, 'owners', app.status)"
+            >
+              {{ t('myApps.manage.owners') }}
+              <span class="ml-1 font-mono text-board-flap-muted">({{ app.owner_wallet_addresses.length }})</span>
+            </button>
+            <button
+              type="button"
+              class="flex-1 rounded-[3px] px-2 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors"
+              :class="manageSlug === app.slug && manageTab === 'keys'
+                ? 'bg-board-flap text-board-flap-ink'
+                : 'text-board-flap-muted hover:bg-board-flap-hover hover:text-board-flap-ink'"
+              @click="openManage(app.slug, 'keys', app.status)"
+            >
+              {{ t('myApps.manage.keys') }}
+              <span v-if="credLoaded[app.slug]" class="ml-1 font-mono text-board-flap-muted">({{ activeCredentialCount(app.slug) }})</span>
             </button>
           </div>
-          <p v-if="ownerError[app.slug]" class="text-xs text-red-600 dark:text-red-400">{{ ownerError[app.slug] }}</p>
-        </div>
 
-        <button type="button" class="shrink-0 text-left text-xs font-semibold text-accent-ink hover:underline"
-          @click="toggleCredentials(app.slug, app.status)">
-          {{ credExpandedSlug === app.slug ? t('myApps.credentials.hide') : t('myApps.credentials.manage') }}
-        </button>
-        <div v-if="credExpandedSlug === app.slug" class="space-y-2 rounded-xl border border-line bg-surface-2/50 p-3 text-sm">
-          <p v-if="!listedStatuses.has(app.status)" class="text-xs text-muted">{{ t('myApps.credentials.notListed') }}</p>
-          <template v-else>
-            <ul v-if="(credentialsBySlug[app.slug] || []).length" class="space-y-2">
-              <li v-for="cred in credentialsBySlug[app.slug]" :key="cred.id" class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
-                  <p class="truncate font-mono text-xs">{{ cred.key_prefix }}…</p>
-                  <p class="text-xs text-muted">
-                    <span v-if="cred.label">{{ cred.label }} · </span>{{ formatUsed(cred) }}
-                  </p>
-                </div>
-                <button
-                  v-if="!cred.revoked_at"
-                  type="button"
-                  :disabled="credBusy[app.slug]"
-                  class="shrink-0 text-xs font-semibold text-red-600 hover:underline disabled:cursor-default disabled:opacity-40 dark:text-red-400"
-                  @click="handleRevokeCredential(app.slug, cred.id)"
+          <div v-if="manageSlug === app.slug" class="space-y-3 border-t border-board-hairline pt-3">
+            <template v-if="manageTab === 'owners'">
+              <ul class="space-y-1.5">
+                <li
+                  v-for="wallet in app.owner_wallet_addresses"
+                  :key="wallet"
+                  class="flex items-center gap-2 rounded-[3px] bg-board-flap px-2 py-1.5"
                 >
-                  {{ t('myApps.credentials.revoke') }}
+                  <AddressIdenticon :address="wallet" img-class="h-6 w-6 rounded-[3px]" />
+                  <span class="min-w-0 flex-1 truncate font-mono text-xs text-board-flap-ink" :title="wallet">
+                    {{ truncateAddress(wallet) }}
+                  </span>
+                  <button
+                    type="button"
+                    :disabled="ownerBusy[app.slug] || app.owner_wallet_addresses.length <= 1"
+                    class="board-plate board-plate-ghost shrink-0 px-2 py-1 text-[10px] disabled:cursor-default disabled:opacity-40"
+                    @click="handleRemoveOwner(app.slug, wallet)"
+                  >
+                    {{ t('myApps.manage.remove') }}
+                  </button>
+                </li>
+              </ul>
+              <div class="flex gap-2">
+                <input
+                  v-model="newOwnerInput[app.slug]"
+                  :placeholder="t('myApps.manage.ownerPlaceholder')"
+                  class="min-w-0 flex-1 rounded-[3px] border border-board-hairline bg-board-flap px-2 py-1.5 font-mono text-xs text-board-flap-ink outline-none placeholder:text-board-flap-muted focus:border-lamp-live"
+                />
+                <button
+                  type="button"
+                  :disabled="ownerBusy[app.slug]"
+                  class="board-plate board-plate-primary shrink-0 px-3 py-1.5 text-[11px] disabled:opacity-50"
+                  @click="handleAddOwner(app.slug)"
+                >
+                  {{ t('myApps.manage.add') }}
                 </button>
-              </li>
-            </ul>
-            <p v-else class="text-xs text-muted">{{ t('myApps.credentials.empty') }}</p>
+              </div>
+              <p v-if="ownerError[app.slug]" class="text-xs text-lamp-cancelled">{{ ownerError[app.slug] }}</p>
+            </template>
 
-            <div v-if="issuedKeyBySlug[app.slug]" class="space-y-1 rounded-lg border border-accent/40 bg-surface px-2 py-2">
-              <p class="text-xs font-semibold text-accent-ink">{{ t('myApps.credentials.createdOnce') }}</p>
-              <p class="break-all font-mono text-[11px]">{{ issuedKeyBySlug[app.slug] }}</p>
-              <button type="button" class="text-xs font-semibold text-accent-ink hover:underline" @click="copyIssuedKey(app.slug)">
-                {{ copiedSlug === app.slug ? t('myApps.credentials.copied') : t('myApps.credentials.copyKey') }}
-              </button>
-            </div>
+            <template v-else>
+              <p class="text-xs text-board-flap-muted">
+                <RouterLink
+                  :to="t('myApps.credentials.helpLink')"
+                  class="font-semibold text-accent-ink hover:underline"
+                >{{ t('myApps.credentials.help') }}</RouterLink>
+              </p>
+              <p v-if="!listedStatuses.has(app.status)" class="text-xs text-board-flap-muted">
+                {{ t('myApps.credentials.notListed') }}
+              </p>
+              <template v-else>
+                <p v-if="credBusy[app.slug] && !credentialsBySlug[app.slug]" class="text-xs text-board-flap-muted">
+                  {{ t('common.loading') }}
+                </p>
+                <ul v-else-if="(credentialsBySlug[app.slug] || []).length" class="space-y-1.5">
+                  <li
+                    v-for="cred in credentialsBySlug[app.slug]"
+                    :key="cred.id"
+                    class="flex items-start justify-between gap-2 rounded-[3px] bg-board-flap px-2 py-1.5"
+                  >
+                    <div class="min-w-0">
+                      <p class="truncate font-mono text-xs text-board-flap-ink">{{ cred.key_prefix }}…</p>
+                      <p class="text-[11px] text-board-flap-muted">
+                        <span v-if="cred.label">{{ cred.label }} · </span>{{ formatUsed(cred) }}
+                      </p>
+                    </div>
+                    <button
+                      v-if="!cred.revoked_at"
+                      type="button"
+                      :disabled="credBusy[app.slug]"
+                      class="board-plate board-plate-ghost shrink-0 px-2 py-1 text-[10px] disabled:opacity-40"
+                      @click="handleRevokeCredential(app.slug, cred.id)"
+                    >
+                      {{ t('myApps.credentials.revoke') }}
+                    </button>
+                  </li>
+                </ul>
+                <p v-else class="text-xs text-board-flap-muted">{{ t('myApps.credentials.empty') }}</p>
 
-            <div class="flex gap-2">
-              <input
-                v-model="credLabelInput[app.slug]"
-                :placeholder="t('myApps.credentials.labelPlaceholder')"
-                class="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1.5 text-xs outline-none focus:border-accent"
-              />
-              <button
-                type="button"
-                :disabled="credBusy[app.slug]"
-                class="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-                @click="handleIssueCredential(app.slug)"
-              >
-                {{ t('myApps.credentials.issue') }}
-              </button>
-            </div>
-          </template>
-          <p v-if="credError[app.slug]" class="text-xs text-red-600 dark:text-red-400">{{ credError[app.slug] }}</p>
+                <div
+                  v-if="issuedKeyBySlug[app.slug]"
+                  class="space-y-2 rounded-[3px] border border-lamp-live/40 bg-board-flap px-2.5 py-2"
+                >
+                  <p class="text-[11px] font-bold uppercase tracking-wide text-accent-ink">
+                    {{ t('myApps.credentials.createdOnce') }}
+                  </p>
+                  <p class="break-all font-mono text-[11px] text-board-flap-ink">{{ issuedKeyBySlug[app.slug] }}</p>
+                  <button
+                    type="button"
+                    class="board-plate board-plate-primary px-3 py-1.5 text-[11px]"
+                    @click="copyIssuedKey(app.slug)"
+                  >
+                    {{ copiedSlug === app.slug ? t('myApps.credentials.copied') : t('myApps.credentials.copyKey') }}
+                  </button>
+                </div>
+
+                <div class="flex gap-2">
+                  <input
+                    v-model="credLabelInput[app.slug]"
+                    :placeholder="t('myApps.credentials.labelPlaceholder')"
+                    class="min-w-0 flex-1 rounded-[3px] border border-board-hairline bg-board-flap px-2 py-1.5 text-xs text-board-flap-ink outline-none placeholder:text-board-flap-muted focus:border-lamp-live"
+                  />
+                  <button
+                    type="button"
+                    :disabled="credBusy[app.slug]"
+                    class="board-plate board-plate-primary shrink-0 px-3 py-1.5 text-[11px] disabled:opacity-50"
+                    @click="handleIssueCredential(app.slug)"
+                  >
+                    {{ t('myApps.credentials.issue') }}
+                  </button>
+                </div>
+              </template>
+              <p v-if="credError[app.slug]" class="text-xs text-lamp-cancelled">{{ credError[app.slug] }}</p>
+            </template>
+          </div>
         </div>
       </div>
     </div>

@@ -1,16 +1,29 @@
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { APP_CATEGORIES, APP_RELEASE_STAGES, submitApp, type MediaItem, type SocialLink } from '../api'
 import SocialLinksEditor from '../components/SocialLinksEditor.vue'
 import MediaEditor from '../components/MediaEditor.vue'
 import WalletLoginButton from '../components/WalletLoginButton.vue'
 import TokenMultiSelect from '../components/TokenMultiSelect.vue'
+import DeclaredScopesField from '../components/DeclaredScopesField.vue'
 import { useWalletAuth } from '../composables/useWalletAuth'
 import { CATALOG_ISSUES_URL } from '../utils/catalogLinks'
 import { normalizeDomain } from '../utils/domain'
 import { normalizeCompetitionCycle } from '../utils/competition'
+import { ensureLocalDisplayName } from '../utils/ensureDisplayName'
 
-const { walletAddress, displayName, checking } = useWalletAuth()
+const { walletAddress, displayName, checking, refreshSession } = useWalletAuth()
+const seedingName = ref(false)
+
+watch([checking, walletAddress, displayName], async () => {
+  if (checking.value || !walletAddress.value || displayName.value?.trim() || seedingName.value) return
+  seedingName.value = true
+  try {
+    await ensureLocalDisplayName(walletAddress.value, displayName.value, refreshSession)
+  } finally {
+    seedingName.value = false
+  }
+}, { immediate: true })
 
 const socialEditor = ref<InstanceType<typeof SocialLinksEditor>>()
 const mediaEditor = ref<InstanceType<typeof MediaEditor>>()
@@ -106,9 +119,15 @@ const fields: [keyof typeof form, string, boolean, string, string?][] = [
         <p class="text-sm text-muted">Connect your Nimiq wallet to submit an app. It will be linked to your wallet as the developer of record — admins can reassign it later.</p>
         <WalletLoginButton class="mt-3 inline-block" />
       </div>
+      <div v-else-if="seedingName" class="rounded-2xl border border-line bg-surface p-5 text-sm text-muted">
+        Loading your NimConnect name…
+      </div>
       <div v-else-if="!displayName" class="rounded-2xl border border-line bg-surface p-5 text-center">
-        <p class="text-sm text-muted">Set a display name on your profile before submitting — it becomes your public developer name.</p>
-        <RouterLink to="/profile" class="mt-3 inline-block board-plate board-plate-primary px-5 py-2.5 text-sm">Go to profile</RouterLink>
+        <p class="text-sm text-muted">
+          No NimConnect display name or @handle found. Claim one on NimConnect, or set a
+          <RouterLink to="/profile" class="font-semibold text-accent-ink hover:underline">catalog display name</RouterLink>
+          — it becomes your public developer name.
+        </p>
       </div>
       <template v-else>
         <p class="text-xs text-muted">
@@ -134,15 +153,10 @@ const fields: [keyof typeof form, string, boolean, string, string?][] = [
               label="Reward assets"
               help="Only select tokens users can actually receive from your app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
             />
-            <label class="text-sm sm:col-span-2">
-              <span class="mb-1 block font-semibold text-muted">Declared scopes</span>
-              <input
-                v-model="form.declared_scopes"
-                placeholder="friends:read, achievements:read"
-                class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none transition-colors duration-200 placeholder:text-muted/60 focus:border-accent"
-              />
-              <span class="mt-1 block text-xs leading-snug text-muted">Comma-separated NimConnect scopes this app may request (name:action). Leave empty for none.</span>
-            </label>
+            <DeclaredScopesField
+              v-model="form.declared_scopes"
+              help="Scopes this app may request via NimConnect. Leave all unchecked for none."
+            />
             <label class="text-sm">
               <span class="mb-1 block font-semibold text-muted">Category *</span>
               <select v-model="form.category" required

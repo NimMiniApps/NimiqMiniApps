@@ -127,6 +127,13 @@ export type MessageTree = {
       views: string
       last7Days: string
     }
+    manage: {
+      owners: string
+      keys: string
+      add: string
+      remove: string
+      ownerPlaceholder: string
+    }
     credentials: {
       manage: string
       hide: string
@@ -141,6 +148,8 @@ export type MessageTree = {
       revoked: string
       neverUsed: string
       lastUsed: string
+      help: string
+      helpLink: string
     }
     errorTitle: string
     errorBody: string
@@ -308,12 +317,19 @@ const en: MessageTree = {
       views: 'Views',
       last7Days: 'Last 7 days',
     },
+    manage: {
+      owners: 'Owners',
+      keys: 'API keys',
+      add: 'Add',
+      remove: 'Remove',
+      ownerPlaceholder: 'Wallet address (other device)',
+    },
     credentials: {
       manage: 'API credentials',
       hide: 'Hide credentials',
       issue: 'Issue key',
       revoke: 'Revoke',
-      empty: 'No credentials yet. Issue a key to integrate with ecosystem services.',
+      empty: 'No keys yet — issue one to integrate with ecosystem services.',
       labelPlaceholder: 'Label (optional)',
       createdOnce: 'Copy this key now — it will not be shown again.',
       copyKey: 'Copy key',
@@ -322,6 +338,8 @@ const en: MessageTree = {
       revoked: 'Revoked',
       neverUsed: 'Never used',
       lastUsed: 'Last used',
+      help: 'How keys and scopes work',
+      helpLink: '/build#api-credentials',
     },
     errorTitle: "Couldn't load your apps",
     errorBody: 'Something went wrong while fetching apps linked to your wallet. Check your connection and try again.',

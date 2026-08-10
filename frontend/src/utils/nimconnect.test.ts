@@ -2,13 +2,16 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   clearNimConnectHandleCache,
   nimConnectPublicUrl,
+  resolveNimConnectDisplayName,
   resolveNimConnectHandle,
   setNimConnectHandleLookupForTests,
+  setNimConnectIdentityLookupForTests,
 } from './nimconnect'
 
 afterEach(() => {
   clearNimConnectHandleCache()
   setNimConnectHandleLookupForTests(null)
+  setNimConnectIdentityLookupForTests(null)
 })
 
 describe('nimConnectPublicUrl', () => {
@@ -52,5 +55,29 @@ describe('resolveNimConnectHandle', () => {
     expect(await resolveNimConnectHandle('NQ01 ERR')).toBeNull()
     expect(await resolveNimConnectHandle('NQ01 ERR')).toBe('bob')
     expect(lookup).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('resolveNimConnectDisplayName', () => {
+  it('prefers displayName over handle', async () => {
+    setNimConnectIdentityLookupForTests(async () => ({
+      address: 'NQ01',
+      handle: 'chuck',
+      displayName: 'Chuck Norris',
+    }))
+    expect(await resolveNimConnectDisplayName('NQ01')).toBe('Chuck Norris')
+  })
+
+  it('falls back to handle when displayName missing', async () => {
+    setNimConnectIdentityLookupForTests(async () => ({
+      address: 'NQ01',
+      handle: 'alice',
+    }))
+    expect(await resolveNimConnectDisplayName('NQ01')).toBe('alice')
+  })
+
+  it('returns null when neither is present', async () => {
+    setNimConnectIdentityLookupForTests(async () => ({ address: 'NQ01' }))
+    expect(await resolveNimConnectDisplayName('NQ01')).toBeNull()
   })
 })

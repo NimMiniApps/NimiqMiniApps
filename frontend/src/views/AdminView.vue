@@ -10,6 +10,7 @@ import { useWalletAuth } from '../composables/useWalletAuth'
 import StatusBadge from '../components/StatusBadge.vue'
 import ReleaseStageBadge from '../components/ReleaseStageBadge.vue'
 import TokenMultiSelect from '../components/TokenMultiSelect.vue'
+import DeclaredScopesField from '../components/DeclaredScopesField.vue'
 import { formatMediaLines, parseMediaLines } from '../utils/media'
 import { formatSocialLines, parseSocialLines } from '../utils/socials'
 import { diffRevision } from '../utils/revisionDiff'
@@ -21,10 +22,11 @@ import {
   normalizeAdminCategoryFilter,
   normalizeAdminStatusFilter,
 } from '../utils/adminAppFilters'
+import { ensureLocalDisplayName } from '../utils/ensureDisplayName'
 
 const route = useRoute()
 const router = useRouter()
-const { isAdmin: walletIsAdmin } = useWalletAuth()
+const { isAdmin: walletIsAdmin, walletAddress, displayName, refreshSession } = useWalletAuth()
 const token = ref(localStorage.getItem('admin_token') || '')
 const apps = ref<App[]>([])
 const pendingRevisions = ref<RevisionReviewItem[]>([])
@@ -167,6 +169,32 @@ async function addOwnerFromPicker(user: AdminUserResult) {
   } finally {
     ownerBusy.value = false
   }
+}
+
+const canAddMyWallet = computed(() =>
+  !!editingSlug.value
+  && !!walletAddress.value
+  && !currentOwners.value.includes(walletAddress.value),
+)
+
+async function addMyWallet() {
+  if (!editingSlug.value || !walletAddress.value) return
+  error.value = ''
+  ownerBusy.value = true
+  let name: string | null = null
+  try {
+    name = await ensureLocalDisplayName(walletAddress.value, displayName.value, refreshSession)
+  } finally {
+    ownerBusy.value = false
+  }
+  if (!name) {
+    error.value = 'No NimConnect display name or @handle found — set one on NimConnect or your catalog profile first.'
+    return
+  }
+  await addOwnerFromPicker({
+    wallet_address: walletAddress.value,
+    display_name: name,
+  })
 }
 
 async function removeOwnerFromApp(wallet: string) {
@@ -504,26 +532,6 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
             class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
           <span v-if="help" class="mt-1 block text-xs leading-snug text-muted">{{ help }}</span>
         </label>
-        <TokenMultiSelect
-          v-model="form.assets"
-          label="Assets"
-          help="Tokens the app uses, accepts, reads, or supports."
-        />
-        <TokenMultiSelect
-          v-model="form.reward_assets"
-          label="Reward assets"
-          help="Moderator-reviewed claim: only select tokens users can actually receive from the app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
-        />
-        <label class="text-sm sm:col-span-2">
-          <span class="mb-1 block text-muted">Declared scopes</span>
-          <input
-            v-model="form.declared_scopes"
-            placeholder="friends:read, achievements:read"
-            class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none"
-          />
-          <span class="mt-1 block text-xs leading-snug text-muted">Comma-separated NimConnect scopes (name:action). Empty means no scopes.</span>
-        </label>
-
         <div class="space-y-3 rounded-xl border border-line bg-surface-2/50 p-4 sm:col-span-2">
           <div>
             <h3 class="text-sm font-bold">Developer</h3>
@@ -546,6 +554,20 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
               </li>
             </ul>
             <p v-else class="text-xs text-muted">Unclaimed — only admins can edit this listing until a wallet is added.</p>
+            <div v-if="canAddMyWallet" class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                :disabled="ownerBusy"
+                class="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                @click="addMyWallet"
+              >
+                Add my wallet
+              </button>
+              <p class="text-xs text-muted">
+                Uses your catalog name, or seeds it from NimConnect
+                (<span class="font-mono">{{ walletAddress }}</span>).
+              </p>
+            </div>
           </div>
           <label class="relative block text-sm">
             <span class="mb-1 block font-semibold text-muted">Add owner wallet</span>
@@ -583,6 +605,7 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
             </label>
           </div>
         </div>
+
         <label class="text-sm">
           <span class="mb-1 block text-muted">Category *</span>
           <select v-model="form.category" required class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none">
@@ -624,6 +647,21 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
             class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 focus:border-accent outline-none" />
           <span class="mt-1 block text-xs text-muted">Lower numbers appear first. 0 = auto (by date).</span>
         </label>
+
+        <TokenMultiSelect
+          v-model="form.assets"
+          label="Assets"
+          help="Tokens the app uses, accepts, reads, or supports."
+        />
+        <TokenMultiSelect
+          v-model="form.reward_assets"
+          label="Reward assets"
+          help="Moderator-reviewed claim: only select tokens users can actually receive from the app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
+        />
+        <DeclaredScopesField
+          v-model="form.declared_scopes"
+          help="Scopes this app may request via NimConnect. Empty means no scopes."
+        />
       </div>
       <label class="block text-sm">
         <span class="mb-1 block text-muted">Short description</span>

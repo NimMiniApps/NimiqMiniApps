@@ -8,6 +8,7 @@ import {
 import SocialLinksEditor from '../components/SocialLinksEditor.vue'
 import MediaEditor from '../components/MediaEditor.vue'
 import TokenMultiSelect from '../components/TokenMultiSelect.vue'
+import DeclaredScopesField from '../components/DeclaredScopesField.vue'
 import { normalizeDomain } from '../utils/domain'
 import { normalizeCompetitionCycle } from '../utils/competition'
 
@@ -186,15 +187,10 @@ const fields: [keyof typeof form, string, boolean, string?][] = [
             label="Reward assets"
             help="Only select tokens users can actually receive from your app, such as daily rewards, leaderboard prizes, payouts, or tips. Leave empty if the app only uses or accepts the token."
           />
-          <label class="text-sm sm:col-span-2">
-            <span class="mb-1 block font-semibold text-muted">Declared scopes</span>
-            <input
-              v-model="form.declared_scopes"
-              placeholder="friends:read, achievements:read"
-              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none placeholder:text-muted/60 focus:border-accent"
-            />
-            <span class="mt-1 block text-xs leading-snug text-muted">Comma-separated NimConnect scopes (name:action). Changes require review. Leave empty for none.</span>
-          </label>
+          <DeclaredScopesField
+            v-model="form.declared_scopes"
+            help="Scopes this app may request via NimConnect. Changes require review. Leave all unchecked for none."
+          />
           <label class="text-sm">
             <span class="mb-1 block font-semibold text-muted">Category *</span>
             <select v-model="form.category" required class="w-full cursor-pointer rounded-lg border border-line bg-surface-2 px-3 py-2">

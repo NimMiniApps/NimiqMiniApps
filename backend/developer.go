@@ -257,7 +257,7 @@ func (s *server) adminSearchUsers(w http.ResponseWriter, r *http.Request) {
 	rows, err := s.pool.Query(r.Context(), `
 		SELECT wallet_address, display_name FROM users
 		WHERE display_name ILIKE $1 OR wallet_address ILIKE $1
-		ORDER BY display_name ASC NULLS LAST LIMIT 20`, q+"%")
+		ORDER BY display_name ASC NULLS LAST LIMIT 20`, "%"+q+"%")
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return

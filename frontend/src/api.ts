@@ -61,6 +61,16 @@ export interface Category {
 export const APP_CATEGORIES = ['Games', 'Utilities', 'Finance', 'Maps', 'Social', 'Experiments'] as const
 export const APP_ASSETS = ['NIM', 'USDT', 'USDC', 'BTC', 'ETH'] as const
 
+/** Known NimConnect scopes offered in the catalog UI. Backend still accepts any name:action. */
+export const DECLARED_SCOPES = [
+  { value: 'friends:read', label: 'Friends (read)', description: 'Read the user’s friends list via NimConnect.' },
+  { value: 'achievements:read', label: 'Achievements (read)', description: 'Read achievements awarded to the user.' },
+  { value: 'achievements:write', label: 'Achievements (write)', description: 'Post achievements / awards for the user.' },
+  { value: 'events:write', label: 'Events (write)', description: 'Post plaza or signed events as this app.' },
+] as const
+
+export type DeclaredScopeValue = (typeof DECLARED_SCOPES)[number]['value']
+
 export interface Developer {
   slug: string
   name: string

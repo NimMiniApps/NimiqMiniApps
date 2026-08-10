@@ -142,6 +142,50 @@ const examples = [
       </div>
     </section>
 
+    <section id="api-credentials" class="scroll-mt-24 space-y-3 rounded-3xl border border-line bg-surface p-6 shadow-sm md:p-8">
+      <p class="text-sm font-bold uppercase tracking-widest text-accent-ink">Catalog integrations</p>
+      <h2 class="text-2xl font-extrabold">API keys &amp; NimConnect scopes</h2>
+      <p class="max-w-2xl text-muted">
+        Once your app is listed, you can issue your own API credential from the catalog — no need to ask a human to mint a key.
+        Ecosystem services (for example NimConnect awards) verify that key against this registry and trust your app’s
+        <strong class="font-semibold text-ink">declared scopes</strong>.
+      </p>
+      <ol class="mt-4 list-decimal space-y-3 pl-5 text-sm text-muted">
+        <li>
+          <span class="font-semibold text-ink">Declare scopes</span> when you
+          <RouterLink to="/submit" class="font-semibold text-accent-ink hover:underline">submit</RouterLink>
+          or request an update — tick only what the app actually needs
+          (<code class="rounded bg-surface-2 px-1 py-0.5 text-xs">friends:read</code>,
+          <code class="rounded bg-surface-2 px-1 py-0.5 text-xs">achievements:write</code>,
+          <code class="rounded bg-surface-2 px-1 py-0.5 text-xs">events:write</code>, …).
+          Changes on a live listing go through review.
+        </li>
+        <li>
+          After the app is <strong class="font-semibold text-ink">approved</strong> (or verified / experimental), open
+          <RouterLink to="/my-apps" class="font-semibold text-accent-ink hover:underline">My apps</RouterLink>
+          → <strong class="font-semibold text-ink">API keys</strong> → <strong class="font-semibold text-ink">Issue key</strong>.
+          Copy the secret immediately — it is shown once.
+        </li>
+        <li>
+          Send that key to the consumer service as they document (usually a bearer / app key header).
+          They call the registry verify endpoint; revoked or unlisted apps stop verifying.
+        </li>
+      </ol>
+      <ul class="mt-4 space-y-1 text-sm text-muted">
+        <li class="flex gap-2"><span class="text-accent-ink" aria-hidden="true">→</span> Rotate by issuing a new key, then revoking the old one (no downtime).</li>
+        <li class="flex gap-2"><span class="text-accent-ink" aria-hidden="true">→</span> Never commit the plaintext key; store it in your app’s server env.</li>
+        <li class="flex gap-2"><span class="text-accent-ink" aria-hidden="true">→</span> Empty declared scopes means the app cannot request NimConnect permissions.</li>
+      </ul>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <RouterLink to="/my-apps" class="cursor-pointer board-plate board-plate-primary px-5 py-2.5 text-sm">
+          Open My apps
+        </RouterLink>
+        <RouterLink to="/submit" class="cursor-pointer board-plate board-plate-ghost px-5 py-2.5 text-sm">
+          Submit or update listing
+        </RouterLink>
+      </div>
+    </section>
+
     <section class="space-y-3">
       <h2 class="text-xl font-extrabold">Documentation</h2>
       <div class="grid gap-3 sm:grid-cols-2">
@@ -194,6 +238,9 @@ const examples = [
         <li>Never access private keys; all wallet actions go through Nimiq Pay dialogs.</li>
         <li>USDT and USDC use 6 decimals, not 18.</li>
         <li>Long-press Nimiq Pay settings for 10s to switch to testnet during development.</li>
+        <li>Need awards or plaza events?
+          <RouterLink to="/build#api-credentials" class="font-semibold text-accent-ink hover:underline">Issue a catalog API key</RouterLink>
+          after your app is listed.</li>
       </ul>
     </section>
   </div>

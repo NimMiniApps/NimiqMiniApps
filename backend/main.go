@@ -178,6 +178,7 @@ func main() {
 	mux.HandleFunc("GET /robots.txt", s.robotsTxt)
 	mux.HandleFunc("GET /sitemap.xml", s.sitemapXML)
 	mux.HandleFunc("GET /og/apps/{slug}", s.ogAppHTML)
+	mux.HandleFunc("GET /og/apps", s.ogAppsListHTML)
 	mux.HandleFunc("GET /api/apps", s.listApps)
 	mux.HandleFunc("GET /api/apps/changed", s.registryServiceAuth(s.listAppClientChanges))
 	mux.HandleFunc("GET /api/apps/{slug}/client", s.registryServiceAuth(s.getAppClient))

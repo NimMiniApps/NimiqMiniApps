@@ -75,7 +75,8 @@ a pollable change feed (including `credential_revoked`), and app API key verific
 
 **App credentials** (wallet owner session): `POST|GET /api/apps/{slug}/credentials` and
 `DELETE /api/apps/{slug}/credentials/{id}` — listed-app owners can issue, list, and revoke
-integration keys (plaintext secret returned once on create).
+integration keys (plaintext secret returned once on create). Developer how-to: `/build#api-credentials`
+and the **API keys** tab on `/my-apps`.
 
 **OpenAPI** — full spec at [`docs/openapi.yaml`](docs/openapi.yaml), served live at
 `/openapi.json` and `/openapi.yaml`. Regenerate embedded copies with `./scripts/gen-openapi.sh`.
