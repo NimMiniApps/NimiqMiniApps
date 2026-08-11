@@ -1,5 +1,5 @@
-github.com/NimMiniApps/nimiq-go v0.3.0 h1:SJ3oZZFDHE/fRRD/Io3Y5YIoc8x34OQdRuJxZ44XCGI=
-github.com/NimMiniApps/nimiq-go v0.3.0/go.mod h1:QSZmjFS8lG2bgrJyOX8evjfUtqzPqdZDhnYp3FPNBBw=
+github.com/NimMiniApps/nimiq-go v0.3.1 h1:1SNULNhHNNV3ZziBh6qxl4McdWZOjntu0sAIvdiN6sg=
+github.com/NimMiniApps/nimiq-go v0.3.1/go.mod h1:QSZmjFS8lG2bgrJyOX8evjfUtqzPqdZDhnYp3FPNBBw=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

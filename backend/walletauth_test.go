@@ -360,20 +360,6 @@ func TestVerifyWalletSignatureAcceptsHex(t *testing.T) {
 	}
 }
 
-func TestDecodeCryptoBytesHex(t *testing.T) {
-	pub := make([]byte, ed25519.PublicKeySize)
-	for i := range pub {
-		pub[i] = byte(i)
-	}
-	got, err := decodeCryptoBytes(hex.EncodeToString(pub))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(got) != ed25519.PublicKeySize {
-		t.Fatalf("got len %d, want %d", len(got), ed25519.PublicKeySize)
-	}
-}
-
 func TestNonceStoreReplay(t *testing.T) {
 	ns := newNonceStore()
 	nonce, _, err := ns.create("NQ07")

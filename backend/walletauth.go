@@ -201,54 +201,19 @@ func buildWalletAuthMessage(address, nonce string, expires time.Time) string {
 		"\nexpires=" + expires.UTC().Format(time.RFC3339)
 }
 
-func decodeCryptoBytes(s string) ([]byte, error) {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return nil, errors.New("empty value")
-	}
-	if isHexCryptoString(s) {
-		h := strings.TrimPrefix(strings.ToLower(s), "0x")
-		return hex.DecodeString(h)
-	}
-	if b, err := base64.StdEncoding.DecodeString(s); err == nil {
-		return b, nil
-	}
-	if b, err := base64.RawURLEncoding.DecodeString(s); err == nil {
-		return b, nil
-	}
-	return nil, errors.New("invalid encoding")
-}
-
-func isHexCryptoString(s string) bool {
-	h := strings.TrimPrefix(strings.TrimSpace(s), "0x")
-	if len(h) == 0 || len(h)%2 != 0 {
-		return false
-	}
-	for _, c := range h {
-		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
-			return false
-		}
-	}
-	return true
-}
-
 func verifyWalletSignature(address, message, signatureB64, publicKeyB64 string) (ed25519.PublicKey, error) {
 	addr, err := nimiq.ParseAddress(address)
 	if err != nil {
 		return nil, errors.New("invalid wallet address")
 	}
-	sig, err := decodeCryptoBytes(signatureB64)
+	sig, err := nimiq.ParseSignature(signatureB64)
 	if err != nil {
 		return nil, errors.New("invalid signature encoding")
 	}
-	pubBytes, err := decodeCryptoBytes(publicKeyB64)
+	pub, err := nimiq.ParsePublicKey(publicKeyB64)
 	if err != nil {
 		return nil, errors.New("invalid public key encoding")
 	}
-	if len(pubBytes) != ed25519.PublicKeySize || len(sig) != ed25519.SignatureSize {
-		return nil, errors.New("invalid signature or public key size")
-	}
-	pub := ed25519.PublicKey(pubBytes)
 	if err := nimiq.VerifyMessageFrom(addr, pub, []byte(message), sig); err != nil {
 		return nil, errors.New("signature verification failed")
 	}

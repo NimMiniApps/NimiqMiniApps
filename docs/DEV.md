@@ -211,7 +211,7 @@ curl $API/api/admin/apps -H "Authorization: Bearer $TOKEN"
 | `DOMAIN_CHECK_OFFLINE_INTERVAL` | `15m` | Re-check interval for unreachable domains (checked sooner) |
 | `DOMAIN_CHECK_TICK` | `5m` | How often the worker looks for domains due for a check |
 | `DOMAIN_CHECK_TIMEOUT` | `10s` | Per-domain HTTP timeout |
-| `WALLET_AUTH_SECRET` | _(empty)_ | HMAC secret for wallet login session cookies; rotating it logs everyone out. Login uses [nimiq-go](https://github.com/NimMiniApps/nimiq-go) to checksum-parse addresses and verify Hub `signMessage` signatures (`VerifyMessageFrom`) |
+| `WALLET_AUTH_SECRET` | _(empty)_ | HMAC secret for wallet login session cookies; rotating it logs everyone out. Login uses [nimiq-go](https://github.com/NimMiniApps/nimiq-go) to checksum-parse addresses, decode Hub pubkey/signature wire forms (`ParsePublicKey` / `ParseSignature`), and verify Hub `signMessage` signatures (`VerifyMessageFrom`) |
 | `ANALYTICS_HASH_SECRET` | _(empty)_ | Stable HMAC secret for product analytics identifiers; empty disables recording. Changing it breaks continuity of unique visitor/wallet counts |
 | `ADMIN_WALLET_ADDRESSES` | _(empty)_ | Comma-separated Nimiq addresses allowed to moderate via wallet session (also accepts `ADMIN_TOKEN` bearer) |
 | `NIMCONNECT_SERVICE_TOKEN` | _(empty)_ | Bearer token for NimConnect registry endpoints (`GET /api/apps/{slug}/client`, `GET /api/apps/changed`, `POST /registry/credentials/verify`); empty disables them |

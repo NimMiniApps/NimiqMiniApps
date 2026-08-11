@@ -3,7 +3,7 @@ module github.com/maestroi/nimiq-mini-apps/backend
 go 1.25.0
 
 require (
-	github.com/NimMiniApps/nimiq-go v0.3.0
+	github.com/NimMiniApps/nimiq-go v0.3.1
 	github.com/jackc/pgx/v5 v5.10.0
 )
 
