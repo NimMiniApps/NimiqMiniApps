@@ -27,7 +27,7 @@
 | Part | Tech |
 |------|------|
 | `frontend/` | Vue 3 + Vite + TypeScript + Tailwind |
-| `backend/` | Go REST API (stdlib router, pgx) |
+| `backend/` | Go REST API (stdlib router, pgx, [nimiq-go](https://github.com/NimMiniApps/nimiq-go) for wallet address + signed-message login) |
 | Database | PostgreSQL (migrations + seed run automatically at startup) |
 | Deploy | Docker Compose (Swarm-ready: stateless backend, env config, healthchecks) |
 

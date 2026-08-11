@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -250,11 +251,77 @@ func TestWalletCookieTampered(t *testing.T) {
 	}
 }
 
+func TestAuthChallengeRejectsInvalidAddress(t *testing.T) {
+	s := &server{walletAuthSecret: "secret", nonces: newNonceStore()}
+	body, _ := json.Marshal(map[string]string{"wallet_address": "NQ05 NOT-A-VALID-ADDRESS!!!!"})
+	req := httptest.NewRequest(http.MethodPost, "http://example.com/api/auth/challenge", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	s.authChallenge(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status %d, want 400; body %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAuthVerifyAcceptsAddressSpacingVariant(t *testing.T) {
+	s := &server{walletAuthSecret: "secret", nonces: newNonceStore()}
+	pub, priv, err := ed25519.GenerateKey(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canonical := userFriendlyAddressFromPublicKey(pub)
+	compact := normalizeUserFriendlyAddress(canonical)
+
+	challengeBody, _ := json.Marshal(map[string]string{"wallet_address": compact})
+	challengeReq := httptest.NewRequest(http.MethodPost, "http://example.com/api/auth/challenge", bytes.NewReader(challengeBody))
+	challengeRec := httptest.NewRecorder()
+	s.authChallenge(challengeRec, challengeReq)
+	if challengeRec.Code != http.StatusOK {
+		t.Fatalf("challenge status %d: %s", challengeRec.Code, challengeRec.Body.String())
+	}
+	var challengeResp struct {
+		Nonce   string `json:"nonce"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(challengeRec.Body).Decode(&challengeResp); err != nil {
+		t.Fatalf("decode challenge: %v", err)
+	}
+	if !strings.Contains(challengeResp.Message, "address="+canonical) {
+		t.Fatalf("challenge message should use canonical address; got %q", challengeResp.Message)
+	}
+
+	prefix := "\x16Nimiq Signed Message:\n"
+	payload := prefix + strconv.Itoa(len(challengeResp.Message)) + challengeResp.Message
+	hash := sha256.Sum256([]byte(payload))
+	sig := ed25519.Sign(priv, hash[:])
+	verifyBody, _ := json.Marshal(map[string]string{
+		"wallet_address": canonical, // different spacing than challenge request
+		"nonce":          challengeResp.Nonce,
+		"signature":      base64.StdEncoding.EncodeToString(sig),
+		"public_key":     base64.StdEncoding.EncodeToString(pub),
+	})
+	req := httptest.NewRequest(http.MethodPost, "http://example.com/api/auth/verify", bytes.NewReader(verifyBody))
+	rec := httptest.NewRecorder()
+	s.authVerify(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("verify status %d: %s", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		WalletAddress string `json:"wallet_address"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+	if resp.WalletAddress != canonical {
+		t.Fatalf("wallet_address = %q, want canonical %q", resp.WalletAddress, canonical)
+	}
+}
+
 func TestVerifyWalletSignatureRoundTrip(t *testing.T) {
 	pub, priv, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	address := userFriendlyAddressFromPublicKey(pub)
 	message := "test message"
 	prefix := "\x16Nimiq Signed Message:\n"
 	payload := prefix + strconv.Itoa(len(message)) + message
@@ -263,7 +330,7 @@ func TestVerifyWalletSignatureRoundTrip(t *testing.T) {
 	sigB64 := base64.StdEncoding.EncodeToString(sig)
 	pubB64 := base64.StdEncoding.EncodeToString(pub)
 
-	gotPub, err := verifyWalletSignature(message, sigB64, pubB64)
+	gotPub, err := verifyWalletSignature(address, message, sigB64, pubB64)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -277,13 +344,14 @@ func TestVerifyWalletSignatureAcceptsHex(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	address := userFriendlyAddressFromPublicKey(pub)
 	message := "test message"
 	prefix := "\x16Nimiq Signed Message:\n"
 	payload := prefix + strconv.Itoa(len(message)) + message
 	hash := sha256.Sum256([]byte(payload))
 	sig := ed25519.Sign(priv, hash[:])
 
-	gotPub, err := verifyWalletSignature(message, hex.EncodeToString(sig), hex.EncodeToString(pub))
+	gotPub, err := verifyWalletSignature(address, message, hex.EncodeToString(sig), hex.EncodeToString(pub))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

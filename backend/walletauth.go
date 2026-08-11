@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	nimiq "github.com/NimMiniApps/nimiq-go"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -231,7 +232,11 @@ func isHexCryptoString(s string) bool {
 	return true
 }
 
-func verifyWalletSignature(message, signatureB64, publicKeyB64 string) (ed25519.PublicKey, error) {
+func verifyWalletSignature(address, message, signatureB64, publicKeyB64 string) (ed25519.PublicKey, error) {
+	addr, err := nimiq.ParseAddress(address)
+	if err != nil {
+		return nil, errors.New("invalid wallet address")
+	}
 	sig, err := decodeCryptoBytes(signatureB64)
 	if err != nil {
 		return nil, errors.New("invalid signature encoding")
@@ -244,10 +249,7 @@ func verifyWalletSignature(message, signatureB64, publicKeyB64 string) (ed25519.
 		return nil, errors.New("invalid signature or public key size")
 	}
 	pub := ed25519.PublicKey(pubBytes)
-	prefix := "\x16Nimiq Signed Message:\n"
-	payload := prefix + strconv.Itoa(len(message)) + message
-	hash := sha256.Sum256([]byte(payload))
-	if !ed25519.Verify(pub, hash[:], sig) {
+	if err := nimiq.VerifyMessageFrom(addr, pub, []byte(message), sig); err != nil {
 		return nil, errors.New("signature verification failed")
 	}
 	return pub, nil
@@ -261,9 +263,13 @@ func (s *server) authChallenge(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 		return
 	}
-	address := strings.TrimSpace(req.Address)
-	if address == "" {
+	if strings.TrimSpace(req.Address) == "" {
 		writeError(w, http.StatusBadRequest, "wallet_address is required")
+		return
+	}
+	address, err := parseCanonicalWalletAddress(req.Address)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid wallet address")
 		return
 	}
 	nonce, expires, err := s.nonces.create(address)
@@ -290,20 +296,19 @@ func (s *server) authVerify(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON: "+err.Error())
 		return
 	}
-	address := strings.TrimSpace(req.Address)
+	address, err := parseCanonicalWalletAddress(req.Address)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "invalid wallet address")
+		return
+	}
 	entry, ok := s.nonces.get(req.Nonce)
 	if !ok || entry.address != address || time.Now().After(entry.expires) {
 		writeError(w, http.StatusUnauthorized, "invalid or expired challenge")
 		return
 	}
 	message := buildWalletAuthMessage(address, req.Nonce, entry.expires)
-	pub, err := verifyWalletSignature(message, req.Signature, req.PublicKey)
-	if err != nil {
+	if _, err := verifyWalletSignature(address, message, req.Signature, req.PublicKey); err != nil {
 		writeError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
-	if !publicKeyMatchesClaimedAddress(pub, address) {
-		writeError(w, http.StatusUnauthorized, "public key does not match claimed address")
 		return
 	}
 	if err := s.nonces.markUsed(req.Nonce, address); err != nil {
