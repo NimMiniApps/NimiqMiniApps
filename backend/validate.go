@@ -175,6 +175,9 @@ func validateApp(a *App) error {
 	if a.CompetitionCycle != nil && *a.CompetitionCycle < 1 {
 		problems = append(problems, "competition_cycle must be a positive integer")
 	}
+	if err := validateCompetitionResults(a.CompetitionResults); err != nil {
+		problems = append(problems, err.Error())
+	}
 	if a.Description == "" {
 		a.Description = a.Tagline // description NOT NULL; fall back to tagline
 	}

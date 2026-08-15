@@ -80,7 +80,12 @@ function onFavoriteClick() {
           >Update pending</span>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
-          <CompetitionCycleBadge v-if="app.competition_cycle" :cycle="app.competition_cycle" compact />
+          <CompetitionCycleBadge
+            v-if="app.competition_cycle || app.competition_results?.length"
+            :cycle="app.competition_cycle"
+            :results="app.competition_results"
+            compact
+          />
           <RewardBadge :assets="app.reward_assets" compact />
           <HostedByBadge :domain="app.domain" compact />
           <DomainStatus

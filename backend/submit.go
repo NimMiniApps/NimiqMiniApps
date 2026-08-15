@@ -80,5 +80,6 @@ func (s *server) submitApp(w http.ResponseWriter, r *http.Request, address strin
 		a.Featured = false
 		a.DeveloperSlug = devSlug
 		a.DeveloperName = *displayName
+		a.CompetitionResults = nil // scores/places are moderator-only
 	}, true, &address)
 }

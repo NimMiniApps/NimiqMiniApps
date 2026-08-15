@@ -25,43 +25,44 @@ type SocialLink struct {
 }
 
 type App struct {
-	ID                   string       `json:"id"`
-	Slug                 string       `json:"slug"`
-	Name                 string       `json:"name"`
-	Domain               string       `json:"domain"`
-	Category             string       `json:"category"`
-	DeveloperSlug        string       `json:"developer_slug"`
-	DeveloperName        string       `json:"developer_name"`
-	OwnerWalletAddresses []string     `json:"owner_wallet_addresses"`
-	Tagline              string       `json:"tagline"`
-	Description          string       `json:"description"`
-	LongDescription      string       `json:"long_description"`
-	Tags                 []string     `json:"tags"`
-	Assets               []string     `json:"assets"`
-	RewardAssets         []string     `json:"reward_assets"`
-	DeclaredScopes       []string     `json:"declared_scopes"`
-	CompetitionCycle     *int         `json:"competition_cycle"`
-	Status               string       `json:"status"`
-	ReleaseStage         string       `json:"release_stage"`
-	Featured             bool         `json:"featured"`
-	FeaturedOrder        int          `json:"featured_order"`
-	WebsiteURL           *string      `json:"website_url"`
-	GithubURL            *string      `json:"github_url"`
-	IconURL              *string      `json:"icon_url"`
-	DiscoveredIconURL    *string      `json:"discovered_icon_url"`
-	BannerURL            *string      `json:"banner_url"`
-	Media                []MediaItem  `json:"media"`
-	Socials              []SocialLink `json:"socials"`
-	DomainReachable      *bool        `json:"domain_reachable"`
-	DomainCheckedAt      *time.Time   `json:"domain_checked_at"`
-	AvgRating            float64      `json:"avg_rating"`
-	ReviewCount          int          `json:"review_count"`
-	SubmitterContact     string       `json:"submitter_contact,omitempty"`
-	TotalOpens           int          `json:"total_opens,omitempty"`
-	TotalViews           int          `json:"total_views,omitempty"`
-	CreatedAt            time.Time    `json:"created_at"`
-	UpdatedAt            time.Time    `json:"updated_at"`
-	OpenURL              string       `json:"open_url"`
+	ID                   string              `json:"id"`
+	Slug                 string              `json:"slug"`
+	Name                 string              `json:"name"`
+	Domain               string              `json:"domain"`
+	Category             string              `json:"category"`
+	DeveloperSlug        string              `json:"developer_slug"`
+	DeveloperName        string              `json:"developer_name"`
+	OwnerWalletAddresses []string            `json:"owner_wallet_addresses"`
+	Tagline              string              `json:"tagline"`
+	Description          string              `json:"description"`
+	LongDescription      string              `json:"long_description"`
+	Tags                 []string            `json:"tags"`
+	Assets               []string            `json:"assets"`
+	RewardAssets         []string            `json:"reward_assets"`
+	DeclaredScopes       []string            `json:"declared_scopes"`
+	CompetitionCycle     *int                `json:"competition_cycle"`
+	CompetitionResults   []CompetitionResult `json:"competition_results"`
+	Status               string              `json:"status"`
+	ReleaseStage         string              `json:"release_stage"`
+	Featured             bool                `json:"featured"`
+	FeaturedOrder        int                 `json:"featured_order"`
+	WebsiteURL           *string             `json:"website_url"`
+	GithubURL            *string             `json:"github_url"`
+	IconURL              *string             `json:"icon_url"`
+	DiscoveredIconURL    *string             `json:"discovered_icon_url"`
+	BannerURL            *string             `json:"banner_url"`
+	Media                []MediaItem         `json:"media"`
+	Socials              []SocialLink        `json:"socials"`
+	DomainReachable      *bool               `json:"domain_reachable"`
+	DomainCheckedAt      *time.Time          `json:"domain_checked_at"`
+	AvgRating            float64             `json:"avg_rating"`
+	ReviewCount          int                 `json:"review_count"`
+	SubmitterContact     string              `json:"submitter_contact,omitempty"`
+	TotalOpens           int                 `json:"total_opens,omitempty"`
+	TotalViews           int                 `json:"total_views,omitempty"`
+	CreatedAt            time.Time           `json:"created_at"`
+	UpdatedAt            time.Time           `json:"updated_at"`
+	OpenURL              string              `json:"open_url"`
 }
 
 const appColumns = `id, slug, name, domain, category, developer_slug, developer_name, tagline,
@@ -113,23 +114,26 @@ func scanApp(row pgx.Row) (App, error) {
 	if a.OwnerWalletAddresses == nil {
 		a.OwnerWalletAddresses = []string{}
 	}
+	if a.CompetitionResults == nil {
+		a.CompetitionResults = []CompetitionResult{}
+	}
 	a.OpenURL = "https://nimpay.app/miniapps/open/" + a.Domain
 	return a, err
 }
 
 type server struct {
-	pool                   *pgxpool.Pool
-	nonces                 *nonceStore
-	walletAuthSecret       string
-	adminToken             string
-	adminWallets           map[string]struct{}
-	nimconnectServiceToken   string
-	reviewLimiter            *rateLimiter
-	statsLimiter             *rateLimiter
-	analyticsHashSecret      string
-	analyticsLimiter         *rateLimiter
-	credentialIssueLimiter   *rateLimiter
-	credentialVerifyLimiter  *rateLimiter
+	pool                    *pgxpool.Pool
+	nonces                  *nonceStore
+	walletAuthSecret        string
+	adminToken              string
+	adminWallets            map[string]struct{}
+	nimconnectServiceToken  string
+	reviewLimiter           *rateLimiter
+	statsLimiter            *rateLimiter
+	analyticsHashSecret     string
+	analyticsLimiter        *rateLimiter
+	credentialIssueLimiter  *rateLimiter
+	credentialVerifyLimiter *rateLimiter
 }
 
 // visibility filter for public endpoints
@@ -291,6 +295,10 @@ func (s *server) listApps(w http.ResponseWriter, r *http.Request) {
 		stripPrivateAppFields(&a)
 		apps = append(apps, a)
 	}
+	if err := attachCompetitionResults(r.Context(), s.pool, apps); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	if paginate {
 		writeJSON(w, http.StatusOK, paginatedApps{
 			Items:  apps,
@@ -318,7 +326,14 @@ func parseCompetitionCycleFilter(raw string) (cycle *int, withoutCycle bool, err
 }
 
 func (s *server) fetchApp(r *http.Request, slug string) (App, error) {
-	return scanApp(s.pool.QueryRow(r.Context(), "SELECT "+appColumns+" FROM apps WHERE slug=$1", slug))
+	a, err := scanApp(s.pool.QueryRow(r.Context(), "SELECT "+appColumns+" FROM apps WHERE slug=$1", slug))
+	if err != nil {
+		return a, err
+	}
+	if err := attachCompetitionResult(r.Context(), s.pool, &a); err != nil {
+		return a, err
+	}
+	return a, nil
 }
 
 func (s *server) getApp(w http.ResponseWriter, r *http.Request) {
@@ -385,6 +400,10 @@ func (s *server) getDeveloper(w http.ResponseWriter, r *http.Request) {
 		}
 		stripPrivateAppFields(&a)
 		apps = append(apps, a)
+	}
+	if err := attachCompetitionResults(r.Context(), s.pool, apps); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	if len(apps) == 0 {
 		writeError(w, http.StatusNotFound, "developer not found")
@@ -462,6 +481,10 @@ func (s *server) getRelatedApps(w http.ResponseWriter, r *http.Request) {
 		stripPrivateAppFields(&a)
 		apps = append(apps, a)
 	}
+	if err := attachCompetitionResults(r.Context(), s.pool, apps); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	writeJSON(w, http.StatusOK, apps)
 }
 
@@ -488,6 +511,10 @@ func (s *server) adminListApps(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		apps = append(apps, a)
+	}
+	if err := attachCompetitionResults(r.Context(), s.pool, apps); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	writeJSON(w, http.StatusOK, apps)
 }
@@ -527,6 +554,9 @@ func scanAdminApp(row pgx.Row) (App, error) {
 	}
 	if a.OwnerWalletAddresses == nil {
 		a.OwnerWalletAddresses = []string{}
+	}
+	if a.CompetitionResults == nil {
+		a.CompetitionResults = []CompetitionResult{}
 	}
 	a.OpenURL = "https://nimpay.app/miniapps/open/" + a.Domain
 	return a, err
@@ -580,6 +610,10 @@ func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force f
 	if a.DeclaredScopes == nil {
 		a.DeclaredScopes = []string{}
 	}
+	if a.CompetitionResults == nil {
+		a.CompetitionResults = []CompetitionResult{}
+	}
+	results := a.CompetitionResults
 	insertSQL := `
 		INSERT INTO apps (slug, name, domain, category, developer_slug, developer_name, tagline,
 			description, long_description, tags, assets, reward_assets, declared_scopes, competition_cycle, status, release_stage, featured, featured_order,
@@ -630,6 +664,14 @@ func (s *server) decodeAndInsert(w http.ResponseWriter, r *http.Request, force f
 			return
 		}
 	}
+	if err := upsertCompetitionResults(r.Context(), s.pool, a.ID, results); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := attachCompetitionResult(r.Context(), s.pool, &a); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	if a.Status == "submitted" {
 		notifySubmission(a)
 	}
@@ -675,6 +717,10 @@ func (s *server) updateApp(w http.ResponseWriter, r *http.Request) {
 	if a.DeclaredScopes == nil {
 		a.DeclaredScopes = []string{}
 	}
+	if a.CompetitionResults == nil {
+		a.CompetitionResults = []CompetitionResult{}
+	}
+	results := a.CompetitionResults
 	if err := validateApp(&a); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -705,6 +751,14 @@ func (s *server) updateApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := upsertCompetitionResults(r.Context(), s.pool, a.ID, results); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if err := attachCompetitionResult(r.Context(), s.pool, &a); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

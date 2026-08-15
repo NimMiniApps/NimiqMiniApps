@@ -120,6 +120,9 @@ const emptyForm = {
   slug: '', name: '', domain: '', category: '', developer_slug: '', developer_name: '',
   tagline: '', description: '', long_description: '', tags: '', assets: 'NIM', reward_assets: '', declared_scopes: '', status: 'submitted',
   competition_cycle: '' as number | '',
+  result_cycle: '' as number | '',
+  result_score: '' as number | '',
+  result_place: '' as number | '',
   release_stage: 'released', featured: false, featured_order: 0,
   website_url: '', github_url: '', icon_url: '', banner_url: '', media: '', socials: '',
   submitter_contact: '',
@@ -258,6 +261,8 @@ function startCreate() {
 }
 
 function startEdit(app: App) {
+  const display = (app.competition_results || []).find((r) => r.cycle === app.competition_cycle)
+    || (app.competition_results || []).slice().sort((a, b) => b.cycle - a.cycle)[0]
   Object.assign(form, {
     slug: app.slug, name: app.name, domain: app.domain, category: app.category,
     developer_slug: app.developer_slug, developer_name: app.developer_name,
@@ -265,6 +270,9 @@ function startEdit(app: App) {
     tags: app.tags.join(', '), assets: app.assets.join(', '), reward_assets: app.reward_assets.join(', '),
     declared_scopes: (app.declared_scopes || []).join(', '),
     competition_cycle: app.competition_cycle ?? '',
+    result_cycle: display?.cycle ?? app.competition_cycle ?? '',
+    result_score: display?.score ?? '',
+    result_place: display?.place ?? '',
     status: app.status, release_stage: app.release_stage, featured: app.featured,
     featured_order: app.featured_order ?? 0,
     website_url: app.website_url || '', github_url: app.github_url || '',
@@ -285,20 +293,41 @@ const csv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean)
 
 async function submit() {
   error.value = ''
+  const resultCycle = normalizeCompetitionCycle(form.result_cycle)
+  const competition_results = resultCycle == null
+    ? undefined
+    : [{
+        cycle: resultCycle,
+        score: Number(form.result_score === '' ? 0 : form.result_score),
+        place: normalizeCompetitionCycle(form.result_place),
+      }]
   const payload = {
-    ...form,
+    slug: form.slug,
+    name: form.name,
     domain: normalizeDomain(form.domain),
+    category: form.category,
+    developer_slug: form.developer_slug,
+    developer_name: form.developer_name,
+    tagline: form.tagline,
+    description: form.description,
+    long_description: form.long_description,
     tags: csv(form.tags),
     assets: csv(form.assets),
     reward_assets: csv(form.reward_assets),
     declared_scopes: csv(form.declared_scopes),
     competition_cycle: normalizeCompetitionCycle(form.competition_cycle),
+    ...(competition_results ? { competition_results } : {}),
+    status: form.status,
+    release_stage: form.release_stage,
+    featured: form.featured,
+    featured_order: form.featured_order,
     media: parseMediaLines(form.media),
     socials: parseSocialLines(form.socials),
     website_url: form.website_url || null,
     github_url: form.github_url || null,
     icon_url: form.icon_url || null,
     banner_url: form.banner_url || null,
+    submitter_contact: form.submitter_contact,
   }
   try {
     if (editingSlug.value) {
@@ -637,6 +666,42 @@ const fields: [keyof typeof emptyForm, string, boolean, string?][] = [
           />
           <span class="mt-1 block text-xs text-muted">Positive cycle number; leave empty for regular catalog apps.</span>
         </label>
+        <div class="sm:col-span-2 grid gap-3 sm:grid-cols-3">
+          <label class="text-sm">
+            <span class="mb-1 block text-muted">Result cycle</span>
+            <input
+              v-model.number="form.result_cycle"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="e.g. 1"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none placeholder:text-muted/60 focus:border-accent"
+            />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block text-muted">Score</span>
+            <input
+              v-model.number="form.result_score"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="0"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none placeholder:text-muted/60 focus:border-accent"
+            />
+          </label>
+          <label class="text-sm">
+            <span class="mb-1 block text-muted">Place</span>
+            <input
+              v-model.number="form.result_place"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="Optional"
+              class="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 outline-none placeholder:text-muted/60 focus:border-accent"
+            />
+          </label>
+          <p class="sm:col-span-3 text-xs text-muted">Upserts one cycle result. Leave result cycle empty to skip. Score 0 is the placeholder until official totals exist.</p>
+        </div>
         <label class="flex items-end gap-2 pb-2 text-sm">
           <input v-model="form.featured" type="checkbox" class="h-4 w-4 accent-[#1F74FF]" />
           Featured

@@ -11,6 +11,12 @@ export interface SocialLink {
   url: string
 }
 
+export interface CompetitionResult {
+  cycle: number
+  score: number
+  place: number | null
+}
+
 export interface App {
   id: string
   slug: string
@@ -28,6 +34,7 @@ export interface App {
   reward_assets: string[]
   declared_scopes: string[]
   competition_cycle: number | null
+  competition_results: CompetitionResult[]
   status: string
   release_stage: string
   featured: boolean
@@ -159,6 +166,7 @@ function normalizeApp(raw: RawApp): App {
     assets: raw.assets ?? [],
     reward_assets: raw.reward_assets ?? [],
     competition_cycle: raw.competition_cycle ?? null,
+    competition_results: raw.competition_results ?? [],
     media,
     socials: raw.socials ?? [],
   }

@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { CATALOG_ISSUES_URL, CATALOG_REPO_URL, COMPETITION_SKOOL_URL, COMPETITION_URL } from '../utils/catalogLinks'
+import {
+  CATALOG_ISSUES_URL,
+  CATALOG_REPO_URL,
+  COMPETITION_CYCLE1_WINNERS_URL,
+  COMPETITION_SKOOL_URL,
+  COMPETITION_URL,
+} from '../utils/catalogLinks'
 
 const designResources = [
   {
@@ -77,32 +83,58 @@ const examples = [
 
     <section class="relative overflow-hidden rounded-3xl border border-amber-500/35 bg-gradient-to-br from-amber-500/15 via-surface to-surface p-6 shadow-sm md:p-8">
       <p class="text-sm font-bold uppercase tracking-widest text-amber-800 dark:text-amber-200">Mini Apps Competition</p>
-      <h2 class="mt-2 text-2xl font-extrabold md:text-3xl">Build, compete, win prizes</h2>
+      <h2 class="mt-2 text-2xl font-extrabold md:text-3xl">Cycle 1 is in the books</h2>
       <p class="mt-3 max-w-2xl text-muted">
-        The Nimiq Mini Apps Competition runs in cycles with
-        <strong class="font-semibold text-ink">$17,000 USDT</strong> in prizes per cycle
-        ($10k / $5k / $2k for the top three). Ship a mini app with wallet or payment features,
-        get scored on design, functionality, and originality — then list it here when it is ready.
+        62 Mini Apps submitted, scored by the Nimiq Community Council. Results are final.
+        Winners keep their work under MIT; prizes are arranged directly with the podium.
       </p>
-      <ul class="mt-4 grid gap-2 text-sm text-muted sm:grid-cols-2">
-        <li class="flex gap-2"><span class="text-amber-600 dark:text-amber-300" aria-hidden="true">→</span> Open globally (18+, public GitHub, Nimiq wallet)</li>
-        <li class="flex gap-2"><span class="text-amber-600 dark:text-amber-300" aria-hidden="true">→</span> Teams up to 5 — games, tools, social apps welcome</li>
-        <li class="flex gap-2"><span class="text-amber-600 dark:text-amber-300" aria-hidden="true">→</span> AI-assisted builds OK (Cursor, Copilot, etc.)</li>
-        <li class="flex gap-2"><span class="text-amber-600 dark:text-amber-300" aria-hidden="true">→</span> Skool community for feedback, co-founders, live calls</li>
-      </ul>
-      <div class="mt-6 flex flex-wrap gap-3">
-        <a :href="COMPETITION_URL" target="_blank" rel="noopener"
-          class="cursor-pointer board-plate board-plate-primary px-6 py-3 text-sm">
-          Register &amp; rules
-        </a>
-        <a :href="COMPETITION_SKOOL_URL" target="_blank" rel="noopener"
-          class="cursor-pointer board-plate board-plate-ghost px-6 py-3 text-sm">
-          Join Skool community
-        </a>
-        <RouterLink to="/submit"
-          class="cursor-pointer rounded-xl border border-amber-500/40 bg-amber-500/10 px-6 py-3 font-bold text-amber-900 transition-colors duration-200 hover:bg-amber-500/20 dark:text-amber-100">
-          Submit to directory
-        </RouterLink>
+
+      <ol class="mt-5 space-y-3 text-sm">
+        <li class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span class="font-extrabold text-ink">1st</span>
+          <RouterLink to="/apps/nimiq-space" class="font-bold text-accent-ink hover:underline">Nimiq Space</RouterLink>
+          <span class="text-muted">— open multiplayer world with live rooms and a persistent collaborative floor</span>
+        </li>
+        <li class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span class="font-extrabold text-ink">2nd</span>
+          <RouterLink to="/apps/nimjump" class="font-bold text-accent-ink hover:underline">NimJump</RouterLink>
+          <span class="text-muted">— arcade run with server-side replay instead of client-trusted scores</span>
+        </li>
+        <li class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <span class="font-extrabold text-ink">3rd</span>
+          <RouterLink to="/apps/nimquest" class="font-bold text-accent-ink hover:underline">NimQuest</RouterLink>
+          <span class="text-muted">— learn-and-prove quizzes with wallet-signed completion</span>
+        </li>
+      </ol>
+
+      <p class="mt-4 text-sm text-muted">
+        Full write-up on the
+        <a :href="COMPETITION_CYCLE1_WINNERS_URL" target="_blank" rel="noopener" class="font-semibold text-accent-ink hover:underline">Nimiq blog</a>.
+        Catalog apps show Cycle scores (0 until official totals are published).
+      </p>
+
+      <div class="mt-8 border-t border-amber-500/25 pt-6">
+        <h3 class="text-lg font-extrabold">Cycle 2 opens August 24</h3>
+        <p class="mt-2 max-w-2xl text-muted">
+          Same <strong class="font-semibold text-ink">$17,000 USDT</strong> prize pool
+          ($10k / $5k / $2k). Four Sip &amp; Ship calls. Submissions close
+          <strong class="font-semibold text-ink">September 18 at 23:59 UTC</strong>.
+          Non-winners can refine and resubmit; prize-winning apps cannot be resubmitted as the same entry.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a :href="COMPETITION_URL" target="_blank" rel="noopener"
+            class="cursor-pointer board-plate board-plate-primary px-6 py-3 text-sm">
+            Register &amp; rules
+          </a>
+          <a :href="COMPETITION_SKOOL_URL" target="_blank" rel="noopener"
+            class="cursor-pointer board-plate board-plate-ghost px-6 py-3 text-sm">
+            Join Skool community
+          </a>
+          <RouterLink to="/submit"
+            class="cursor-pointer rounded-xl border border-amber-500/40 bg-amber-500/10 px-6 py-3 font-bold text-amber-900 transition-colors duration-200 hover:bg-amber-500/20 dark:text-amber-100">
+            Submit to directory
+          </RouterLink>
+        </div>
       </div>
     </section>
 

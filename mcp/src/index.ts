@@ -55,6 +55,18 @@ const appFields = {
   competition_cycle: z.number().int().positive().nullable().optional().describe(
     'Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry.',
   ),
+  competition_results: z
+    .array(
+      z.object({
+        cycle: z.number().int().positive(),
+        score: z.number().int().min(0),
+        place: z.number().int().positive().nullable().optional(),
+      }),
+    )
+    .optional()
+    .describe(
+      'Per-cycle scores and places. Admin upsert by cycle; use score 0 until official totals exist. Public submit ignores this.',
+    ),
   status: statuses.optional(),
   release_stage: releaseStages.optional(),
   featured: z.boolean().optional(),

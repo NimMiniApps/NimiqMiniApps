@@ -36,6 +36,16 @@ func TestOpenAPIEmbeddedJSON(t *testing.T) {
 			t.Errorf("expected declared_scopes in %s", schemaName)
 		}
 	}
+	for _, schemaName := range []string{"AppInput", "AppPublic"} {
+		schema := schemas[schemaName].(map[string]any)
+		properties := schema["properties"].(map[string]any)
+		if properties["competition_results"] == nil {
+			t.Errorf("expected competition_results in %s", schemaName)
+		}
+	}
+	if schemas["CompetitionResult"] == nil {
+		t.Fatal("expected CompetitionResult schema")
+	}
 	if paths["/api/apps/{slug}/client"] == nil {
 		t.Fatal("expected /api/apps/{slug}/client in paths")
 	}

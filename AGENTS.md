@@ -28,6 +28,7 @@ Source of truth in git: `docs/openapi.yaml`
 - **Reward assets** — optional subset of assets users can actually receive from the app, e.g. `["NIM"]` or `["USDT"]`. Use this only for rewards, payouts, prizes, tips, faucets, or similar receive-side flows. Omit or use `[]` when the app merely accepts, displays, swaps, or otherwise supports a token.
 - **Declared scopes** — optional NimConnect scopes this app may request, e.g. `["friends:read"]` (`name:action`, lowercase). Empty/`[]` means no scopes. Listed apps change scopes only via revision review (or admin update).
 - **Competition cycle** — optional positive integer for Nimiq Mini Apps competition entries, e.g. `1`. Omit or use `null` for apps outside the competition.
+- **Competition results** — admin-only on create/update: `competition_results: [{ cycle, score, place? }]`. Upserts by cycle; public payloads include the array (score may be `0` until official totals). Public submit ignores scores/places.
 - Assemble the **full payload once**; do not spam retries (rate limit below)
 
 ### 3. Submit

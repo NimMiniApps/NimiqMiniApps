@@ -1405,6 +1405,24 @@ components:
           type: string
           format: uri
 
+    CompetitionResult:
+      type: object
+      required: [cycle, score]
+      properties:
+        cycle:
+          type: integer
+          minimum: 1
+          description: Competition cycle number
+        score:
+          type: integer
+          minimum: 0
+          description: Official council score for this cycle. Use 0 as a placeholder until published.
+        place:
+          type: integer
+          minimum: 1
+          nullable: true
+          description: Podium place (1–3) when awarded; null otherwise
+
     AppInput:
       type: object
       required:
@@ -1462,6 +1480,11 @@ components:
           minimum: 1
           nullable: true
           description: Nimiq Mini Apps competition cycle. Null or omitted means this is not a competition entry.
+        competition_results:
+          type: array
+          description: Per-cycle scores and places. Admin create/update upserts by cycle; omitted cycles are left unchanged. Public submit ignores this field.
+          items:
+            $ref: '#/components/schemas/CompetitionResult'
         status:
           $ref: '#/components/schemas/AppStatus'
         release_stage:
@@ -1640,6 +1663,11 @@ components:
           minimum: 1
           nullable: true
           description: Nimiq Mini Apps competition cycle. Null means this is not a competition entry.
+        competition_results:
+          type: array
+          description: Scored history per competition cycle (score may be 0 until official totals are published).
+          items:
+            $ref: '#/components/schemas/CompetitionResult'
         status:
           $ref: '#/components/schemas/AppStatus'
         release_stage:

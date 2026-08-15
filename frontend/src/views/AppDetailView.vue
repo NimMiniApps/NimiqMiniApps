@@ -204,12 +204,28 @@ onUnmounted(resetPageMeta)
           <h1 class="text-2xl font-extrabold">{{ app.name }}</h1>
           <ReleaseStageBadge v-if="app.release_stage !== 'released'" :stage="app.release_stage" />
           <StatusBadge :status="app.status" />
-          <CompetitionCycleBadge v-if="app.competition_cycle" :cycle="app.competition_cycle" />
+          <CompetitionCycleBadge
+            v-if="app.competition_cycle || app.competition_results?.length"
+            :cycle="app.competition_cycle"
+            :results="app.competition_results"
+          />
           <RewardBadge :assets="app.reward_assets" />
           <HostedByBadge :domain="app.domain" />
           <DomainStatus v-if="app.domain_reachable === false" :reachable="app.domain_reachable" />
         </div>
         <p class="text-muted">{{ app.tagline }}</p>
+        <ul
+          v-if="app.competition_results?.length > 1"
+          class="mt-2 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-wide text-muted"
+        >
+          <li
+            v-for="row in app.competition_results"
+            :key="row.cycle"
+            class="rounded-[3px] border border-board-hairline bg-board-flap px-2 py-0.5 text-board-flap-ink"
+          >
+            Cycle {{ row.cycle }} · {{ row.score }}<template v-if="row.place"> · {{ row.place === 1 ? '1st' : row.place === 2 ? '2nd' : row.place === 3 ? '3rd' : `#${row.place}` }}</template>
+          </li>
+        </ul>
         <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
           <RouterLink :to="`/apps?developer=${encodeURIComponent(app.developer_slug)}`" class="text-accent-ink-dark hover:underline dark:text-accent-ink">
             {{ t('common.by') }} {{ app.developer_name }}

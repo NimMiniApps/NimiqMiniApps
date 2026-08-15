@@ -171,6 +171,17 @@ func (s *server) myApps(w http.ResponseWriter, r *http.Request, address string) 
 		}
 		items = append(items, myApp{App: a, HasPendingRevision: pending})
 	}
+	apps := make([]App, len(items))
+	for i := range items {
+		apps[i] = items[i].App
+	}
+	if err := attachCompetitionResults(r.Context(), s.pool, apps); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	for i := range items {
+		items[i].App = apps[i]
+	}
 	writeJSON(w, http.StatusOK, items)
 }
 

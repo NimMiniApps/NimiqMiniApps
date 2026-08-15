@@ -46,7 +46,7 @@ LAN, and API examples.
 
 ## How it works
 
-- **Browse** — search, filter by category, rewards, or competition cycle, and view app details in a video-first media gallery with full-screen screenshots. Competition entries carry a public `Cycle N` badge. Home highlights featured picks, trending (most viewed in the last 7 days), and curated collections. Every
+- **Browse** — search, filter by category, rewards, or competition cycle, and view app details in a video-first media gallery with full-screen screenshots. Competition entries show a public `Cycle N · score` badge (and place when awarded). Home highlights featured picks, trending (most viewed in the last 7 days), and curated collections. Every
   app gets an `Open in Nimiq Pay` link of the form `https://nimpay.app/miniapps/open/<domain>`;
   desktop visitors can also open the app's website directly in their browser.
   When an app’s first owner has a claimed NimConnect `@handle`, app detail and developer
@@ -62,7 +62,7 @@ LAN, and API examples.
 ## API
 
 Public: `GET /api/apps` (with `q`, `category`, `status`, `featured`, `sort`, `rewards`, `collection`, `competition_cycle`),
-`GET /api/apps/{slug}`, `POST /api/apps/{slug}/track` (legacy open/view beacons), `POST /api/analytics/events` (privacy-minimal funnel events),
+`GET /api/apps/{slug}` (includes `competition_results` per cycle), `POST /api/apps/{slug}/track` (legacy open/view beacons), `POST /api/analytics/events` (privacy-minimal funnel events),
 `GET /api/categories`, `GET /api/developers/{slug}`,
 `POST /api/apps/submit`, `GET /health`, `GET /openapi.json`.
 
