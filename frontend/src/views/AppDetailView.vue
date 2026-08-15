@@ -221,9 +221,21 @@ onUnmounted(resetPageMeta)
           <li
             v-for="row in app.competition_results"
             :key="row.cycle"
-            class="rounded-[3px] border border-board-hairline bg-board-flap px-2 py-0.5 text-board-flap-ink"
+            class="rounded-[3px] border px-2 py-0.5"
+            :class="row.place === 1
+              ? 'border-amber-500/70 bg-gradient-to-b from-amber-300 to-amber-500 text-amber-950'
+              : row.place === 2
+                ? 'border-slate-400/80 bg-gradient-to-b from-slate-100 to-slate-300 text-slate-900'
+                : row.place === 3
+                  ? 'border-orange-700/60 bg-gradient-to-b from-orange-300 to-orange-600 text-orange-950'
+                  : 'border-board-hairline bg-board-flap text-board-flap-ink'"
           >
-            Cycle {{ row.cycle }} · {{ row.score }}<template v-if="row.place"> · {{ row.place === 1 ? '1st' : row.place === 2 ? '2nd' : row.place === 3 ? '3rd' : `#${row.place}` }}</template>
+            <template v-if="row.place === 1 || row.place === 2 || row.place === 3">
+              {{ row.place === 1 ? '1st' : row.place === 2 ? '2nd' : '3rd' }} place · Cycle {{ row.cycle }}
+            </template>
+            <template v-else>
+              Cycle {{ row.cycle }} · {{ row.score }}
+            </template>
           </li>
         </ul>
         <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">

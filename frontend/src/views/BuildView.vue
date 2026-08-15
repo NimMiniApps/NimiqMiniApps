@@ -90,18 +90,27 @@ const examples = [
       </p>
 
       <ol class="mt-5 space-y-3 text-sm">
-        <li class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span class="font-extrabold text-ink">1st</span>
+        <li class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="inline-flex items-center gap-1 rounded-[3px] border border-amber-500/70 bg-gradient-to-b from-amber-300 to-amber-500 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-amber-950">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.5 1.5h7v1.2h1.3A1.7 1.7 0 0 1 14.5 4.4c0 2.2-1.5 3.6-3.4 4.1-.4 1-.9 1.6-1.6 2v1.5h2.2v1.5H4.3V11.9h2.2V10.4c-.7-.4-1.2-1-1.6-2C2.9 8 1.5 6.6 1.5 4.4A1.7 1.7 0 0 1 3.2 2.7h1.3V1.5Zm1.5 1.2v1.2H10V2.7H6Zm-2.8 2.9c0 1.3.8 2.2 2 2.6V5.6H3.2Zm9.6 0H9.8v2.6c1.2-.4 2-1.3 2-2.6Z" /></svg>
+            1st place
+          </span>
           <RouterLink to="/apps/nimiq-space" class="font-bold text-accent-ink hover:underline">Nimiq Space</RouterLink>
           <span class="text-muted">— open multiplayer world with live rooms and a persistent collaborative floor</span>
         </li>
-        <li class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span class="font-extrabold text-ink">2nd</span>
+        <li class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="inline-flex items-center gap-1 rounded-[3px] border border-slate-400/80 bg-gradient-to-b from-slate-100 to-slate-300 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-slate-900">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.5 1.5h7v1.2h1.3A1.7 1.7 0 0 1 14.5 4.4c0 2.2-1.5 3.6-3.4 4.1-.4 1-.9 1.6-1.6 2v1.5h2.2v1.5H4.3V11.9h2.2V10.4c-.7-.4-1.2-1-1.6-2C2.9 8 1.5 6.6 1.5 4.4A1.7 1.7 0 0 1 3.2 2.7h1.3V1.5Zm1.5 1.2v1.2H10V2.7H6Zm-2.8 2.9c0 1.3.8 2.2 2 2.6V5.6H3.2Zm9.6 0H9.8v2.6c1.2-.4 2-1.3 2-2.6Z" /></svg>
+            2nd place
+          </span>
           <RouterLink to="/apps/nimjump" class="font-bold text-accent-ink hover:underline">NimJump</RouterLink>
           <span class="text-muted">— arcade run with server-side replay instead of client-trusted scores</span>
         </li>
-        <li class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          <span class="font-extrabold text-ink">3rd</span>
+        <li class="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="inline-flex items-center gap-1 rounded-[3px] border border-orange-700/60 bg-gradient-to-b from-orange-300 to-orange-600 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-orange-950">
+            <svg class="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.5 1.5h7v1.2h1.3A1.7 1.7 0 0 1 14.5 4.4c0 2.2-1.5 3.6-3.4 4.1-.4 1-.9 1.6-1.6 2v1.5h2.2v1.5H4.3V11.9h2.2V10.4c-.7-.4-1.2-1-1.6-2C2.9 8 1.5 6.6 1.5 4.4A1.7 1.7 0 0 1 3.2 2.7h1.3V1.5Zm1.5 1.2v1.2H10V2.7H6Zm-2.8 2.9c0 1.3.8 2.2 2 2.6V5.6H3.2Zm9.6 0H9.8v2.6c1.2-.4 2-1.3 2-2.6Z" /></svg>
+            3rd place
+          </span>
           <RouterLink to="/apps/nimquest" class="font-bold text-accent-ink hover:underline">NimQuest</RouterLink>
           <span class="text-muted">— learn-and-prove quizzes with wallet-signed completion</span>
         </li>

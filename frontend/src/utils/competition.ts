@@ -41,11 +41,23 @@ export function displayCompetitionResult(app: CompetitionEntry): CompetitionResu
   return results.reduce((best, row) => (row.cycle > best.cycle ? row : best))
 }
 
+export function competitionPlaceLabel(place: number | null | undefined): string {
+  if (place == null) return ''
+  if (place === 1) return '1st'
+  if (place === 2) return '2nd'
+  if (place === 3) return '3rd'
+  return `#${place}`
+}
+
+export function isPodiumPlace(place: number | null | undefined): place is 1 | 2 | 3 {
+  return place === 1 || place === 2 || place === 3
+}
+
 export function competitionResultLabel(result: CompetitionResult | null | undefined): string {
   if (!result) return ''
-  const base = `${competitionCycleLabel(result.cycle)} · ${result.score}`
-  if (result.place == null) return base
-  const place =
-    result.place === 1 ? '1st' : result.place === 2 ? '2nd' : result.place === 3 ? '3rd' : `#${result.place}`
-  return `${base} · ${place}`
+  const place = competitionPlaceLabel(result.place)
+  if (isPodiumPlace(result.place)) {
+    return `${place} place · ${competitionCycleLabel(result.cycle)}`
+  }
+  return `${competitionCycleLabel(result.cycle)} · ${result.score}`
 }

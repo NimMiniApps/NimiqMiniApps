@@ -60,8 +60,8 @@ describe('competition cycle helpers', () => {
 
   it('formats result labels with optional place', () => {
     expect(competitionResultLabel({ cycle: 1, score: 0, place: null })).toBe('Cycle 1 · 0')
-    expect(competitionResultLabel({ cycle: 1, score: 0, place: 1 })).toBe('Cycle 1 · 0 · 1st')
-    expect(competitionResultLabel({ cycle: 1, score: 0, place: 2 })).toBe('Cycle 1 · 0 · 2nd')
-    expect(competitionResultLabel({ cycle: 1, score: 0, place: 3 })).toBe('Cycle 1 · 0 · 3rd')
+    expect(competitionResultLabel({ cycle: 1, score: 0, place: 1 })).toBe('1st place · Cycle 1')
+    expect(competitionResultLabel({ cycle: 1, score: 0, place: 2 })).toBe('2nd place · Cycle 1')
+    expect(competitionResultLabel({ cycle: 1, score: 0, place: 3 })).toBe('3rd place · Cycle 1')
   })
 })
